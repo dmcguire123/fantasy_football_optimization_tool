@@ -35,8 +35,12 @@ lineup, flag the ones their team can spare, and suggest what to send back.
 ### 1. Install
 
 ```bash
-pip install -r requirements.txt
+uv venv
+uv pip install -r requirements.txt
 ```
+
+Run commands below with `uv run --no-project python -m ffopt ...`, or activate the
+environment once with `source .venv/bin/activate` and use `python -m ffopt ...`.
 
 ### 2. Tell it about your league
 
@@ -149,7 +153,7 @@ Served alongside the UI. Interactive docs are at `/docs`.
 ## Tests
 
 ```bash
-python -m pytest
+uv run --no-project python -m pytest
 ```
 
 The whole suite runs against a synthetic league served by a mock HTTP
