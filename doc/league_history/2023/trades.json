@@ -1,0 +1,292 @@
+[
+  {
+    "date": "2023-09-14T07:23:57Z",
+    "message_id": "18a929341d8756ea",
+    "side_a": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "B. Robinson",
+          "position": "RB",
+          "nfl_team": "WAS"
+        }
+      ],
+      "gives_raw": "B. RobinsonRB - WAS"
+    },
+    "side_b": {
+      "team": "MikeyDollars",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "J. Gibbs",
+          "position": "RB",
+          "nfl_team": "DET"
+        }
+      ],
+      "gives_raw": "J. GibbsRB - DET"
+    }
+  },
+  {
+    "date": "2023-09-15T07:14:39Z",
+    "message_id": "18a97b116c35aec1",
+    "side_a": {
+      "team": "Burton is a ...",
+      "team_id": 2,
+      "owner_name": "zachary",
+      "gives": [
+        {
+          "name": "K. Walker",
+          "position": "RB",
+          "nfl_team": "SEA"
+        }
+      ],
+      "gives_raw": "K. WalkerRB - SEA"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "J. Waddle",
+          "position": "WR",
+          "nfl_team": "MIA"
+        }
+      ],
+      "gives_raw": "J. WaddleWR - MIA"
+    }
+  },
+  {
+    "date": "2023-09-15T07:14:40Z",
+    "message_id": "18a97b1198afe61b",
+    "side_a": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "J. Smith-Schuster",
+          "position": "WR",
+          "nfl_team": "NE"
+        },
+        {
+          "name": "R. White",
+          "position": "RB",
+          "nfl_team": "TB"
+        }
+      ],
+      "gives_raw": "J. Smith-SchusterWR - NER. WhiteRB - TB"
+    },
+    "side_b": {
+      "team": "Put the Kittle On",
+      "team_id": 10,
+      "owner_name": "David",
+      "gives": [
+        {
+          "name": "C. Godwin",
+          "position": "WR",
+          "nfl_team": "TB"
+        },
+        {
+          "name": "Z. Moss",
+          "position": "RB",
+          "nfl_team": "IND"
+        }
+      ],
+      "gives_raw": "C. GodwinWR - TBZ. MossRB - IND"
+    }
+  },
+  {
+    "date": "2023-09-19T07:14:37Z",
+    "message_id": "18aac4a8258406c6",
+    "side_a": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "D. Hopkins",
+          "position": "WR",
+          "nfl_team": "TEN"
+        }
+      ],
+      "gives_raw": "D. HopkinsWR - TEN"
+    },
+    "side_b": {
+      "team": "Put the Kittle On",
+      "team_id": 10,
+      "owner_name": "David",
+      "gives": [
+        {
+          "name": "J. Jeudy",
+          "position": "WR",
+          "nfl_team": "DEN"
+        }
+      ],
+      "gives_raw": "J. JeudyWR - DEN"
+    }
+  },
+  {
+    "date": "2023-10-11T14:32:39Z",
+    "message_id": "18b1f277386c44dc",
+    "side_a": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "G. Davis",
+          "position": "WR",
+          "nfl_team": "BUF"
+        },
+        {
+          "name": "K. Gainwell",
+          "position": "RB",
+          "nfl_team": "PHI"
+        }
+      ],
+      "gives_raw": "G. DavisWR - BUFK. GainwellRB - PHI"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "P. Steelers",
+          "position": "DEF",
+          "nfl_team": "PIT"
+        },
+        {
+          "name": "C. Godwin",
+          "position": "WR",
+          "nfl_team": "TB"
+        }
+      ],
+      "gives_raw": "P. SteelersDEF - PITC. GodwinWR - TB"
+    }
+  },
+  {
+    "date": "2023-10-13T16:44:57Z",
+    "message_id": "18b29ed46e1a3218",
+    "side_a": {
+      "team": "Kill Bills",
+      "team_id": 3,
+      "owner_name": "Sean",
+      "gives": [
+        {
+          "name": "C. Sutton",
+          "position": "WR",
+          "nfl_team": "DEN"
+        },
+        {
+          "name": "T. Atwell",
+          "position": "WR",
+          "nfl_team": "LA"
+        },
+        {
+          "name": "N. Harris",
+          "position": "RB",
+          "nfl_team": "PIT"
+        }
+      ],
+      "gives_raw": "C. SuttonWR - DENT. AtwellWR - LAN. HarrisRB - PIT"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "R. Stevenson",
+          "position": "RB",
+          "nfl_team": "NE"
+        }
+      ],
+      "gives_raw": "R. StevensonRB - NE"
+    }
+  },
+  {
+    "date": "2023-11-08T08:41:39Z",
+    "message_id": "18bae18243ef843b",
+    "side_a": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "T. Hill",
+          "position": "WR",
+          "nfl_team": "MIA"
+        },
+        {
+          "name": "G. Davis",
+          "position": "WR",
+          "nfl_team": "BUF"
+        }
+      ],
+      "gives_raw": "T. HillWR - MIAG. DavisWR - BUF"
+    },
+    "side_b": {
+      "team": "Kill Bills",
+      "team_id": 3,
+      "owner_name": "Sean",
+      "gives": [
+        {
+          "name": "K. Chiefs",
+          "position": "DEF",
+          "nfl_team": "KC"
+        },
+        {
+          "name": "M. Evans",
+          "position": "WR",
+          "nfl_team": "TB"
+        },
+        {
+          "name": "D. Njoku",
+          "position": "TE",
+          "nfl_team": "CLE"
+        },
+        {
+          "name": "A. Mattison",
+          "position": "RB",
+          "nfl_team": "MIN"
+        }
+      ],
+      "gives_raw": "K. ChiefsDEF - KCM. EvansWR - TBD. NjokuTE - CLEA. MattisonRB - MIN"
+    }
+  },
+  {
+    "date": "2023-11-15T17:22:24Z",
+    "message_id": "18bd4016d1202f04",
+    "side_a": {
+      "team": "Brooklyn Buckeens",
+      "team_id": 1,
+      "owner_name": "Luke",
+      "gives": [
+        {
+          "name": "S. Howell",
+          "position": "QB",
+          "nfl_team": "WAS"
+        }
+      ],
+      "gives_raw": "S. HowellQB - WAS"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "D. Njoku",
+          "position": "TE",
+          "nfl_team": "CLE"
+        }
+      ],
+      "gives_raw": "D. NjokuTE - CLE"
+    }
+  }
+]

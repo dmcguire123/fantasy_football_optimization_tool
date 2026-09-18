@@ -1,0 +1,75 @@
+{
+  "description": "Post-draft recaps ('Who Won Your Draft?') and draft-time reminders from no-reply@nflhelp.com, for the recipient's team 'Put the Kittle On' only. NFL.com did not email the full pick list, so these carry the grade, projections, draft slot and NFL.com's written summary. 'scheduled' comes from the 'Live Draft is Tomorrow' reminder (Eastern time). The 2025 draft time is in that season's league.json (from the API); no 2025 reminder email was found.",
+  "league_id": "9072865",
+  "team": "Put the Kittle On",
+  "excluded": [
+    {
+      "message_id": "182ecc521dd17e5b",
+      "date": "2022-08-30T03:21:57Z",
+      "reason": "Recap for a different league (NFL-Managed 10953695, team 'David'), not WBA Fantasy Classic"
+    }
+  ],
+  "recaps": [
+    {
+      "season": 2020,
+      "message_id": "1746fd62af2216da",
+      "scheduled": "Sep 8, 2020 (draft was automatically rescheduled by NFL.com; time cut off in the email preview)",
+      "grade": null,
+      "note": "Only a 'draft rescheduled' notice exists for 2020, no recap email."
+    },
+    {
+      "season": 2021,
+      "message_id": "17b98e04ef0b41f8",
+      "scheduled": "Aug 30, 2021 4:00pm EDT",
+      "grade": "C+",
+      "projected_record": "6-9",
+      "projected_finish": "T7",
+      "headline": "Dalvin Cook Will Anchor Put the Kittle On",
+      "summary": "Put the Kittle On will have a great opportunity to prove the prognosticators wrong after being expected to finish seventh in WBA Fantasy Classic. They have five wide receivers to turn to, but they are unlikely to carry the team to victory. They're projected to average 184.26 points this season, less than the league average of 216.14. Not surprisingly, Put the Kittle On landed a foursome of wide receivers with plenty of room to grow."
+    },
+    {
+      "season": 2022,
+      "message_id": "182edeb879a1feda",
+      "scheduled": "Aug 28, 2022 5:00pm EDT",
+      "grade": "B",
+      "projected_record": "8-7",
+      "projected_finish": "7",
+      "draft_slot": "5th overall pick",
+      "headline": "After a Few Shrewd Picks, Put the Kittle On Hopes to Fight Hard",
+      "summary": "Put the Kittle On had the fifth overall pick in the draft, putting together a roster that is poised to surprise. They focused on balance early, picking up a quarterback, running back, wide receiver, and tight end within their first five picks. By draft's end, Put the Kittle On secured a quartet of running backs with the most room for improvement."
+    },
+    {
+      "season": 2023,
+      "message_id": "18a389ce3a098eff",
+      "scheduled": "Aug 27, 2023 3:00pm EDT",
+      "grade": "A",
+      "projected_record": "12-3",
+      "projected_finish": "T1",
+      "draft_slot": "3rd slot",
+      "headline": "Targeting a First Place Finish, Put the Kittle On Racks Up Receivers",
+      "summary": "After landing the third slot in the draft, Put the Kittle On assembled a roster that will cause plenty of trouble for their opponents this season. They grabbed wide receivers early, using three of their first four picks to address that position. In conjunction with that drafting strategy, Put the Kittle On ended up with the top quartet of wide receivers in the league."
+    },
+    {
+      "season": 2024,
+      "message_id": "191af3fee49f1237",
+      "scheduled": "Sep 1, 2024 12:00pm EDT",
+      "grade": "B+",
+      "projected_record": "12-2-1",
+      "projected_finish": "3",
+      "draft_slot": "5th slot",
+      "headline": "With a Good Collection of Running Backs, Put the Kittle On Should Stake a Claim for the League's Top Spot",
+      "summary": "After a strong showing from the fifth draft slot, Put the Kittle On is a team to keep an eye on, assembling a roster that has the ability to reach the postseason. They jumped on ball-carriers early, using three of their first four picks to acquire running backs. Corresponding with that strategy, Put the Kittle On landed the best quartet of running backs in the league."
+    },
+    {
+      "season": 2025,
+      "message_id": "19900eafacadef4b",
+      "scheduled": null,
+      "grade": "C",
+      "projected_record": "2-13",
+      "projected_finish": "11",
+      "draft_slot": "8th in the opening round",
+      "headline": "With a Stellar Cartel of Wideouts, Put the Kittle On Expects to Go Above and Beyond the Competition",
+      "summary": "After drafting eighth in the opening round, Put the Kittle On will look to outperform their post-draft prognostication. They must see a lot of potential in wide receivers, as they used their first three selections to address that position. That early positional investment helped to yield the top foursome of wide receivers in the league."
+    }
+  ]
+}

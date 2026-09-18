@@ -1,0 +1,82 @@
+[
+  {
+    "team_id": 1,
+    "name": "Brooklyn Buckeens",
+    "adds": 32,
+    "trades": 1,
+    "waiver_priority": 8,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 2,
+    "name": "Gronky Kongs",
+    "adds": 7,
+    "trades": 0,
+    "waiver_priority": 4,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 3,
+    "name": "Kill Bills",
+    "adds": 56,
+    "trades": 2,
+    "waiver_priority": 6,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 4,
+    "name": "Carole Baskin 69",
+    "adds": 7,
+    "trades": 3,
+    "waiver_priority": 2,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 5,
+    "name": "Ted Guinness Jr",
+    "adds": 45,
+    "trades": 2,
+    "waiver_priority": 7,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 6,
+    "name": "Dublin Bay Buccaneers",
+    "adds": 28,
+    "trades": 2,
+    "waiver_priority": 10,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 7,
+    "name": "Gobble Hill Grizzlies",
+    "adds": 23,
+    "trades": 1,
+    "waiver_priority": 1,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 8,
+    "name": "MikeyDimes",
+    "adds": 22,
+    "trades": 1,
+    "waiver_priority": 3,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 9,
+    "name": "King Quon",
+    "adds": 10,
+    "trades": 1,
+    "waiver_priority": 9,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 10,
+    "name": "Put the Kittle On",
+    "adds": 26,
+    "trades": 1,
+    "waiver_priority": 5,
+    "waiver_budget_remaining": null
+  }
+]

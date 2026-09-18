@@ -1,0 +1,17 @@
+{
+  "season": 2023,
+  "message_id": "18a389ce3a098eff",
+  "scheduled": "Aug 27, 2023 3:00pm EDT",
+  "grade": "A",
+  "projected_record": "12-3",
+  "projected_finish": "T1",
+  "draft_slot": "3rd slot",
+  "headline": "Targeting a First Place Finish, Put the Kittle On Racks Up Receivers",
+  "summary": "After landing the third slot in the draft, Put the Kittle On assembled a roster that will cause plenty of trouble for their opponents this season. They grabbed wide receivers early, using three of their first four picks to address that position. In conjunction with that drafting strategy, Put the Kittle On ended up with the top quartet of wide receivers in the league.",
+  "actual": {
+    "team_id": 10,
+    "regular_season_rank": 1,
+    "record": "11-4-0",
+    "final_place": 4
+  }
+}

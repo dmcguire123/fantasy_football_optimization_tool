@@ -1,0 +1,156 @@
+{
+  "games": {
+    "102025": {
+      "gameId": "102025",
+      "type": "core",
+      "code": "core",
+      "season": "2025",
+      "previousSeason": "2024",
+      "leagues": {
+        "9072865": {
+          "leagueId": "9072865",
+          "name": "WBA Fantasy Classic",
+          "ownerUserId": "25426829",
+          "leagueType": "private",
+          "draftStatus": "postdraft",
+          "draftType": "live",
+          "numTeams": 12,
+          "maxTeams": "12",
+          "leagueManagerUserIds": [
+            "25426829"
+          ],
+          "isExperience": false,
+          "logoImageUrl": null,
+          "mainHexColor": null,
+          "draftDateTime": "2025-08-31T08:00:00-07:00",
+          "teams": {
+            "1": {
+              "teamId": "1",
+              "name": "Brooklyn Buckeens",
+              "ownerUserId": "25426829",
+              "imageUrl": "https://fantasy.nfl.com/image/f76c42cd7b658360933ecfc4b3248093.jpg?&x=40&y=27"
+            },
+            "2": {
+              "teamId": "2",
+              "name": "Burton is a  Bitch",
+              "ownerUserId": "27942850",
+              "imageUrl": "https://fantasy.nfl.com/image/08327a907b1f74b70c094178abc4c5cf.jpg?&x=40&y=27"
+            },
+            "3": {
+              "teamId": "3",
+              "name": "Kill Bills",
+              "ownerUserId": "25459410",
+              "imageUrl": "https://fantasy.nfl.com/image/88460942795193fdee3b09f6cbb622a8.jpg?&x=40&y=27"
+            },
+            "4": {
+              "teamId": "4",
+              "name": "Carole Baskin 69",
+              "ownerUserId": "25481342",
+              "imageUrl": "https://fantasy.nfl.com/image/811801f98059b1109432952abc22e292.jpg?&x=40&y=27"
+            },
+            "5": {
+              "teamId": "5",
+              "name": "Ted Guinness Jr",
+              "ownerUserId": "25465346",
+              "imageUrl": "https://fantasy.nfl.com/image/fa16c93926aafb203c086999669b15b9.jpg?&x=40&y=27"
+            },
+            "6": {
+              "teamId": "6",
+              "name": "Dublin Bay Buccaneers",
+              "ownerUserId": "25483545",
+              "imageUrl": "https://fantasy.nfl.com/image/97b28fdc484e751ba5619bf9ed6d9c20.jpg?&x=40&y=27"
+            },
+            "7": {
+              "teamId": "7",
+              "name": "San Diego Senores",
+              "ownerUserId": "25484465",
+              "imageUrl": "https://fantasy.nfl.com/image/167e3b7319d0fa099b1defd229081c53.jpg?&x=40&y=27"
+            },
+            "8": {
+              "teamId": "8",
+              "name": "MikeyDollars",
+              "ownerUserId": "25492505",
+              "imageUrl": "https://fantasy.nfl.com/image/56416d7cfe622481dd2a16ef832cfb43.jpg?&x=40&y=27"
+            },
+            "9": {
+              "teamId": "9",
+              "name": "Like a good Naber",
+              "ownerUserId": "3737295",
+              "imageUrl": "https://fantasy.nfl.com/image/defedcda313b891c94595d81612ac5ab.jpg?&x=40&y=27"
+            },
+            "10": {
+              "teamId": "10",
+              "name": "Put the Kittle On",
+              "ownerUserId": "25492969",
+              "imageUrl": "https://fantasy.nfl.com/image/42a12c32ad206bf20dc2d2843d025f90.jpg?&x=40&y=27"
+            },
+            "11": {
+              "teamId": "11",
+              "name": "Bijan Freeze",
+              "ownerUserId": "27762371",
+              "imageUrl": "https://fantasy.nfl.com/image/a9879fc63e7d5b12e571e9259759d8f4.jpg?&x=40&y=27"
+            },
+            "12": {
+              "teamId": "12",
+              "name": "Zach Bottled It",
+              "ownerUserId": "27758378",
+              "imageUrl": "https://fantasy.nfl.com/image/ab9d069764a2fd97ed8c1279c73d550b.jpg?&x=40&y=27"
+            }
+          }
+        }
+      }
+    }
+  },
+  "users": {
+    "25426829": {
+      "userId": "25426829",
+      "name": "Luke",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "27942850": {
+      "userId": "27942850",
+      "name": "zachary"
+    },
+    "25459410": {
+      "userId": "25459410",
+      "name": "Sean"
+    },
+    "25481342": {
+      "userId": "25481342",
+      "name": "patrick"
+    },
+    "25465346": {
+      "userId": "25465346",
+      "name": "Niall"
+    },
+    "25483545": {
+      "userId": "25483545",
+      "name": "Jonathan"
+    },
+    "25484465": {
+      "userId": "25484465",
+      "name": "Darren"
+    },
+    "25492505": {
+      "userId": "25492505",
+      "name": "Mike"
+    },
+    "3737295": {
+      "userId": "3737295",
+      "name": "Robert"
+    },
+    "25492969": {
+      "userId": "25492969",
+      "name": "David"
+    },
+    "27762371": {
+      "userId": "27762371",
+      "name": "John"
+    },
+    "27758378": {
+      "userId": "27758378",
+      "name": "Ryan"
+    }
+  }
+}

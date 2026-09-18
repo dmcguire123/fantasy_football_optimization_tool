@@ -1,0 +1,72 @@
+[
+  {
+    "date": "2025-10-21T22:09:51Z",
+    "message_id": "19a08d24e162f8af",
+    "side_a": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "T. McLaurin",
+          "position": "WR",
+          "nfl_team": "WAS"
+        },
+        {
+          "name": "W. Robinson",
+          "position": "WR",
+          "nfl_team": "NYG"
+        }
+      ],
+      "gives_raw": "T. McLaurinWR - WASW. RobinsonWR - NYG"
+    },
+    "side_b": {
+      "team": "Carole Baskin 69",
+      "team_id": 4,
+      "owner_name": "patrick",
+      "gives": [
+        {
+          "name": "D. Swift",
+          "position": "RB",
+          "nfl_team": "CHI"
+        }
+      ],
+      "gives_raw": "D. SwiftRB - CHI"
+    }
+  },
+  {
+    "date": "2025-11-12T18:44:43Z",
+    "message_id": "19a79626969ab71a",
+    "side_a": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "S. Barkley",
+          "position": "RB",
+          "nfl_team": "PHI"
+        }
+      ],
+      "gives_raw": "S. BarkleyRB - PHI"
+    },
+    "side_b": {
+      "team": "San Diego Senores",
+      "team_id": 7,
+      "owner_name": "Darren",
+      "gives": [
+        {
+          "name": "J. Jennings",
+          "position": "WR",
+          "nfl_team": "SF"
+        },
+        {
+          "name": "N. Collins",
+          "position": "WR",
+          "nfl_team": "HOU"
+        }
+      ],
+      "gives_raw": "J. JenningsWR - SFN. CollinsWR - HOU"
+    }
+  }
+]

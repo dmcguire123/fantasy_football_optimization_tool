@@ -1,0 +1,111 @@
+{
+  "season": 2024,
+  "season_over": true,
+  "champion": {
+    "team_id": 6,
+    "name": "Dublin Bay Buccaneers",
+    "playoff_seed": 1,
+    "bracket": "championship",
+    "final_place": 1
+  },
+  "final_standings_team_ids": [
+    6,
+    9,
+    5,
+    7,
+    2,
+    12,
+    8,
+    1,
+    3,
+    10,
+    11,
+    4
+  ],
+  "teams": [
+    {
+      "team_id": 6,
+      "name": "Dublin Bay Buccaneers",
+      "playoff_seed": 1,
+      "bracket": "championship",
+      "final_place": 1
+    },
+    {
+      "team_id": 9,
+      "name": "King Quon",
+      "playoff_seed": 3,
+      "bracket": "championship",
+      "final_place": 2
+    },
+    {
+      "team_id": 5,
+      "name": "Ted Guinness Jr",
+      "playoff_seed": 2,
+      "bracket": "championship",
+      "final_place": 3
+    },
+    {
+      "team_id": 7,
+      "name": "Carroll Garden Cowboys",
+      "playoff_seed": 4,
+      "bracket": "championship",
+      "final_place": 4
+    },
+    {
+      "team_id": 2,
+      "name": "Burton is a  Bitch",
+      "playoff_seed": 3,
+      "bracket": "consolation",
+      "final_place": 5
+    },
+    {
+      "team_id": 12,
+      "name": "Zach Bottled It",
+      "playoff_seed": 4,
+      "bracket": "consolation",
+      "final_place": 6
+    },
+    {
+      "team_id": 8,
+      "name": "MikeyDollars",
+      "playoff_seed": 1,
+      "bracket": "consolation",
+      "final_place": 7
+    },
+    {
+      "team_id": 1,
+      "name": "Brooklyn Buckeens",
+      "playoff_seed": 2,
+      "bracket": "consolation",
+      "final_place": 8
+    },
+    {
+      "team_id": 3,
+      "name": "Kill Bills",
+      "playoff_seed": null,
+      "bracket": null,
+      "final_place": 9
+    },
+    {
+      "team_id": 10,
+      "name": "Put the Kittle On",
+      "playoff_seed": null,
+      "bracket": null,
+      "final_place": 10
+    },
+    {
+      "team_id": 11,
+      "name": "Kamara and the Chipmunks",
+      "playoff_seed": null,
+      "bracket": null,
+      "final_place": 11
+    },
+    {
+      "team_id": 4,
+      "name": "Carole Baskin 69",
+      "playoff_seed": null,
+      "bracket": null,
+      "final_place": 12
+    }
+  ]
+}

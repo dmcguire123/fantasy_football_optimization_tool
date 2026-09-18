@@ -1,0 +1,223 @@
+{
+  "champions": [
+    {
+      "season": 2020,
+      "team_name": "King Quon",
+      "owner_name": "Robert"
+    },
+    {
+      "season": 2021,
+      "team_name": "Zach Bottled It",
+      "owner_name": "Ryan"
+    },
+    {
+      "season": 2022,
+      "team_name": "Brooklyn Buckeens",
+      "owner_name": "Luke"
+    },
+    {
+      "season": 2023,
+      "team_name": "Brooklyn Buckeens",
+      "owner_name": "Luke"
+    },
+    {
+      "season": 2024,
+      "team_name": "Dublin Bay Buccaneers",
+      "owner_name": "Jonathan"
+    },
+    {
+      "season": 2025,
+      "team_name": "Dublin Bay Buccaneers",
+      "owner_name": "Jonathan"
+    }
+  ],
+  "owners": [
+    {
+      "owner_user_id": "25426829",
+      "owner_name": "Luke",
+      "seasons": 6,
+      "wins": 53,
+      "losses": 36,
+      "ties": 0,
+      "points_for": 10485.18,
+      "points_against": 10016.48,
+      "titles": 2,
+      "team_names": [
+        "Brooklyn Buckeens"
+      ]
+    },
+    {
+      "owner_user_id": "25483545",
+      "owner_name": "Jonathan",
+      "seasons": 6,
+      "wins": 50,
+      "losses": 39,
+      "ties": 0,
+      "points_for": 10560.9,
+      "points_against": 9967.2,
+      "titles": 2,
+      "team_names": [
+        "Dublin Bay Buccaneers"
+      ]
+    },
+    {
+      "owner_user_id": "3737295",
+      "owner_name": "Robert",
+      "seasons": 6,
+      "wins": 56,
+      "losses": 33,
+      "ties": 0,
+      "points_for": 10952.08,
+      "points_against": 10337.38,
+      "titles": 1,
+      "team_names": [
+        "King Quon",
+        "Like a good Naber"
+      ]
+    },
+    {
+      "owner_user_id": "27758378",
+      "owner_name": "Ryan",
+      "seasons": 5,
+      "wins": 33,
+      "losses": 42,
+      "ties": 0,
+      "points_for": 8316.72,
+      "points_against": 8837.86,
+      "titles": 1,
+      "team_names": [
+        "Zach Bottled It"
+      ]
+    },
+    {
+      "owner_user_id": "25459410",
+      "owner_name": "Sean",
+      "seasons": 6,
+      "wins": 47,
+      "losses": 42,
+      "ties": 0,
+      "points_for": 10610.02,
+      "points_against": 10322.12,
+      "titles": 0,
+      "team_names": [
+        "Kill Bills"
+      ]
+    },
+    {
+      "owner_user_id": "25492505",
+      "owner_name": "Mike",
+      "seasons": 6,
+      "wins": 44,
+      "losses": 45,
+      "ties": 0,
+      "points_for": 10497.5,
+      "points_against": 10449.48,
+      "titles": 0,
+      "team_names": [
+        "MikeyDimes",
+        "MikeyDollars"
+      ]
+    },
+    {
+      "owner_user_id": "27762371",
+      "owner_name": "John",
+      "seasons": 5,
+      "wins": 43,
+      "losses": 32,
+      "ties": 0,
+      "points_for": 8732.72,
+      "points_against": 8624.24,
+      "titles": 0,
+      "team_names": [
+        "Kamara and the Chipmunks",
+        "Bijan Freeze"
+      ]
+    },
+    {
+      "owner_user_id": "25484465",
+      "owner_name": "Darren",
+      "seasons": 6,
+      "wins": 41,
+      "losses": 48,
+      "ties": 0,
+      "points_for": 10321.96,
+      "points_against": 10466.28,
+      "titles": 0,
+      "team_names": [
+        "Gobble Hill Grizzlies",
+        "Carroll Garden Cowboys",
+        "San Diego Senores"
+      ]
+    },
+    {
+      "owner_user_id": "25492969",
+      "owner_name": "David",
+      "seasons": 6,
+      "wins": 40,
+      "losses": 49,
+      "ties": 0,
+      "points_for": 10717.52,
+      "points_against": 10801.9,
+      "titles": 0,
+      "team_names": [
+        "Put the Kittle On"
+      ]
+    },
+    {
+      "owner_user_id": "25465346",
+      "owner_name": "Niall",
+      "seasons": 6,
+      "wins": 38,
+      "losses": 51,
+      "ties": 0,
+      "points_for": 10281.2,
+      "points_against": 10646.58,
+      "titles": 0,
+      "team_names": [
+        "Ted Guinness Jr"
+      ]
+    },
+    {
+      "owner_user_id": "25481342",
+      "owner_name": "patrick",
+      "seasons": 6,
+      "wins": 36,
+      "losses": 53,
+      "ties": 0,
+      "points_for": 9965.14,
+      "points_against": 10593.54,
+      "titles": 0,
+      "team_names": [
+        "Carole Baskin 69"
+      ]
+    },
+    {
+      "owner_user_id": "27942850",
+      "owner_name": "zachary",
+      "seasons": 3,
+      "wins": 21,
+      "losses": 24,
+      "ties": 0,
+      "points_for": 4913.52,
+      "points_against": 5142.76,
+      "titles": 0,
+      "team_names": [
+        "Burton is a  Bitch"
+      ]
+    },
+    {
+      "owner_user_id": "18977085",
+      "owner_name": "Stephen",
+      "seasons": 3,
+      "wins": 18,
+      "losses": 26,
+      "ties": 0,
+      "points_for": 5061.6,
+      "points_against": 5210.24,
+      "titles": 0,
+      "team_names": [
+        "Gronky Kongs"
+      ]
+    }
+  ]
+}

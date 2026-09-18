@@ -1,0 +1,35 @@
+{
+  "league_id": "9072865",
+  "season": 2025,
+  "name": "WBA Fantasy Classic",
+  "league_type": "private",
+  "num_teams": 12,
+  "max_teams": 12,
+  "owner_user_id": "25426829",
+  "manager_user_ids": [
+    "25426829"
+  ],
+  "draft_type": "live",
+  "draft_status": "postdraft",
+  "draft_date": "2025-08-31T08:00:00-07:00",
+  "divisions": [
+    {
+      "division_id": 1,
+      "name": "Division 1",
+      "team_ids": [
+        1,
+        6,
+        2,
+        5,
+        11,
+        8,
+        3,
+        4,
+        12,
+        10,
+        7,
+        9
+      ]
+    }
+  ]
+}

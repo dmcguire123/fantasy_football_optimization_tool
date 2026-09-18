@@ -1,0 +1,35 @@
+{
+  "league_id": "9072865",
+  "season": 2024,
+  "name": "WBA Fantasy Classic",
+  "league_type": "private",
+  "num_teams": 12,
+  "max_teams": 12,
+  "owner_user_id": "25426829",
+  "manager_user_ids": [
+    "25426829"
+  ],
+  "draft_type": "live",
+  "draft_status": "postdraft",
+  "draft_date": "2024-09-01T10:30:00-07:00",
+  "divisions": [
+    {
+      "division_id": 1,
+      "name": "Division 1",
+      "team_ids": [
+        6,
+        5,
+        9,
+        7,
+        8,
+        1,
+        2,
+        12,
+        3,
+        10,
+        11,
+        4
+      ]
+    }
+  ]
+}

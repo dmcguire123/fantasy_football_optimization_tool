@@ -1,0 +1,590 @@
+{
+  "games": {
+    "102021": {
+      "gameId": "102021",
+      "type": "core",
+      "code": "core",
+      "season": "2021",
+      "previousSeason": "2020",
+      "leagues": {
+        "9072865": {
+          "leagueId": "9072865",
+          "name": "WBA Fantasy Classic",
+          "ownerUserId": "25426829",
+          "leagueType": "private",
+          "draftStatus": "postdraft",
+          "draftType": "live",
+          "numTeams": 12,
+          "maxTeams": "12",
+          "leagueManagerUserIds": [
+            "25426829"
+          ],
+          "isExperience": false,
+          "logoImageUrl": null,
+          "mainHexColor": null,
+          "draftDateTime": "2021-08-30T13:00:00-07:00",
+          "divisions": {
+            "1": {
+              "divisionId": "1",
+              "name": "Division 1",
+              "teamIds": [
+                "11",
+                "4",
+                "3",
+                "12",
+                "9",
+                "10",
+                "8",
+                "2",
+                "1",
+                "7",
+                "5",
+                "6"
+              ]
+            }
+          },
+          "divisionIds": [
+            "1"
+          ],
+          "teams": {
+            "11": {
+              "teamId": "11",
+              "name": "Kamara and the Chipmunks",
+              "ownerUserId": "27762371",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/BUF_5.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/BUF_5.png",
+              "isActive": false,
+              "rank": "1",
+              "imageId": "BUF_5",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "1",
+                    "rankChange": "0",
+                    "divisionRank": "1",
+                    "record": "11-4-0",
+                    "wins": "11",
+                    "losses": "4",
+                    "ties": "0",
+                    "streak": "W1",
+                    "waiverPriority": "10",
+                    "pts": "1924.40",
+                    "ptsAgainst": "1785.16",
+                    "playoffSeed": "1",
+                    "playoffBracketType": "championship",
+                    "place": "3",
+                    "transactionAddCount": 16,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "4": {
+              "teamId": "4",
+              "name": "Carole Baskin 69",
+              "ownerUserId": "25481342",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/fb15cf106354cbd8d6ca8b2824264a5b.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/fb15cf106354cbd8d6ca8b2824264a5b.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "2",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "2",
+                    "rankChange": "0",
+                    "divisionRank": "2",
+                    "record": "10-5-0",
+                    "wins": "10",
+                    "losses": "5",
+                    "ties": "0",
+                    "streak": "W1",
+                    "waiverPriority": "11",
+                    "pts": "1856.24",
+                    "ptsAgainst": "1775.28",
+                    "playoffSeed": "2",
+                    "playoffBracketType": "championship",
+                    "place": "4",
+                    "transactionAddCount": 23,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "3": {
+              "teamId": "3",
+              "name": "Kill Bills",
+              "ownerUserId": "25459410",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/CAR_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/CAR_1.png",
+              "isActive": false,
+              "rank": "3",
+              "imageId": "CAR_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "3",
+                    "rankChange": "1",
+                    "divisionRank": "3",
+                    "record": "9-6-0",
+                    "wins": "9",
+                    "losses": "6",
+                    "ties": "0",
+                    "streak": "W5",
+                    "waiverPriority": "12",
+                    "pts": "1886.14",
+                    "ptsAgainst": "1859.34",
+                    "playoffSeed": "3",
+                    "playoffBracketType": "championship",
+                    "place": "2",
+                    "transactionAddCount": 42,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "12": {
+              "teamId": "12",
+              "name": "Zach Bottled It",
+              "ownerUserId": "27758378",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/MIN_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/MIN_1.png",
+              "isActive": false,
+              "rank": "4",
+              "imageId": "MIN_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "4",
+                    "rankChange": "-1",
+                    "divisionRank": "4",
+                    "record": "9-6-0",
+                    "wins": "9",
+                    "losses": "6",
+                    "ties": "0",
+                    "streak": "L1",
+                    "waiverPriority": "8",
+                    "pts": "1818.80",
+                    "ptsAgainst": "1707.48",
+                    "playoffSeed": "4",
+                    "playoffBracketType": "championship",
+                    "place": "1",
+                    "transactionAddCount": 13,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "9": {
+              "teamId": "9",
+              "name": "King Quon",
+              "ownerUserId": "3737295",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/KC_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/KC_1.png",
+              "isActive": false,
+              "rank": "5",
+              "imageId": "KC_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "5",
+                    "rankChange": "0",
+                    "divisionRank": "5",
+                    "record": "9-6-0",
+                    "wins": "9",
+                    "losses": "6",
+                    "ties": "0",
+                    "streak": "W1",
+                    "waiverPriority": "7",
+                    "pts": "1792.24",
+                    "ptsAgainst": "1642.66",
+                    "playoffSeed": "1",
+                    "playoffBracketType": "consolation",
+                    "place": "5",
+                    "transactionAddCount": 24,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "10": {
+              "teamId": "10",
+              "name": "Put the Kittle On",
+              "ownerUserId": "25492969",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/42a12c32ad206bf20dc2d2843d025f90.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/42a12c32ad206bf20dc2d2843d025f90.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "6",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "6",
+                    "rankChange": "0",
+                    "divisionRank": "6",
+                    "record": "7-8-0",
+                    "wins": "7",
+                    "losses": "8",
+                    "ties": "0",
+                    "streak": "L1",
+                    "waiverPriority": "6",
+                    "pts": "1757.36",
+                    "ptsAgainst": "1825.10",
+                    "playoffSeed": "2",
+                    "playoffBracketType": "consolation",
+                    "place": "8",
+                    "transactionAddCount": 23,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "8": {
+              "teamId": "8",
+              "name": "MikeyDimes",
+              "ownerUserId": "25492505",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/JAX_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/JAX_1.png",
+              "isActive": false,
+              "rank": "7",
+              "imageId": "JAX_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "7",
+                    "rankChange": "0",
+                    "divisionRank": "7",
+                    "record": "7-8-0",
+                    "wins": "7",
+                    "losses": "8",
+                    "ties": "0",
+                    "streak": "L1",
+                    "waiverPriority": "5",
+                    "pts": "1749.94",
+                    "ptsAgainst": "1788.00",
+                    "playoffSeed": "3",
+                    "playoffBracketType": "consolation",
+                    "place": "6",
+                    "transactionAddCount": 21,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "2": {
+              "teamId": "2",
+              "name": "Gronky Kongs",
+              "ownerUserId": "18977085",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/SEA_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/SEA_1.png",
+              "isActive": false,
+              "rank": "8",
+              "imageId": "SEA_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "8",
+                    "rankChange": "0",
+                    "divisionRank": "8",
+                    "record": "7-8-0",
+                    "wins": "7",
+                    "losses": "8",
+                    "ties": "0",
+                    "streak": "W2",
+                    "waiverPriority": "4",
+                    "pts": "1688.82",
+                    "ptsAgainst": "1665.50",
+                    "playoffSeed": "4",
+                    "playoffBracketType": "consolation",
+                    "place": "7",
+                    "transactionAddCount": 10,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "1": {
+              "teamId": "1",
+              "name": "Brooklyn Buckeens",
+              "ownerUserId": "25426829",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/NYG_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/NYG_1.png",
+              "isActive": false,
+              "rank": "9",
+              "imageId": "NYG_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "9",
+                    "rankChange": "1",
+                    "divisionRank": "9",
+                    "record": "6-9-0",
+                    "wins": "6",
+                    "losses": "9",
+                    "ties": "0",
+                    "streak": "W2",
+                    "waiverPriority": "3",
+                    "pts": "1771.24",
+                    "ptsAgainst": "1794.12",
+                    "playoffSeed": null,
+                    "playoffBracketType": null,
+                    "place": "9",
+                    "transactionAddCount": 21,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "7": {
+              "teamId": "7",
+              "name": "Carroll Garden Cowboys",
+              "ownerUserId": "25484465",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/DAL_5.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/DAL_5.png",
+              "isActive": false,
+              "rank": "10",
+              "imageId": "DAL_5",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "10",
+                    "rankChange": "-1",
+                    "divisionRank": "10",
+                    "record": "5-10-0",
+                    "wins": "5",
+                    "losses": "10",
+                    "ties": "0",
+                    "streak": "L2",
+                    "waiverPriority": "2",
+                    "pts": "1795.36",
+                    "ptsAgainst": "1896.64",
+                    "playoffSeed": null,
+                    "playoffBracketType": null,
+                    "place": "10",
+                    "transactionAddCount": 28,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "5": {
+              "teamId": "5",
+              "name": "Ted Guinness Jr",
+              "ownerUserId": "25465346",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/LAR_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/LAR_1.png",
+              "isActive": false,
+              "rank": "11",
+              "imageId": "LAR_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "11",
+                    "rankChange": "0",
+                    "divisionRank": "11",
+                    "record": "5-10-0",
+                    "wins": "5",
+                    "losses": "10",
+                    "ties": "0",
+                    "streak": "L5",
+                    "waiverPriority": "1",
+                    "pts": "1711.56",
+                    "ptsAgainst": "1888.80",
+                    "playoffSeed": null,
+                    "playoffBracketType": null,
+                    "place": "11",
+                    "transactionAddCount": 62,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            },
+            "6": {
+              "teamId": "6",
+              "name": "Dublin Bay Buccaneers",
+              "ownerUserId": "25483545",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/2977c60fccf347197010dc7d3ade6e18.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/2977c60fccf347197010dc7d3ade6e18.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "12",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2021": {
+                    "rank": "12",
+                    "rankChange": "0",
+                    "divisionRank": "12",
+                    "record": "5-10-0",
+                    "wins": "5",
+                    "losses": "10",
+                    "ties": "0",
+                    "streak": "L4",
+                    "waiverPriority": "9",
+                    "pts": "1688.20",
+                    "ptsAgainst": "1812.22",
+                    "playoffSeed": null,
+                    "playoffBracketType": null,
+                    "place": "12",
+                    "transactionAddCount": 40,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null
+                  }
+                }
+              }
+            }
+          },
+          "teamIds": [
+            "11",
+            "4",
+            "3",
+            "12",
+            "9",
+            "10",
+            "8",
+            "2",
+            "1",
+            "7",
+            "5",
+            "6"
+          ],
+          "isSeasonOver": true,
+          "finalStandingsTeamIds": [
+            "12",
+            "3",
+            "11",
+            "4",
+            "9",
+            "8",
+            "2",
+            "10",
+            "1",
+            "7",
+            "5",
+            "6"
+          ]
+        }
+      }
+    }
+  },
+  "users": {
+    "25426829": {
+      "userId": "25426829",
+      "name": "Luke",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "27762371": {
+      "userId": "27762371",
+      "name": "John",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25481342": {
+      "userId": "25481342",
+      "name": "patrick",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25459410": {
+      "userId": "25459410",
+      "name": "Sean",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "27758378": {
+      "userId": "27758378",
+      "name": "Ryan",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "3737295": {
+      "userId": "3737295",
+      "name": "Robert",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25492969": {
+      "userId": "25492969",
+      "name": "David",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25492505": {
+      "userId": "25492505",
+      "name": "Mike",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "18977085": {
+      "userId": "18977085",
+      "name": "Stephen",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25484465": {
+      "userId": "25484465",
+      "name": "Darren",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25465346": {
+      "userId": "25465346",
+      "name": "Niall",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25483545": {
+      "userId": "25483545",
+      "name": "Jonathan",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    }
+  }
+}

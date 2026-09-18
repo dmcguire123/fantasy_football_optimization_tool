@@ -1,0 +1,98 @@
+[
+  {
+    "team_id": 1,
+    "name": "Brooklyn Buckeens",
+    "owner_user_id": "25426829",
+    "owner_name": "Luke",
+    "co_manager_user_id": null,
+    "logo_url": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/NYG_1.png"
+  },
+  {
+    "team_id": 2,
+    "name": "Burton is a  Bitch",
+    "owner_user_id": "27942850",
+    "owner_name": "zachary",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/08327a907b1f74b70c094178abc4c5cf.jpg?&x=50&y=50"
+  },
+  {
+    "team_id": 3,
+    "name": "Kill Bills",
+    "owner_user_id": "25459410",
+    "owner_name": "Sean",
+    "co_manager_user_id": null,
+    "logo_url": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/CAR_1.png"
+  },
+  {
+    "team_id": 4,
+    "name": "Carole Baskin 69",
+    "owner_user_id": "25481342",
+    "owner_name": "patrick",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/fb15cf106354cbd8d6ca8b2824264a5b.jpg?&x=50&y=50"
+  },
+  {
+    "team_id": 5,
+    "name": "Ted Guinness Jr",
+    "owner_user_id": "25465346",
+    "owner_name": "Niall",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/3b3881d5ee7a2919f3e0faeb76e5bea1.jpg?&x=50&y=50"
+  },
+  {
+    "team_id": 6,
+    "name": "Dublin Bay Buccaneers",
+    "owner_user_id": "25483545",
+    "owner_name": "Jonathan",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/7228cdf874dcddb4dbbcb801a6604025.jpg?&x=50&y=50"
+  },
+  {
+    "team_id": 7,
+    "name": "Carroll Garden Cowboys",
+    "owner_user_id": "25484465",
+    "owner_name": "Darren",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/665c83dee65a27db23da4e0c253e132b.jpg?&x=50&y=50"
+  },
+  {
+    "team_id": 8,
+    "name": "MikeyDollars",
+    "owner_user_id": "25492505",
+    "owner_name": "Mike",
+    "co_manager_user_id": null,
+    "logo_url": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/JAX_1.png"
+  },
+  {
+    "team_id": 9,
+    "name": "King Quon",
+    "owner_user_id": "3737295",
+    "owner_name": "Robert",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/01bdc598b6046ff7a7b15ce31b12b25d.jpg?&x=50&y=50"
+  },
+  {
+    "team_id": 10,
+    "name": "Put the Kittle On",
+    "owner_user_id": "25492969",
+    "owner_name": "David",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/42a12c32ad206bf20dc2d2843d025f90.jpg?&x=50&y=50"
+  },
+  {
+    "team_id": 11,
+    "name": "Kamara and the Chipmunks",
+    "owner_user_id": "27762371",
+    "owner_name": "John",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/f3d9e48cadb4451cd31a41bf1c5eb614.jpg?&x=50&y=50"
+  },
+  {
+    "team_id": 12,
+    "name": "Zach Bottled It",
+    "owner_user_id": "27758378",
+    "owner_name": "Ryan",
+    "co_manager_user_id": null,
+    "logo_url": "https://fantasy.nfl.com/image/30d03d1370037902e51225bf1766ae03.jpg?&x=50&y=50"
+  }
+]
