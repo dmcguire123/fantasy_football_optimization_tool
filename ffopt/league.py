@@ -7,10 +7,12 @@ older and newer shapes ESPN has used for team names and owners, and keeps a
 short-lived cache so a page full of widgets does not refetch ten times.
 """
 
+import logging
 import time
 
 from . import constants as C
 from .espn_client import EspnClient
+from .nflverse import load_spread_model
 from .models import (
     League,
     LeagueSettings,
@@ -200,6 +202,8 @@ class LeagueService:
         self.settings = settings
         self.client = client or EspnClient(settings)
         self._cache = {}
+        self._spread_model = None
+        self._spread_model_tried = False
 
     def close(self):
         self.client.close()
@@ -217,6 +221,27 @@ class LeagueService:
         self._cache[key] = (now, value)
         return value
 
+    # Measured score spreads from nflverse game logs, loaded once. Any failure
+    # just leaves players on the placeholder spreads.
+    def spread_model(self):
+        if not self.settings.use_nflverse:
+            return None
+        if not self._spread_model_tried:
+            self._spread_model_tried = True
+            try:
+                self._spread_model = load_spread_model(self.settings.season)
+            except Exception as error:
+                logging.getLogger(__name__).warning(
+                    "nflverse spreads unavailable, using defaults: %s", error
+                )
+        return self._spread_model
+
+    def _with_spreads(self, players):
+        model = self.spread_model()
+        if model:
+            model.apply(players)
+        return players
+
     def invalidate(self):
         """Drop cached state, e.g. right after a roster move lands."""
         self._cache.clear()
@@ -228,12 +253,15 @@ class LeagueService:
     def load_league(self, week=None):
         def producer():
             payload = self.client.fetch_league_snapshot(week=week)
-            return parse_league(
+            league = parse_league(
                 payload,
                 week=week,
                 season=self.settings.season,
                 bye_weeks=self.bye_weeks(),
             )
+            for team in league.teams:
+                self._with_spreads(team.roster)
+            return league
 
         return self._cached(("league", week), producer)
 
@@ -284,7 +312,7 @@ class LeagueService:
                 )
                 player.availability = record.get("status") or C.STATUS_FREEAGENT
                 players.append(player)
-            return players
+            return self._with_spreads(players)
 
         return self._cached(key, producer)
 

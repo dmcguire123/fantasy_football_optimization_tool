@@ -19,7 +19,7 @@ WEEKLY_SCORE_STDDEV = 27.0
 
 # A player's spread as a share of their projection, by position. Steadier
 # roles (QB, RB) sit lower; touchdown-dependent ones (WR, TE, D/ST) sit higher.
-# These are stand-ins until real game-log spreads replace them.
+# These are the fallback when no measured spread is available; see nflverse.py.
 POSITION_STDDEV_RATIO = {
     "QB": 0.45,
     "RB": 0.65,
@@ -41,7 +41,9 @@ def player_stddev(player, projection=None):
         projection = player.effective_projection
     if projection <= 0:
         return 0.0
-    ratio = POSITION_STDDEV_RATIO.get(player.position, DEFAULT_STDDEV_RATIO)
+    ratio = player.stddev_ratio or POSITION_STDDEV_RATIO.get(
+        player.position, DEFAULT_STDDEV_RATIO
+    )
     return max(MIN_PLAYER_STDDEV, ratio * projection)
 
 

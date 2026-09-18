@@ -87,6 +87,7 @@ class Settings:
     anthropic_api_key: str = ""
     intel_ttl_seconds: float = 21600.0
     intel_model: str = "claude-sonnet-5"
+    use_nflverse: bool = False
 
     # True when we have enough to read a league at all.
     @property
@@ -168,4 +169,5 @@ def load_settings(env=None, env_file=DEFAULT_ENV_FILE):
         anthropic_api_key=(env.get("ANTHROPIC_API_KEY") or "").strip(),
         intel_ttl_seconds=as_float("FFOPT_INTEL_TTL", 21600.0),
         intel_model=(env.get("FFOPT_INTEL_MODEL") or "claude-sonnet-5").strip(),
+        use_nflverse=as_bool("FFOPT_NFLVERSE", True),
     )

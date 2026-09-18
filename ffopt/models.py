@@ -62,6 +62,9 @@ class Player:
     availability: str = C.STATUS_ONTEAM
     fantasy_team_id: int = 0
     acquisition_type: str = ""
+    # Week-to-week score spread as a share of projection, when measured from
+    # game logs. Zero means unknown, and the position default is used.
+    stddev_ratio: float = 0.0
 
     # A player on bye or ruled out contributes nothing this week.
     @property
