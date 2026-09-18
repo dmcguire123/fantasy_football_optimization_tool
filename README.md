@@ -30,6 +30,12 @@ position-by-position breakdown, and a list of their starters who may not play.
 Trade targets scan every other roster for players who would improve your
 lineup, flag the ones their team can spare, and suggest what to send back.
 
+**Win probability.** Each player's week-to-week swing is measured from real
+nflverse game logs (this season and last, downloaded once and cached under
+`data/`), so the win-probability lineup objective knows who is boom-or-bust.
+Set `FFOPT_NFLVERSE=false` to use fixed per-position spreads instead. If the
+download fails it falls back to those spreads automatically.
+
 ## Setup
 
 ### 1. Install
