@@ -1,0 +1,507 @@
+[
+  {
+    "date": "2022-09-16T07:13:29Z",
+    "message_id": "183452536e267e23",
+    "side_a": {
+      "team": "King Quon",
+      "team_id": 9,
+      "owner_name": "Robert",
+      "gives": [
+        {
+          "name": "C. Wentz",
+          "position": "QB",
+          "nfl_team": "WAS"
+        },
+        {
+          "name": "C. Kmet",
+          "position": "TE",
+          "nfl_team": "CHI"
+        }
+      ],
+      "gives_raw": "C. WentzQB - WASC. KmetTE - CHI"
+    },
+    "side_b": {
+      "team": "MikeyDimes",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "D. Prescott",
+          "position": "QB",
+          "nfl_team": "DAL"
+        },
+        {
+          "name": "D. Goedert",
+          "position": "TE",
+          "nfl_team": "PHI"
+        }
+      ],
+      "gives_raw": "D. PrescottQB - DALD. GoedertTE - PHI"
+    }
+  },
+  {
+    "date": "2022-09-23T07:22:23Z",
+    "message_id": "1836939e32067f8b",
+    "side_a": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "E. Elliott",
+          "position": "RB",
+          "nfl_team": "DAL"
+        }
+      ],
+      "gives_raw": "E. ElliottRB - DAL"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "D. Pierce",
+          "position": "RB",
+          "nfl_team": "HOU"
+        }
+      ],
+      "gives_raw": "D. PierceRB - HOU"
+    }
+  },
+  {
+    "date": "2022-10-03T07:22:20Z",
+    "message_id": "1839cb96d866f0ff",
+    "side_a": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "K. Hunt",
+          "position": "RB",
+          "nfl_team": "CLE"
+        }
+      ],
+      "gives_raw": "K. HuntRB - CLE"
+    },
+    "side_b": {
+      "team": "MikeyDimes",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "C. Akers",
+          "position": "RB",
+          "nfl_team": "LA"
+        }
+      ],
+      "gives_raw": "C. AkersRB - LA"
+    }
+  },
+  {
+    "date": "2022-10-07T07:25:17Z",
+    "message_id": "183b15593a63ff0b",
+    "side_a": {
+      "team": "MikeyDimes",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "C. Akers",
+          "position": "RB",
+          "nfl_team": "LA"
+        }
+      ],
+      "gives_raw": "C. AkersRB - LA"
+    },
+    "side_b": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "K. Hunt",
+          "position": "RB",
+          "nfl_team": "CLE"
+        }
+      ],
+      "gives_raw": "K. HuntRB - CLE"
+    }
+  },
+  {
+    "date": "2022-10-08T07:42:13Z",
+    "message_id": "183b68b6ce420c87",
+    "side_a": {
+      "team": "Put the Kittle On",
+      "team_id": 10,
+      "owner_name": "David",
+      "gives": [
+        {
+          "name": "G. Dortch",
+          "position": "WR",
+          "nfl_team": "ARI"
+        },
+        {
+          "name": "K. Herbert",
+          "position": "RB",
+          "nfl_team": "CHI"
+        }
+      ],
+      "gives_raw": "G. DortchWR - ARIK. HerbertRB - CHI"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "E. Elliott",
+          "position": "RB",
+          "nfl_team": "DAL"
+        }
+      ],
+      "gives_raw": "E. ElliottRB - DAL"
+    }
+  },
+  {
+    "date": "2022-10-09T01:17:05Z",
+    "message_id": "183ba512ed9dfdda",
+    "side_a": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "T. Brady",
+          "position": "QB",
+          "nfl_team": "TB"
+        },
+        {
+          "name": "J. Landry",
+          "position": "WR",
+          "nfl_team": "NO"
+        },
+        {
+          "name": "B. Cooks",
+          "position": "WR",
+          "nfl_team": "HOU"
+        }
+      ],
+      "gives_raw": "T. BradyQB - TBJ. LandryWR - NOB. CooksWR - HOU"
+    },
+    "side_b": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "C. Godwin",
+          "position": "WR",
+          "nfl_team": "TB"
+        }
+      ],
+      "gives_raw": "C. GodwinWR - TB"
+    }
+  },
+  {
+    "date": "2022-10-09T01:17:27Z",
+    "message_id": "183ba51847cd414e",
+    "side_a": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "D. London",
+          "position": "WR",
+          "nfl_team": "ATL"
+        }
+      ],
+      "gives_raw": "D. LondonWR - ATL"
+    },
+    "side_b": {
+      "team": "Put the Kittle On",
+      "team_id": 10,
+      "owner_name": "David",
+      "gives": [
+        {
+          "name": "E. Elliott",
+          "position": "RB",
+          "nfl_team": "DAL"
+        }
+      ],
+      "gives_raw": "E. ElliottRB - DAL"
+    }
+  },
+  {
+    "date": "2022-10-18T22:46:04Z",
+    "message_id": "183ed46849a6c2b6",
+    "side_a": {
+      "team": "MikeyDimes",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "C. Wentz",
+          "position": "QB",
+          "nfl_team": "WAS"
+        }
+      ],
+      "gives_raw": "C. WentzQB - WAS"
+    },
+    "side_b": {
+      "team": "King Quon",
+      "team_id": 9,
+      "owner_name": "Robert",
+      "gives": [
+        {
+          "name": "D. Prescott",
+          "position": "QB",
+          "nfl_team": "DAL"
+        }
+      ],
+      "gives_raw": "D. PrescottQB - DAL"
+    }
+  },
+  {
+    "date": "2022-11-17T20:30:56Z",
+    "message_id": "184874992420c109",
+    "side_a": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "E. Elliott",
+          "position": "RB",
+          "nfl_team": "DAL"
+        },
+        {
+          "name": "C. Watson",
+          "position": "WR",
+          "nfl_team": "GB"
+        },
+        {
+          "name": "C. Olave",
+          "position": "WR",
+          "nfl_team": "NO"
+        }
+      ],
+      "gives_raw": "E. ElliottRB - DALC. WatsonWR - GBC. OlaveWR - NO"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "A. Brown",
+          "position": "WR",
+          "nfl_team": "PHI"
+        },
+        {
+          "name": "D. Mooney",
+          "position": "WR",
+          "nfl_team": "CHI"
+        }
+      ],
+      "gives_raw": "A. BrownWR - PHID. MooneyWR - CHI"
+    }
+  },
+  {
+    "date": "2022-11-17T20:31:00Z",
+    "message_id": "1848749a3d1d685c",
+    "side_a": {
+      "team": "Put the Kittle On",
+      "team_id": 10,
+      "owner_name": "David",
+      "gives": [
+        {
+          "name": "A. Dillon",
+          "position": "RB",
+          "nfl_team": "GB"
+        },
+        {
+          "name": "R. White",
+          "position": "RB",
+          "nfl_team": "TB"
+        }
+      ],
+      "gives_raw": "A. DillonRB - GBR. WhiteRB - TB"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "C. Godwin",
+          "position": "WR",
+          "nfl_team": "TB"
+        },
+        {
+          "name": "I. Pacheco",
+          "position": "RB",
+          "nfl_team": "KC"
+        }
+      ],
+      "gives_raw": "C. GodwinWR - TBI. PachecoRB - KC"
+    }
+  },
+  {
+    "date": "2022-11-17T20:31:04Z",
+    "message_id": "1848749b252634d4",
+    "side_a": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "N. Harris",
+          "position": "RB",
+          "nfl_team": "PIT"
+        }
+      ],
+      "gives_raw": "N. HarrisRB - PIT"
+    },
+    "side_b": {
+      "team": "MikeyDimes",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "D. Hopkins",
+          "position": "WR",
+          "nfl_team": "ARI"
+        }
+      ],
+      "gives_raw": "D. HopkinsWR - ARI"
+    }
+  },
+  {
+    "date": "2022-11-17T20:31:08Z",
+    "message_id": "1848749c1cea219b",
+    "side_a": {
+      "team": "Gronky Kongs",
+      "team_id": 2,
+      "owner_name": "Stephen",
+      "gives": [
+        {
+          "name": "H. Hurst",
+          "position": "TE",
+          "nfl_team": "CIN"
+        }
+      ],
+      "gives_raw": "H. HurstTE - CIN"
+    },
+    "side_b": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "B. Cooks",
+          "position": "WR",
+          "nfl_team": "HOU"
+        }
+      ],
+      "gives_raw": "B. CooksWR - HOU"
+    }
+  },
+  {
+    "date": "2022-11-23T08:17:06Z",
+    "message_id": "184a38fe3eec69bf",
+    "side_a": {
+      "team": "Kamara and the ...",
+      "team_id": 11,
+      "owner_name": "John",
+      "gives": [
+        {
+          "name": "A. Thielen",
+          "position": "WR",
+          "nfl_team": "MIN"
+        },
+        {
+          "name": "T. Conklin",
+          "position": "TE",
+          "nfl_team": "NYJ"
+        }
+      ],
+      "gives_raw": "A. ThielenWR - MINT. ConklinTE - NYJ"
+    },
+    "side_b": {
+      "team": "Carole Baskin 69",
+      "team_id": 4,
+      "owner_name": "patrick",
+      "gives": [
+        {
+          "name": "D. Swift",
+          "position": "RB",
+          "nfl_team": "DET"
+        }
+      ],
+      "gives_raw": "D. SwiftRB - DET"
+    }
+  },
+  {
+    "date": "2022-11-25T08:58:19Z",
+    "message_id": "184ae0258be5cb54",
+    "side_a": {
+      "team": "Kill Bills",
+      "team_id": 3,
+      "owner_name": "Sean",
+      "gives": [
+        {
+          "name": "M. Carter",
+          "position": "RB",
+          "nfl_team": "NYJ"
+        }
+      ],
+      "gives_raw": "M. CarterRB - NYJ"
+    },
+    "side_b": {
+      "team": "MikeyDimes",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "D. Johnson",
+          "position": "WR",
+          "nfl_team": "PIT"
+        }
+      ],
+      "gives_raw": "D. JohnsonWR - PIT"
+    }
+  },
+  {
+    "date": "2022-11-26T08:42:13Z",
+    "message_id": "184b319f6bc4c5ed",
+    "side_a": {
+      "team": "Brooklyn Buckeens",
+      "team_id": 1,
+      "owner_name": "Luke",
+      "gives": [
+        {
+          "name": "C. Kmet",
+          "position": "TE",
+          "nfl_team": "CHI"
+        }
+      ],
+      "gives_raw": "C. KmetTE - CHI"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "A. Dillon",
+          "position": "RB",
+          "nfl_team": "GB"
+        }
+      ],
+      "gives_raw": "A. DillonRB - GB"
+    }
+  }
+]

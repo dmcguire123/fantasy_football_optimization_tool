@@ -1,0 +1,247 @@
+[
+  {
+    "date": "2020-09-28T07:18:51Z",
+    "message_id": "174d3941ac4663f8",
+    "side_a": {
+      "team": "Put the Kittle On",
+      "team_id": 10,
+      "owner_name": "David",
+      "gives": [
+        {
+          "name": "D. Watson",
+          "position": "QB",
+          "nfl_team": "HOU"
+        },
+        {
+          "name": "M. Brown",
+          "position": "WR",
+          "nfl_team": "BAL"
+        }
+      ],
+      "gives_raw": "D. WatsonQB - HOUM. BrownWR - BAL"
+    },
+    "side_b": {
+      "team": "Carole Baskin 69",
+      "team_id": 4,
+      "owner_name": "patrick",
+      "gives": [
+        {
+          "name": "J. Brown",
+          "position": "WR",
+          "nfl_team": "BUF"
+        }
+      ],
+      "gives_raw": "J. BrownWR - BUF"
+    }
+  },
+  {
+    "date": "2020-09-29T07:43:54Z",
+    "message_id": "174d8d16457abc74",
+    "side_a": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "K. Hunt",
+          "position": "RB",
+          "nfl_team": "CLE"
+        },
+        {
+          "name": "J. Smith",
+          "position": "TE",
+          "nfl_team": "TEN"
+        }
+      ],
+      "gives_raw": "K. HuntRB - CLEJ. SmithTE - TEN"
+    },
+    "side_b": {
+      "team": "Carole Baskin 69",
+      "team_id": 4,
+      "owner_name": "patrick",
+      "gives": [
+        {
+          "name": "D. Cook",
+          "position": "RB",
+          "nfl_team": "MIN"
+        }
+      ],
+      "gives_raw": "D. CookRB - MIN"
+    }
+  },
+  {
+    "date": "2020-09-29T07:43:55Z",
+    "message_id": "174d8d1674d049f0",
+    "side_a": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "A. Thielen",
+          "position": "WR",
+          "nfl_team": "MIN"
+        },
+        {
+          "name": "K. Drake",
+          "position": "RB",
+          "nfl_team": "ARI"
+        }
+      ],
+      "gives_raw": "A. ThielenWR - MINK. DrakeRB - ARI"
+    },
+    "side_b": {
+      "team": "MikeyDimes",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "D. Hopkins",
+          "position": "WR",
+          "nfl_team": "ARI"
+        },
+        {
+          "name": "A. Brown",
+          "position": "WR",
+          "nfl_team": "TEN"
+        }
+      ],
+      "gives_raw": "D. HopkinsWR - ARIA. BrownWR - TEN"
+    }
+  },
+  {
+    "date": "2020-10-04T07:16:46Z",
+    "message_id": "174f2785865b1b7f",
+    "side_a": {
+      "team": "Kill Bills",
+      "team_id": 3,
+      "owner_name": "Sean",
+      "gives": [
+        {
+          "name": "J. Mixon",
+          "position": "RB",
+          "nfl_team": "CIN"
+        }
+      ],
+      "gives_raw": "J. MixonRB - CIN"
+    },
+    "side_b": {
+      "team": "Brooklyn Buckeens",
+      "team_id": 1,
+      "owner_name": "Luke",
+      "gives": [
+        {
+          "name": "M. Gaskin",
+          "position": "RB",
+          "nfl_team": "MIA"
+        }
+      ],
+      "gives_raw": "M. GaskinRB - MIA"
+    }
+  },
+  {
+    "date": "2020-10-31T07:53:00Z",
+    "message_id": "1757da5370fa89a9",
+    "side_a": {
+      "team": "Kill Bills",
+      "team_id": 3,
+      "owner_name": "Sean",
+      "gives": [
+        {
+          "name": "A. Robinson",
+          "position": "WR",
+          "nfl_team": "CHI"
+        },
+        {
+          "name": "C. Wentz",
+          "position": "QB",
+          "nfl_team": "PHI"
+        }
+      ],
+      "gives_raw": "A. RobinsonWR - CHIC. WentzQB - PHI"
+    },
+    "side_b": {
+      "team": "King Quon",
+      "team_id": 9,
+      "owner_name": "Robert",
+      "gives": [
+        {
+          "name": "T. Tagovailoa",
+          "position": "QB",
+          "nfl_team": "MIA"
+        },
+        {
+          "name": "C. Claypool",
+          "position": "WR",
+          "nfl_team": "PIT"
+        }
+      ],
+      "gives_raw": "T. TagovailoaQB - MIAC. ClaypoolWR - PIT"
+    }
+  },
+  {
+    "date": "2020-11-21T08:41:34Z",
+    "message_id": "175e9f73d910a1e0",
+    "side_a": {
+      "team": "Gobble Hill ...",
+      "team_id": 7,
+      "owner_name": "Darren",
+      "gives": [
+        {
+          "name": "M. Gallup",
+          "position": "WR",
+          "nfl_team": "DAL"
+        }
+      ],
+      "gives_raw": "M. GallupWR - DAL"
+    },
+    "side_b": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "W. Fuller",
+          "position": "WR",
+          "nfl_team": "HOU"
+        }
+      ],
+      "gives_raw": "W. FullerWR - HOU"
+    }
+  },
+  {
+    "date": "2020-11-23T08:29:59Z",
+    "message_id": "175f4395a558df67",
+    "side_a": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "J. Landry",
+          "position": "WR",
+          "nfl_team": "CLE"
+        },
+        {
+          "name": "T. Gurley",
+          "position": "RB",
+          "nfl_team": "ATL"
+        }
+      ],
+      "gives_raw": "J. LandryWR - CLET. GurleyRB - ATL"
+    },
+    "side_b": {
+      "team": "Carole Baskin 69",
+      "team_id": 4,
+      "owner_name": "patrick",
+      "gives": [
+        {
+          "name": "D. Montgomery",
+          "position": "RB",
+          "nfl_team": "CHI"
+        }
+      ],
+      "gives_raw": "D. MontgomeryRB - CHI"
+    }
+  }
+]

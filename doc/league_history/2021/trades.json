@@ -1,0 +1,107 @@
+[
+  {
+    "date": "2021-10-24T07:25:45Z",
+    "message_id": "17cb130efca92be8",
+    "side_a": {
+      "team": "Gronky Kongs",
+      "team_id": 2,
+      "owner_name": "Stephen",
+      "gives": [
+        {
+          "name": "C. Edwards-Helaire",
+          "position": "RB",
+          "nfl_team": "KC"
+        }
+      ],
+      "gives_raw": "C. Edwards-HelaireRB - KC"
+    },
+    "side_b": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "M. Callaway",
+          "position": "WR",
+          "nfl_team": "NO"
+        }
+      ],
+      "gives_raw": "M. CallawayWR - NO"
+    }
+  },
+  {
+    "date": "2021-10-30T07:36:13Z",
+    "message_id": "17cd020a9458c744",
+    "side_a": {
+      "team": "Put the Kittle On",
+      "team_id": 10,
+      "owner_name": "David",
+      "gives": [
+        {
+          "name": "E. Sanders",
+          "position": "WR",
+          "nfl_team": "BUF"
+        },
+        {
+          "name": "A. Green",
+          "position": "WR",
+          "nfl_team": "ARI"
+        },
+        {
+          "name": "D. Harris",
+          "position": "RB",
+          "nfl_team": "NE"
+        }
+      ],
+      "gives_raw": "E. SandersWR - BUFA. GreenWR - ARID. HarrisRB - NE"
+    },
+    "side_b": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "J. Jacobs",
+          "position": "RB",
+          "nfl_team": "LV"
+        }
+      ],
+      "gives_raw": "J. JacobsRB - LV"
+    }
+  },
+  {
+    "date": "2021-11-24T11:52:55Z",
+    "message_id": "17d51caa8070481a",
+    "side_a": {
+      "team": "Kill Bills",
+      "team_id": 3,
+      "owner_name": "Sean",
+      "gives": [
+        {
+          "name": "S. Barkley",
+          "position": "RB",
+          "nfl_team": "NYG"
+        },
+        {
+          "name": "M. Brown",
+          "position": "WR",
+          "nfl_team": "BAL"
+        }
+      ],
+      "gives_raw": "S. BarkleyRB - NYGM. BrownWR - BAL"
+    },
+    "side_b": {
+      "team": "MikeyDimes",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "S. Diggs",
+          "position": "WR",
+          "nfl_team": "BUF"
+        }
+      ],
+      "gives_raw": "S. DiggsWR - BUF"
+    }
+  }
+]

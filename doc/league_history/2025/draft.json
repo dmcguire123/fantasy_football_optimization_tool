@@ -1,0 +1,17 @@
+{
+  "season": 2025,
+  "message_id": "19900eafacadef4b",
+  "scheduled": null,
+  "grade": "C",
+  "projected_record": "2-13",
+  "projected_finish": "11",
+  "draft_slot": "8th in the opening round",
+  "headline": "With a Stellar Cartel of Wideouts, Put the Kittle On Expects to Go Above and Beyond the Competition",
+  "summary": "After drafting eighth in the opening round, Put the Kittle On will look to outperform their post-draft prognostication. They must see a lot of potential in wide receivers, as they used their first three selections to address that position. That early positional investment helped to yield the top foursome of wide receivers in the league.",
+  "actual": {
+    "team_id": 10,
+    "regular_season_rank": 10,
+    "record": "6-9-0",
+    "final_place": 10
+  }
+}

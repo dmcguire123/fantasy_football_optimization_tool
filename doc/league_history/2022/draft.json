@@ -1,0 +1,17 @@
+{
+  "season": 2022,
+  "message_id": "182edeb879a1feda",
+  "scheduled": "Aug 28, 2022 5:00pm EDT",
+  "grade": "B",
+  "projected_record": "8-7",
+  "projected_finish": "7",
+  "draft_slot": "5th overall pick",
+  "headline": "After a Few Shrewd Picks, Put the Kittle On Hopes to Fight Hard",
+  "summary": "Put the Kittle On had the fifth overall pick in the draft, putting together a roster that is poised to surprise. They focused on balance early, picking up a quarterback, running back, wide receiver, and tight end within their first five picks. By draft's end, Put the Kittle On secured a quartet of running backs with the most room for improvement.",
+  "actual": {
+    "team_id": 10,
+    "regular_season_rank": 11,
+    "record": "4-11-0",
+    "final_place": 11
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "season": 2020,
+  "message_id": "1746fd62af2216da",
+  "scheduled": "Sep 8, 2020 (draft was automatically rescheduled by NFL.com; time cut off in the email preview)",
+  "grade": null,
+  "note": "Only a 'draft rescheduled' notice exists for 2020, no recap email.",
+  "actual": {
+    "team_id": 10,
+    "regular_season_rank": 6,
+    "record": "7-7-0",
+    "final_place": 6
+  }
+}

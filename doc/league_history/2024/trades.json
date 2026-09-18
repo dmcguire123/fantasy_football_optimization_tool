@@ -1,0 +1,137 @@
+[
+  {
+    "date": "2024-09-19T16:30:46Z",
+    "message_id": "1920b1f3109e9082",
+    "side_a": {
+      "team": "Carroll Garden ...",
+      "team_id": 7,
+      "owner_name": "Darren",
+      "gives": [
+        {
+          "name": "C. Godwin",
+          "position": "WR",
+          "nfl_team": "TB"
+        }
+      ],
+      "gives_raw": "C. GodwinWR - TB"
+    },
+    "side_b": {
+      "team": "Ted Guinness Jr",
+      "team_id": 5,
+      "owner_name": "Niall",
+      "gives": [
+        {
+          "name": "R. Stevenson",
+          "position": "RB",
+          "nfl_team": "NE"
+        }
+      ],
+      "gives_raw": "R. StevensonRB - NE"
+    }
+  },
+  {
+    "date": "2024-09-19T16:30:49Z",
+    "message_id": "1920b1f3c21eb741",
+    "side_a": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "R. Dowdle",
+          "position": "RB",
+          "nfl_team": "DAL"
+        }
+      ],
+      "gives_raw": "R. DowdleRB - DAL"
+    },
+    "side_b": {
+      "team": "MikeyDollars",
+      "team_id": 8,
+      "owner_name": "Mike",
+      "gives": [
+        {
+          "name": "J. Daniels",
+          "position": "QB",
+          "nfl_team": "WAS"
+        }
+      ],
+      "gives_raw": "J. DanielsQB - WAS"
+    }
+  },
+  {
+    "date": "2024-11-12T19:51:19Z",
+    "message_id": "19321ee379da864f",
+    "side_a": {
+      "team": "Zach Bottled It",
+      "team_id": 12,
+      "owner_name": "Ryan",
+      "gives": [
+        {
+          "name": "A. St. Brown",
+          "position": "WR",
+          "nfl_team": "DET"
+        },
+        {
+          "name": "T. Etienne",
+          "position": "RB",
+          "nfl_team": "JAX"
+        }
+      ],
+      "gives_raw": "A. St. BrownWR - DETT. EtienneRB - JAX"
+    },
+    "side_b": {
+      "team": "Kill Bills",
+      "team_id": 3,
+      "owner_name": "Sean",
+      "gives": [
+        {
+          "name": "K. Allen",
+          "position": "WR",
+          "nfl_team": "CHI"
+        },
+        {
+          "name": "K. Walker",
+          "position": "RB",
+          "nfl_team": "SEA"
+        },
+        {
+          "name": "J. Downs",
+          "position": "WR",
+          "nfl_team": "IND"
+        }
+      ],
+      "gives_raw": "K. AllenWR - CHIK. WalkerRB - SEAJ. DownsWR - IND"
+    }
+  },
+  {
+    "date": "2024-11-15T17:06:42Z",
+    "message_id": "19330ca952a27b66",
+    "side_a": {
+      "team": "Burton is a ...",
+      "team_id": 2,
+      "owner_name": "zachary",
+      "gives": [
+        {
+          "name": "N. Chubb",
+          "position": "RB",
+          "nfl_team": "CLE"
+        }
+      ],
+      "gives_raw": "N. ChubbRB - CLE"
+    },
+    "side_b": {
+      "team": "Dublin Bay ...",
+      "team_id": 6,
+      "owner_name": "Jonathan",
+      "gives": [
+        {
+          "name": "T. Higgins",
+          "position": "WR",
+          "nfl_team": "CIN"
+        }
+      ],
+      "gives_raw": "T. HigginsWR - CIN"
+    }
+  }
+]

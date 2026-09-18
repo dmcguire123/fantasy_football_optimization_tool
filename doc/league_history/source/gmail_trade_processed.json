@@ -1,0 +1,52 @@
+{
+  "description": "League-wide completed trades, copied from the 'NFL.com Fantasy Football: Trade Processed' emails from no-reply@nflhelp.com. Each side lists the team name and the players THAT team gave up, exactly as written in the email (player names run together with no separator, for example 'T. McLaurinWR - WASW. RobinsonWR - NYG'). Team names ending in '...' were truncated by NFL.com. 'date' is when the email arrived (UTC), which is when the trade was processed. Only message ids are kept as provenance; no email addresses or bodies are stored.",
+  "league_id": "9072865",
+  "excluded": [
+    {
+      "message_id": "1758d9edcf8de023",
+      "date": "2020-11-03T10:19:59Z",
+      "reason": "Trade was in a different league (NFL-Managed 9105261), not WBA Fantasy Classic"
+    }
+  ],
+  "trades": [
+    {"message_id": "19a79626969ab71a", "date": "2025-11-12T18:44:43Z", "side_a": {"team": "Zach Bottled It", "gives": "S. BarkleyRB - PHI"}, "side_b": {"team": "San Diego Senores", "gives": "J. JenningsWR - SFN. CollinsWR - HOU"}},
+    {"message_id": "19a08d24e162f8af", "date": "2025-10-21T22:09:51Z", "side_a": {"team": "Zach Bottled It", "gives": "T. McLaurinWR - WASW. RobinsonWR - NYG"}, "side_b": {"team": "Carole Baskin 69", "gives": "D. SwiftRB - CHI"}},
+    {"message_id": "19330ca952a27b66", "date": "2024-11-15T17:06:42Z", "side_a": {"team": "Burton is a ...", "gives": "N. ChubbRB - CLE"}, "side_b": {"team": "Dublin Bay ...", "gives": "T. HigginsWR - CIN"}},
+    {"message_id": "19321ee379da864f", "date": "2024-11-12T19:51:19Z", "side_a": {"team": "Zach Bottled It", "gives": "A. St. BrownWR - DETT. EtienneRB - JAX"}, "side_b": {"team": "Kill Bills", "gives": "K. AllenWR - CHIK. WalkerRB - SEAJ. DownsWR - IND"}},
+    {"message_id": "1920b1f3109e9082", "date": "2024-09-19T16:30:46Z", "side_a": {"team": "Carroll Garden ...", "gives": "C. GodwinWR - TB"}, "side_b": {"team": "Ted Guinness Jr", "gives": "R. StevensonRB - NE"}},
+    {"message_id": "1920b1f3c21eb741", "date": "2024-09-19T16:30:49Z", "side_a": {"team": "Dublin Bay ...", "gives": "R. DowdleRB - DAL"}, "side_b": {"team": "MikeyDollars", "gives": "J. DanielsQB - WAS"}},
+    {"message_id": "18bd4016d1202f04", "date": "2023-11-15T17:22:24Z", "side_a": {"team": "Brooklyn Buckeens", "gives": "S. HowellQB - WAS"}, "side_b": {"team": "Zach Bottled It", "gives": "D. NjokuTE - CLE"}},
+    {"message_id": "18bae18243ef843b", "date": "2023-11-08T08:41:39Z", "side_a": {"team": "Zach Bottled It", "gives": "T. HillWR - MIAG. DavisWR - BUF"}, "side_b": {"team": "Kill Bills", "gives": "K. ChiefsDEF - KCM. EvansWR - TBD. NjokuTE - CLEA. MattisonRB - MIN"}},
+    {"message_id": "18b29ed46e1a3218", "date": "2023-10-13T16:44:57Z", "side_a": {"team": "Kill Bills", "gives": "C. SuttonWR - DENT. AtwellWR - LAN. HarrisRB - PIT"}, "side_b": {"team": "Zach Bottled It", "gives": "R. StevensonRB - NE"}},
+    {"message_id": "18b1f277386c44dc", "date": "2023-10-11T14:32:39Z", "side_a": {"team": "Dublin Bay ...", "gives": "G. DavisWR - BUFK. GainwellRB - PHI"}, "side_b": {"team": "Zach Bottled It", "gives": "P. SteelersDEF - PITC. GodwinWR - TB"}},
+    {"message_id": "18aac4a8258406c6", "date": "2023-09-19T07:14:37Z", "side_a": {"team": "Ted Guinness Jr", "gives": "D. HopkinsWR - TEN"}, "side_b": {"team": "Put the Kittle On", "gives": "J. JeudyWR - DEN"}},
+    {"message_id": "18a97b116c35aec1", "date": "2023-09-15T07:14:39Z", "side_a": {"team": "Burton is a ...", "gives": "K. WalkerRB - SEA"}, "side_b": {"team": "Zach Bottled It", "gives": "J. WaddleWR - MIA"}},
+    {"message_id": "18a97b1198afe61b", "date": "2023-09-15T07:14:40Z", "side_a": {"team": "Zach Bottled It", "gives": "J. Smith-SchusterWR - NER. WhiteRB - TB"}, "side_b": {"team": "Put the Kittle On", "gives": "C. GodwinWR - TBZ. MossRB - IND"}},
+    {"message_id": "18a929341d8756ea", "date": "2023-09-14T07:23:57Z", "side_a": {"team": "Dublin Bay ...", "gives": "B. RobinsonRB - WAS"}, "side_b": {"team": "MikeyDollars", "gives": "J. GibbsRB - DET"}},
+    {"message_id": "184b319f6bc4c5ed", "date": "2022-11-26T08:42:13Z", "side_a": {"team": "Brooklyn Buckeens", "gives": "C. KmetTE - CHI"}, "side_b": {"team": "Zach Bottled It", "gives": "A. DillonRB - GB"}},
+    {"message_id": "184ae0258be5cb54", "date": "2022-11-25T08:58:19Z", "side_a": {"team": "Kill Bills", "gives": "M. CarterRB - NYJ"}, "side_b": {"team": "MikeyDimes", "gives": "D. JohnsonWR - PIT"}},
+    {"message_id": "184a38fe3eec69bf", "date": "2022-11-23T08:17:06Z", "side_a": {"team": "Kamara and the ...", "gives": "A. ThielenWR - MINT. ConklinTE - NYJ"}, "side_b": {"team": "Carole Baskin 69", "gives": "D. SwiftRB - DET"}},
+    {"message_id": "184874992420c109", "date": "2022-11-17T20:30:56Z", "side_a": {"team": "Ted Guinness Jr", "gives": "E. ElliottRB - DALC. WatsonWR - GBC. OlaveWR - NO"}, "side_b": {"team": "Zach Bottled It", "gives": "A. BrownWR - PHID. MooneyWR - CHI"}},
+    {"message_id": "1848749a3d1d685c", "date": "2022-11-17T20:31:00Z", "side_a": {"team": "Put the Kittle On", "gives": "A. DillonRB - GBR. WhiteRB - TB"}, "side_b": {"team": "Zach Bottled It", "gives": "C. GodwinWR - TBI. PachecoRB - KC"}},
+    {"message_id": "1848749b252634d4", "date": "2022-11-17T20:31:04Z", "side_a": {"team": "Dublin Bay ...", "gives": "N. HarrisRB - PIT"}, "side_b": {"team": "MikeyDimes", "gives": "D. HopkinsWR - ARI"}},
+    {"message_id": "1848749c1cea219b", "date": "2022-11-17T20:31:08Z", "side_a": {"team": "Gronky Kongs", "gives": "H. HurstTE - CIN"}, "side_b": {"team": "Dublin Bay ...", "gives": "B. CooksWR - HOU"}},
+    {"message_id": "183ed46849a6c2b6", "date": "2022-10-18T22:46:04Z", "side_a": {"team": "MikeyDimes", "gives": "C. WentzQB - WAS"}, "side_b": {"team": "King Quon", "gives": "D. PrescottQB - DAL"}},
+    {"message_id": "183ba512ed9dfdda", "date": "2022-10-09T01:17:05Z", "side_a": {"team": "Zach Bottled It", "gives": "T. BradyQB - TBJ. LandryWR - NOB. CooksWR - HOU"}, "side_b": {"team": "Dublin Bay ...", "gives": "C. GodwinWR - TB"}},
+    {"message_id": "183ba51847cd414e", "date": "2022-10-09T01:17:27Z", "side_a": {"team": "Ted Guinness Jr", "gives": "D. LondonWR - ATL"}, "side_b": {"team": "Put the Kittle On", "gives": "E. ElliottRB - DAL"}},
+    {"message_id": "183b68b6ce420c87", "date": "2022-10-08T07:42:13Z", "side_a": {"team": "Put the Kittle On", "gives": "G. DortchWR - ARIK. HerbertRB - CHI"}, "side_b": {"team": "Zach Bottled It", "gives": "E. ElliottRB - DAL"}},
+    {"message_id": "183b15593a63ff0b", "date": "2022-10-07T07:25:17Z", "side_a": {"team": "MikeyDimes", "gives": "C. AkersRB - LA"}, "side_b": {"team": "Ted Guinness Jr", "gives": "K. HuntRB - CLE"}},
+    {"message_id": "1839cb96d866f0ff", "date": "2022-10-03T07:22:20Z", "side_a": {"team": "Ted Guinness Jr", "gives": "K. HuntRB - CLE"}, "side_b": {"team": "MikeyDimes", "gives": "C. AkersRB - LA"}},
+    {"message_id": "1836939e32067f8b", "date": "2022-09-23T07:22:23Z", "side_a": {"team": "Dublin Bay ...", "gives": "E. ElliottRB - DAL"}, "side_b": {"team": "Zach Bottled It", "gives": "D. PierceRB - HOU"}},
+    {"message_id": "183452536e267e23", "date": "2022-09-16T07:13:29Z", "side_a": {"team": "King Quon", "gives": "C. WentzQB - WASC. KmetTE - CHI"}, "side_b": {"team": "MikeyDimes", "gives": "D. PrescottQB - DALD. GoedertTE - PHI"}},
+    {"message_id": "17d51caa8070481a", "date": "2021-11-24T11:52:55Z", "side_a": {"team": "Kill Bills", "gives": "S. BarkleyRB - NYGM. BrownWR - BAL"}, "side_b": {"team": "MikeyDimes", "gives": "S. DiggsWR - BUF"}},
+    {"message_id": "17cd020a9458c744", "date": "2021-10-30T07:36:13Z", "side_a": {"team": "Put the Kittle On", "gives": "E. SandersWR - BUFA. GreenWR - ARID. HarrisRB - NE"}, "side_b": {"team": "Zach Bottled It", "gives": "J. JacobsRB - LV"}},
+    {"message_id": "17cb130efca92be8", "date": "2021-10-24T07:25:45Z", "side_a": {"team": "Gronky Kongs", "gives": "C. Edwards-HelaireRB - KC"}, "side_b": {"team": "Ted Guinness Jr", "gives": "M. CallawayWR - NO"}},
+    {"message_id": "175f4395a558df67", "date": "2020-11-23T08:29:59Z", "side_a": {"team": "Dublin Bay ...", "gives": "J. LandryWR - CLET. GurleyRB - ATL"}, "side_b": {"team": "Carole Baskin 69", "gives": "D. MontgomeryRB - CHI"}},
+    {"message_id": "175e9f73d910a1e0", "date": "2020-11-21T08:41:34Z", "side_a": {"team": "Gobble Hill ...", "gives": "M. GallupWR - DAL"}, "side_b": {"team": "Ted Guinness Jr", "gives": "W. FullerWR - HOU"}},
+    {"message_id": "1757da5370fa89a9", "date": "2020-10-31T07:53:00Z", "side_a": {"team": "Kill Bills", "gives": "A. RobinsonWR - CHIC. WentzQB - PHI"}, "side_b": {"team": "King Quon", "gives": "T. TagovailoaQB - MIAC. ClaypoolWR - PIT"}},
+    {"message_id": "174f2785865b1b7f", "date": "2020-10-04T07:16:46Z", "side_a": {"team": "Kill Bills", "gives": "J. MixonRB - CIN"}, "side_b": {"team": "Brooklyn Buckeens", "gives": "M. GaskinRB - MIA"}},
+    {"message_id": "174d8d16457abc74", "date": "2020-09-29T07:43:54Z", "side_a": {"team": "Dublin Bay ...", "gives": "K. HuntRB - CLEJ. SmithTE - TEN"}, "side_b": {"team": "Carole Baskin 69", "gives": "D. CookRB - MIN"}},
+    {"message_id": "174d8d1674d049f0", "date": "2020-09-29T07:43:55Z", "side_a": {"team": "Ted Guinness Jr", "gives": "A. ThielenWR - MINK. DrakeRB - ARI"}, "side_b": {"team": "MikeyDimes", "gives": "D. HopkinsWR - ARIA. BrownWR - TEN"}},
+    {"message_id": "174d3941ac4663f8", "date": "2020-09-28T07:18:51Z", "side_a": {"team": "Put the Kittle On", "gives": "D. WatsonQB - HOUM. BrownWR - BAL"}, "side_b": {"team": "Carole Baskin 69", "gives": "J. BrownWR - BUF"}}
+  ]
+}
