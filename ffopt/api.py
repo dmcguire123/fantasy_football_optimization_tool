@@ -184,13 +184,21 @@ def read_team(team_id: int, week: int | None = None):
 
 
 @app.get("/api/my-team")
-def read_my_team(week: int | None = None):
+def read_my_team(
+    week: int | None = None,
+    objective: str = Query("points", pattern="^(points|win)$"),
+):
     """Your roster plus the optimal lineup and the moves to get there."""
     service = get_service()
     league = service.load_league(week)
     team = resolve_my_team(service, week)
 
-    result = optimize_team(team, league.settings.starting_slots())
+    result = optimize_team(
+        team,
+        league.settings.starting_slots(),
+        objective=objective,
+        opponent=scouting.opponent_distribution(league, team, league.week),
+    )
 
     return {
         "week": league.week,
@@ -203,18 +211,33 @@ def read_my_team(week: int | None = None):
 def optimize_lineup(
     week: int | None = None,
     horizon: str = Query("week", pattern="^(week|season)$"),
+    objective: str = Query("points", pattern="^(points|win)$"),
 ):
-    """The best startable lineup, by this week or by rest-of-season value."""
+    """The best startable lineup, by this week or by rest-of-season value.
+
+    With objective=win the lineup is tuned for the chance of beating this
+    week's opponent rather than for raw projected points.
+    """
     service = get_service()
     league = service.load_league(week)
     team = resolve_my_team(service, week)
 
     projection_fn = week_projection if horizon == "week" else season_projection
+    opponent = scouting.opponent_distribution(league, team, league.week)
     result = optimize_team(
-        team, league.settings.starting_slots(), projection_fn=projection_fn
+        team,
+        league.settings.starting_slots(),
+        projection_fn=projection_fn,
+        objective=objective,
+        opponent=opponent,
     )
 
-    return {"week": league.week, "horizon": horizon, "optimal": result.to_dict()}
+    return {
+        "week": league.week,
+        "horizon": horizon,
+        "objective": result.objective,
+        "optimal": result.to_dict(),
+    }
 
 
 @app.post("/api/lineup/apply")
@@ -288,6 +311,7 @@ def read_waiver_recommendations(
     limit: int = Query(15, ge=1, le=50),
     pool_size: int = Query(120, ge=10, le=400),
     positions: str | None = None,
+    objective: str = Query("points", pattern="^(points|win)$"),
 ):
     """Available players ranked by what they would add to your lineup."""
     service = get_service()
@@ -307,6 +331,8 @@ def read_waiver_recommendations(
         weeks_left=weeks_left,
         limit=limit,
         positions=position_list,
+        opponent=scouting.opponent_distribution(league, team, league.week),
+        objective=objective,
     )
 
     return {

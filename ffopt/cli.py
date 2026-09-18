@@ -151,7 +151,12 @@ def cmd_lineup(args):
         print("Could not find your team.")
         return 1
 
-    result = optimize_team(team, league.settings.starting_slots())
+    result = optimize_team(
+        team,
+        league.settings.starting_slots(),
+        objective=args.objective,
+        opponent=scouting.opponent_distribution(league, team, league.week),
+    )
 
     print(f"Optimal lineup for {team.name}, week {league.week}\n")
     rows = []
@@ -174,6 +179,12 @@ def cmd_lineup(args):
         f"   Current total: {result.current_total:.2f}"
         f"   Gain: {result.points_gained:+.2f}"
     )
+
+    if result.win_probability is not None:
+        print(
+            f"  Win probability: {result.win_probability * 100:.1f}%"
+            f"   Currently set: {result.current_win_probability * 100:.1f}%"
+        )
 
     if not result.moves:
         print("\n  Your lineup is already optimal.")
@@ -251,6 +262,8 @@ def cmd_waivers(args):
         weeks_left=weeks_left,
         limit=args.limit,
         positions=args.positions.split(",") if args.positions else None,
+        opponent=scouting.opponent_distribution(league, team, league.week),
+        objective=args.objective,
     )
 
     print(f"Waiver targets for {team.name}, week {league.week}")
@@ -427,7 +440,13 @@ def build_parser():
     roster = add_common(subparsers.add_parser("roster", help="Show a roster."))
     roster.add_argument("--team-id", type=int, default=None, help="Defaults to your team.")
 
-    add_common(subparsers.add_parser("lineup", help="Show the optimal lineup."))
+    lineup_cmd = add_common(subparsers.add_parser("lineup", help="Show the optimal lineup."))
+    lineup_cmd.add_argument(
+        "--objective",
+        choices=["points", "win"],
+        default="points",
+        help="Maximize projected points, or the chance of beating this week's opponent.",
+    )
 
     apply_lineup = add_common(
         subparsers.add_parser("apply-lineup", help="Submit the optimal lineup to ESPN.")
@@ -440,6 +459,10 @@ def build_parser():
     waiver_cmd.add_argument("--limit", type=int, default=15)
     waiver_cmd.add_argument("--pool", type=int, default=120, help="Players to evaluate.")
     waiver_cmd.add_argument("--positions", default=None, help="e.g. RB,WR")
+    waiver_cmd.add_argument(
+        "--objective", choices=["points", "win"], default="points",
+        help="Rank by points added, or by change in win probability.",
+    )
 
     claim = add_common(subparsers.add_parser("claim", help="Submit a waiver claim."))
     claim.add_argument("--add", type=int, required=True, help="Player id to add.")

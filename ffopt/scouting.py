@@ -8,24 +8,9 @@ a team is measured by the best lineup it could start, not the one it has
 carelessly left in place.
 """
 
-import math
-
 from . import constants as C
 from .optimizer import best_possible_total, solve_lineup, week_projection
-
-
-# Typical week-to-week spread of a fantasy team's score. Used only to turn a
-# projected margin into a win probability, so it does not need to be exact.
-WEEKLY_SCORE_STDDEV = 27.0
-
-
-# Probability the first score beats the second, assuming both are normally
-# distributed around their projections with the spread above.
-def win_probability(projected_for, projected_against):
-    margin = projected_for - projected_against
-    combined_stddev = WEEKLY_SCORE_STDDEV * math.sqrt(2)
-    z = margin / combined_stddev
-    return 0.5 * (1.0 + math.erf(z / math.sqrt(2)))
+from .winprob import WEEKLY_SCORE_STDDEV, lineup_distribution, win_probability  # noqa: F401
 
 
 # Points a team is leaving on its bench this week: the gap between the
@@ -122,6 +107,15 @@ def positional_matchup(team, opponent, starting_slots):
     return rows
 
 
+# This week's opponent as a (mean, stddev) score distribution, or None when
+# there is no opponent. This is what the win-probability objective plays against.
+def opponent_distribution(league, team, week=None):
+    opponent = league.opponent_for(team.team_id, week or league.week)
+    if not opponent:
+        return None
+    return lineup_distribution(opponent.starters)
+
+
 # A full scouting report on this week's opponent.
 def opponent_report(league, team, starting_slots, week=None):
     week = week or league.week
@@ -138,6 +132,17 @@ def opponent_report(league, team, starting_slots, week=None):
     their_best = best_possible_total(opponent.roster, starting_slots, week_projection)
     their_current = opponent.projected_starting_points
 
+    # Score spreads come from the starters themselves, so a boom-or-bust
+    # lineup is correctly treated as riskier than a steady one.
+    my_optimal = solve_lineup(
+        [p for p in team.roster if p.lineup_slot != C.IR_SLOT],
+        starting_slots,
+        week_projection,
+    )[0]
+    _, my_best_sd = lineup_distribution([p for _, p in my_optimal if p])
+    _, my_set_sd = lineup_distribution(team.starters)
+    _, their_sd = lineup_distribution(opponent.starters)
+
     return {
         "week": week,
         "has_opponent": True,
@@ -148,10 +153,14 @@ def opponent_report(league, team, starting_slots, week=None):
         "their_projected_current": round(their_current, 2),
         "projected_margin": round(my_best - their_current, 2),
         "win_probability_if_optimal": round(
-            win_probability(my_best, their_current), 3
+            win_probability(my_best, their_current, my_best_sd, their_sd), 3
         ),
+        "opponent_stddev": round(their_sd, 2),
         "win_probability_as_set": round(
-            win_probability(team.projected_starting_points, their_current), 3
+            win_probability(
+                team.projected_starting_points, their_current, my_set_sd, their_sd
+            ),
+            3,
         ),
         "their_lineup_efficiency": lineup_efficiency(opponent, starting_slots),
         "positional_edges": positional_matchup(team, opponent, starting_slots),

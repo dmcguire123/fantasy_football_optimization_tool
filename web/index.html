@@ -122,7 +122,7 @@
 </main>
 
 <script>
-const state = { config: null, league: null, week: null };
+const state = { config: null, league: null, week: null, objective: "points" };
 
 // Small helpers for building DOM without a framework.
 function el(tag, attrs = {}, children = []) {
@@ -198,7 +198,8 @@ async function renderTeam() {
   const target = document.getElementById("tab-team");
   target.innerHTML = "<div class='card muted'>Loading your roster…</div>";
 
-  const data = await api("/api/my-team");
+  const objective = state.objective || "points";
+  const data = await api("/api/my-team?objective=" + objective);
   const team = data.team;
   const optimal = data.optimal;
   state.week = data.week;
@@ -222,6 +223,24 @@ async function renderTeam() {
       el("div", { class: "value" }, team.record),
     ]),
   ]);
+
+  // Choose what the lineup is optimized for: raw points, or the chance of
+  // beating this week's opponent (which favors upside when you are behind).
+  const objectiveSelect = el("select", {
+    onchange: e => { state.objective = e.target.value; renderTeam(); },
+  }, [
+    el("option", { value: "points", selected: objective === "points" ? "selected" : null },
+      "Maximize projected points"),
+    el("option", { value: "win", selected: objective === "win" ? "selected" : null },
+      "Maximize win probability"),
+  ]);
+  const winNote = optimal.win_probability != null
+    ? el("div", { class: "muted" },
+        `Win probability: ${fmt(optimal.win_probability * 100, 1)}% ` +
+        `(as set: ${fmt(optimal.current_win_probability * 100, 1)}%)`)
+    : (objective === "win"
+        ? el("div", { class: "muted" }, "No opponent this week; showing the points lineup.")
+        : "");
 
   // Recommended lineup and the moves needed to get there.
   const lineupRows = optimal.lineup.map(row => {
@@ -269,6 +288,8 @@ async function renderTeam() {
     ]),
     el("div", { class: "card" }, [
       el("h2", {}, "Recommended lineup"),
+      objectiveSelect,
+      winNote,
       table([
         "Slot", "Player", { label: "Team", hide: true }, "Status", { label: "Proj", num: true },
       ], lineupRows),

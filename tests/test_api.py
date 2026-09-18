@@ -71,6 +71,19 @@ def test_optimize_accepts_a_season_horizon(http):
     assert len(season["optimal"]["lineup"]) == 9
 
 
+def test_optimize_supports_the_win_objective(http):
+    body = http.get("/api/lineup/optimize?objective=win").json()
+
+    assert len(body["optimal"]["lineup"]) == 9
+    assert body["objective"] in ("win", "points")
+    if body["objective"] == "win":
+        assert 0.0 <= body["optimal"]["win_probability"] <= 1.0
+
+
+def test_an_invalid_objective_is_rejected(http):
+    assert http.get("/api/lineup/optimize?objective=vibes").status_code == 422
+
+
 def test_an_invalid_horizon_is_rejected(http):
     assert http.get("/api/lineup/optimize?horizon=decade").status_code == 422
 
