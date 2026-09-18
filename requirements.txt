@@ -1,0 +1,8 @@
+# Runtime
+fastapi>=0.110
+uvicorn>=0.27
+httpx>=0.26
+pydantic>=2.0
+
+# Tests
+pytest>=7.4
