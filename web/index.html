@@ -154,6 +154,26 @@
   .viz .heat .hh.sel { color: var(--text); font-weight: 600; }
   .viz .heat .ho { font-size: 13px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .viz .heat .ho.sel { font-weight: 600; }
+  .viz .yearchips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+  .viz .yearchips button { background: transparent; border: 1px solid var(--line); color: var(--muted);
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; }
+  .viz .yearchips button.on { background: var(--panel-2); color: var(--text); border-color: var(--v-blue); }
+  .viz .dotaxis { position: relative; height: 18px; }
+  .viz .dotaxis span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--muted); }
+  .viz .dottrack { position: relative; height: 30px; }
+  .viz .dband { position: absolute; top: 4px; bottom: 4px; background: var(--panel-2); border-radius: 4px; }
+  .viz .dmean { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--v-grid); }
+  .viz .dot { position: absolute; top: 0; height: 30px; width: 24px; margin-left: -12px; display: flex;
+    align-items: center; justify-content: center; cursor: default; }
+  .viz .dot .d { width: 10px; height: 10px; border-radius: 50%; background: var(--v-gray);
+    box-shadow: 0 0 0 2px var(--v-surface); }
+  .viz .dot.hi .d { background: var(--v-blue); width: 12px; height: 12px; }
+  .viz .dot.lo .d { background: var(--v-red); width: 12px; height: 12px; }
+  .viz .dot .dl { position: absolute; top: -3px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .viz .dot:hover .d, .viz .dot:focus .d { outline: 2px solid var(--text); outline-offset: 1px; }
+  .viz .legend i.sw { width: 10px; height: 10px; border-radius: 50%; background: var(--v-gray); }
+  .viz .legend i.sw.hi { background: var(--v-blue); }
+  .viz .legend i.sw.lo { background: var(--v-red); }
   .viz .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
   .viz .legend i { display: inline-block; width: 16px; height: 2px; vertical-align: middle; margin-right: 6px; }
   .viz .ramp { display: inline-block; width: 90px; height: 10px; border-radius: 3px; vertical-align: middle; margin: 0 6px; }
@@ -976,28 +996,122 @@ const pct = n => (n * 100).toFixed(1) + "%";
 
 // A chart card with a Chart / Table toggle. The table is the same data, so
 // nothing depends on hovering.
-function chartCard(title, caption, chartNode, tableNode) {
-  const body = el("div", {}, [chartNode]);
-  const tableWrap = el("div", { class: "hidden" }, [tableNode]);
-  const chartBtn = el("button", { class: "active" }, "Chart");
-  const tableBtn = el("button", {}, "Table");
-  const setMode = mode => {
-    chartBtn.classList.toggle("active", mode === "chart");
-    tableBtn.classList.toggle("active", mode === "table");
-    body.classList.toggle("hidden", mode !== "chart");
-    tableWrap.classList.toggle("hidden", mode !== "table");
+function chartCard(title, caption, chartNode, tableNode, options = {}) {
+  const views = [
+    { key: "chart", label: "Chart", node: el("div", {}, [chartNode]) },
+  ];
+  if (options.extra) views.push({ key: "extra", label: options.extra.label, node: el("div", {}, [options.extra.node]) });
+  views.push({ key: "table", label: "Table", node: el("div", {}, [tableNode]) });
+
+  const buttons = views.map(v => el("button", { class: v.key === "chart" ? "active" : "" }, v.label));
+  const setMode = key => {
+    views.forEach((v, i) => {
+      buttons[i].classList.toggle("active", v.key === key);
+      v.node.classList.toggle("hidden", v.key !== key);
+    });
   };
-  chartBtn.onclick = () => setMode("chart");
-  tableBtn.onclick = () => setMode("table");
+  views.forEach((v, i) => {
+    if (v.key !== "chart") v.node.classList.add("hidden");
+    buttons[i].onclick = () => setMode(v.key);
+  });
   return el("div", { class: "card" }, [
     el("div", { class: "card-head" }, [
       el("h2", {}, title),
-      el("div", { class: "toggle" }, [chartBtn, tableBtn]),
+      el("div", { class: "toggle" }, buttons),
     ]),
     caption ? el("p", { class: "cap" }, caption) : null,
-    body,
-    tableWrap,
+    options.controls || null,
+    ...views.map(v => v.node),
   ]);
+}
+
+// A row of season buttons that can be switched on together. Nothing on means
+// every season.
+function yearChips(years, selected, onChange) {
+  const row = el("div", { class: "yearchips" });
+  const all = el("button", { class: selected.size === 0 ? "on" : "" }, "All");
+  all.onclick = () => { selected.clear(); onChange(); };
+  row.appendChild(all);
+  for (const year of years) {
+    const b = el("button", { class: selected.has(year) ? "on" : "" }, String(year));
+    b.onclick = () => {
+      if (selected.has(year)) selected.delete(year); else selected.add(year);
+      onChange();
+    };
+    row.appendChild(b);
+  }
+  return row;
+}
+
+// Every owner-season as a dot on a win-percentage scale, so a single great or
+// terrible year stands out from the owner's usual. Dots more than 1.5 standard
+// deviations from the league's 50% are marked and labeled.
+function seasonDots(rows, order, selected) {
+  const points = rows.map(r => ({
+    name: r.owner_name, year: r.season, team: r.team_name,
+    value: r.games ? (r.wins + 0.5 * r.ties) / r.games : 0,
+    record: `${r.wins}-${r.losses}${r.ties ? "-" + r.ties : ""}`,
+  }));
+  if (!points.length) return el("div", { class: "muted" }, "No seasons selected.");
+
+  const mean = points.reduce((s, p) => s + p.value, 0) / points.length;
+  const sd = Math.sqrt(points.reduce((s, p) => s + (p.value - mean) ** 2, 0) / points.length) || 0.0001;
+  const band = 1.5 * sd;
+  const lo = Math.max(0, Math.floor((Math.min(...points.map(p => p.value)) - 0.04) * 20) / 20);
+  const hi = Math.min(1, Math.ceil((Math.max(...points.map(p => p.value)) + 0.04) * 20) / 20);
+  const at = v => (v - lo) / (hi - lo) * 100;
+
+  const wrap = el("div", {});
+  const axis = el("div", { class: "hbar", style: "height:18px" }, [
+    el("div"),
+    el("div", { class: "dotaxis" }, [
+      ...[lo, (lo + hi) / 2, hi].map(v => el("span", { style: `left:${at(v)}%` }, pct(v))),
+    ]),
+  ]);
+  wrap.appendChild(axis);
+
+  for (const name of order) {
+    const mine = points.filter(p => p.name === name);
+    if (!mine.length) continue;
+    const track = el("div", { class: "dottrack" }, [
+      el("div", { class: "dband", style: `left:${at(mean - band)}%; width:${at(mean + band) - at(mean - band)}%` }),
+      el("div", { class: "dmean", style: `left:${at(mean)}%` }),
+    ]);
+    for (const p of mine) {
+      const z = (p.value - mean) / sd;
+      const kind = z > 1.5 ? "hi" : (z < -1.5 ? "lo" : "");
+      const dot = el("div", { class: "dot " + kind, tabindex: "0", style: `left:${at(p.value)}%` }, [
+        el("span", { class: "d" }),
+        kind ? el("span", { class: "dl" }, String(p.year)) : null,
+      ]);
+      const show = e => tip.show(e, `${p.name} · ${p.year}`, [
+        { value: pct(p.value), label: `win percentage (${p.record})` },
+        { value: (z >= 0 ? "+" : "") + z.toFixed(1), label: "standard deviations from the league" },
+        { value: p.team, label: "" },
+      ]);
+      dot.addEventListener("pointermove", show);
+      dot.addEventListener("pointerleave", () => tip.hide());
+      dot.addEventListener("focus", () => {
+        const b = dot.getBoundingClientRect();
+        show({ clientX: b.left, clientY: b.top });
+      });
+      dot.addEventListener("blur", () => tip.hide());
+      track.appendChild(dot);
+    }
+    wrap.appendChild(el("div", { class: "hbar", style: "height:30px" }, [
+      el("div", { class: "lbl" + (name === selected ? " sel" : ""), title: name }, name),
+      track,
+    ]));
+  }
+
+  const outliers = points.filter(p => Math.abs(p.value - mean) > band);
+  wrap.appendChild(el("div", { class: "legend" }, [
+    el("span", {}, [el("i", { class: "sw hi" }), `Well above (over ${pct(mean + band)})`]),
+    el("span", {}, [el("i", { class: "sw lo" }), `Well below (under ${pct(mean - band)})`]),
+    el("span", {}, [el("i", { class: "sw" }), "Typical season"]),
+    el("span", {}, `${outliers.length} of ${points.length} seasons are outliers`),
+  ]));
+  return wrap;
 }
 
 function simpleTable(headers, rows) {
@@ -1282,8 +1396,15 @@ async function renderHistory() {
       ]))),
     ]);
 
-    // Win percentage.
-    const winItems = totals.map(o => ({
+    // Win percentage. It has its own season buttons, so a few seasons can be
+    // compared side by side to spot an outlier year.
+    const winYears = state.hWinYears || (state.hWinYears = new Set());
+    const winRows = winYears.size ? allRows.filter(r => winYears.has(r.season)) : allRows;
+    const winTotals = ownerTotals(winRows);
+    const winScope = winYears.size
+      ? [...winYears].sort().join(", ")
+      : `${data.years[0]}–${data.years[data.years.length - 1]}`;
+    const winItems = winTotals.map(o => ({
       name: o.name, value: o.winPct,
       tip: [
         { value: pct(o.winPct), label: "win percentage" },
@@ -1292,11 +1413,16 @@ async function renderHistory() {
       ],
       titles: o.titles, record: `${o.wins}-${o.losses}`,
     }));
-    const winCard = chartCard(`Win percentage, ${scopeLabel}`, "Regular season, ties count half.",
+    const winCard = chartCard(`Win percentage, ${winScope}`,
+      "Regular season, ties count half. Pick seasons to compare them; \"By season\" shows each year as a dot to spot outliers.",
       hbars(winItems, { max: Math.max(...winItems.map(i => i.value), 0.01), selected,
         format: pct, detail: i => `${i.record}${i.titles ? " · " + i.titles + (i.titles === 1 ? " title" : " titles") : ""}` }),
       simpleTable(["Owner", "Win %", "Record", "Titles"],
-        winItems.map(i => [i.name, pct(i.value), i.record, i.titles])));
+        winItems.map(i => [i.name, pct(i.value), i.record, i.titles])),
+      {
+        controls: yearChips(data.years, winYears, draw),
+        extra: { label: "By season", node: seasonDots(winRows, winTotals.map(o => o.name), selected) },
+      });
 
     // Scoring margin.
     const marginItems = [...totals].map(o => ({
