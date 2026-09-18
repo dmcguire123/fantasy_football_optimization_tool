@@ -1,0 +1,98 @@
+[
+  {
+    "team_id": 1,
+    "name": "Brooklyn Buckeens",
+    "adds": 21,
+    "trades": 0,
+    "waiver_priority": 3,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 2,
+    "name": "Gronky Kongs",
+    "adds": 10,
+    "trades": 1,
+    "waiver_priority": 4,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 3,
+    "name": "Kill Bills",
+    "adds": 42,
+    "trades": 1,
+    "waiver_priority": 12,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 4,
+    "name": "Carole Baskin 69",
+    "adds": 23,
+    "trades": 0,
+    "waiver_priority": 11,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 5,
+    "name": "Ted Guinness Jr",
+    "adds": 62,
+    "trades": 1,
+    "waiver_priority": 1,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 6,
+    "name": "Dublin Bay Buccaneers",
+    "adds": 40,
+    "trades": 0,
+    "waiver_priority": 9,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 7,
+    "name": "Carroll Garden Cowboys",
+    "adds": 28,
+    "trades": 0,
+    "waiver_priority": 2,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 8,
+    "name": "MikeyDimes",
+    "adds": 21,
+    "trades": 1,
+    "waiver_priority": 5,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 9,
+    "name": "King Quon",
+    "adds": 24,
+    "trades": 0,
+    "waiver_priority": 7,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 10,
+    "name": "Put the Kittle On",
+    "adds": 23,
+    "trades": 1,
+    "waiver_priority": 6,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 11,
+    "name": "Kamara and the Chipmunks",
+    "adds": 16,
+    "trades": 0,
+    "waiver_priority": 10,
+    "waiver_budget_remaining": null
+  },
+  {
+    "team_id": 12,
+    "name": "Zach Bottled It",
+    "adds": 13,
+    "trades": 1,
+    "waiver_priority": 8,
+    "waiver_budget_remaining": null
+  }
+]

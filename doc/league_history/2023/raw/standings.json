@@ -1,0 +1,602 @@
+{
+  "games": {
+    "102023": {
+      "gameId": "102023",
+      "type": "core",
+      "code": "core",
+      "season": "2023",
+      "previousSeason": "2022",
+      "leagues": {
+        "9072865": {
+          "leagueId": "9072865",
+          "name": "WBA Fantasy Classic",
+          "ownerUserId": "25426829",
+          "leagueType": "private",
+          "draftStatus": "postdraft",
+          "draftType": "live",
+          "numTeams": 12,
+          "maxTeams": "12",
+          "leagueManagerUserIds": [
+            "25426829"
+          ],
+          "isExperience": false,
+          "logoImageUrl": null,
+          "mainHexColor": null,
+          "draftDateTime": "2023-08-27T12:00:00-07:00",
+          "divisions": {
+            "1": {
+              "divisionId": "1",
+              "name": "Division 1",
+              "teamIds": [
+                "10",
+                "9",
+                "1",
+                "11",
+                "8",
+                "3",
+                "7",
+                "4",
+                "6",
+                "2",
+                "12",
+                "5"
+              ]
+            }
+          },
+          "divisionIds": [
+            "1"
+          ],
+          "teams": {
+            "10": {
+              "teamId": "10",
+              "name": "Put the Kittle On",
+              "ownerUserId": "25492969",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/42a12c32ad206bf20dc2d2843d025f90.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/42a12c32ad206bf20dc2d2843d025f90.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "1",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "1",
+                    "rankChange": "0",
+                    "divisionRank": "1",
+                    "record": "11-4-0",
+                    "wins": "11",
+                    "losses": "4",
+                    "ties": "0",
+                    "streak": "W1",
+                    "waiverPriority": "12",
+                    "pts": "2000.54",
+                    "ptsAgainst": "1772.32",
+                    "playoffSeed": "1",
+                    "playoffBracketType": "championship",
+                    "place": "4",
+                    "transactionAddCount": 21,
+                    "transactionTradeCount": 2,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "0"
+                  }
+                }
+              }
+            },
+            "9": {
+              "teamId": "9",
+              "name": "King Quon",
+              "ownerUserId": "3737295",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/01bdc598b6046ff7a7b15ce31b12b25d.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/01bdc598b6046ff7a7b15ce31b12b25d.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "2",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "2",
+                    "rankChange": "2",
+                    "divisionRank": "2",
+                    "record": "10-5-0",
+                    "wins": "10",
+                    "losses": "5",
+                    "ties": "0",
+                    "streak": "W2",
+                    "waiverPriority": "9",
+                    "pts": "1817.92",
+                    "ptsAgainst": "1675.96",
+                    "playoffSeed": "2",
+                    "playoffBracketType": "championship",
+                    "place": "3",
+                    "transactionAddCount": 21,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "29"
+                  }
+                }
+              }
+            },
+            "1": {
+              "teamId": "1",
+              "name": "Brooklyn Buckeens",
+              "ownerUserId": "25426829",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/NYG_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/NYG_1.png",
+              "isActive": false,
+              "rank": "3",
+              "imageId": "NYG_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "3",
+                    "rankChange": "2",
+                    "divisionRank": "3",
+                    "record": "10-5-0",
+                    "wins": "10",
+                    "losses": "5",
+                    "ties": "0",
+                    "streak": "W1",
+                    "waiverPriority": "11",
+                    "pts": "1791.60",
+                    "ptsAgainst": "1680.20",
+                    "playoffSeed": "3",
+                    "playoffBracketType": "championship",
+                    "place": "1",
+                    "transactionAddCount": 28,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "2"
+                  }
+                }
+              }
+            },
+            "11": {
+              "teamId": "11",
+              "name": "Kamara and the Chipmunks",
+              "ownerUserId": "27762371",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/f3d9e48cadb4451cd31a41bf1c5eb614.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/f3d9e48cadb4451cd31a41bf1c5eb614.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "4",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "4",
+                    "rankChange": "-2",
+                    "divisionRank": "4",
+                    "record": "10-5-0",
+                    "wins": "10",
+                    "losses": "5",
+                    "ties": "0",
+                    "streak": "L1",
+                    "waiverPriority": "8",
+                    "pts": "1772.54",
+                    "ptsAgainst": "1613.22",
+                    "playoffSeed": "4",
+                    "playoffBracketType": "championship",
+                    "place": "2",
+                    "transactionAddCount": 10,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "60"
+                  }
+                }
+              }
+            },
+            "8": {
+              "teamId": "8",
+              "name": "MikeyDollars",
+              "ownerUserId": "25492505",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/JAX_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/JAX_1.png",
+              "isActive": false,
+              "rank": "5",
+              "imageId": "JAX_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "5",
+                    "rankChange": "-2",
+                    "divisionRank": "5",
+                    "record": "9-6-0",
+                    "wins": "9",
+                    "losses": "6",
+                    "ties": "0",
+                    "streak": "L2",
+                    "waiverPriority": "7",
+                    "pts": "1868.62",
+                    "ptsAgainst": "1637.18",
+                    "playoffSeed": "1",
+                    "playoffBracketType": "consolation",
+                    "place": "5",
+                    "transactionAddCount": 26,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "20"
+                  }
+                }
+              }
+            },
+            "3": {
+              "teamId": "3",
+              "name": "Kill Bills",
+              "ownerUserId": "25459410",
+              "coManagerUserId": null,
+              "imageUrl": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/CAR_1.png",
+              "imageUrlLarge": "https://static.www.nfl.com/league/apps/fantasy/logos/avatar/240x240/CAR_1.png",
+              "isActive": false,
+              "rank": "6",
+              "imageId": "CAR_1",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "6",
+                    "rankChange": "1",
+                    "divisionRank": "6",
+                    "record": "8-7-0",
+                    "wins": "8",
+                    "losses": "7",
+                    "ties": "0",
+                    "streak": "W4",
+                    "waiverPriority": "6",
+                    "pts": "1859.32",
+                    "ptsAgainst": "1742.70",
+                    "playoffSeed": "2",
+                    "playoffBracketType": "consolation",
+                    "place": "8",
+                    "transactionAddCount": 25,
+                    "transactionTradeCount": 2,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "63"
+                  }
+                }
+              }
+            },
+            "7": {
+              "teamId": "7",
+              "name": "Carroll Garden Cowboys",
+              "ownerUserId": "25484465",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/665c83dee65a27db23da4e0c253e132b.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/665c83dee65a27db23da4e0c253e132b.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "7",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "7",
+                    "rankChange": "-1",
+                    "divisionRank": "7",
+                    "record": "8-7-0",
+                    "wins": "8",
+                    "losses": "7",
+                    "ties": "0",
+                    "streak": "L1",
+                    "waiverPriority": "5",
+                    "pts": "1783.36",
+                    "ptsAgainst": "1747.68",
+                    "playoffSeed": "3",
+                    "playoffBracketType": "consolation",
+                    "place": "6",
+                    "transactionAddCount": 17,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "34"
+                  }
+                }
+              }
+            },
+            "4": {
+              "teamId": "4",
+              "name": "Carole Baskin 69",
+              "ownerUserId": "25481342",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/fb15cf106354cbd8d6ca8b2824264a5b.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/fb15cf106354cbd8d6ca8b2824264a5b.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "8",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "8",
+                    "rankChange": "0",
+                    "divisionRank": "8",
+                    "record": "8-7-0",
+                    "wins": "8",
+                    "losses": "7",
+                    "ties": "0",
+                    "streak": "W4",
+                    "waiverPriority": "4",
+                    "pts": "1654.02",
+                    "ptsAgainst": "1765.58",
+                    "playoffSeed": "4",
+                    "playoffBracketType": "consolation",
+                    "place": "7",
+                    "transactionAddCount": 18,
+                    "transactionTradeCount": 0,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "75"
+                  }
+                }
+              }
+            },
+            "6": {
+              "teamId": "6",
+              "name": "Dublin Bay Buccaneers",
+              "ownerUserId": "25483545",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/7228cdf874dcddb4dbbcb801a6604025.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/7228cdf874dcddb4dbbcb801a6604025.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "9",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "9",
+                    "rankChange": "0",
+                    "divisionRank": "9",
+                    "record": "6-9-0",
+                    "wins": "6",
+                    "losses": "9",
+                    "ties": "0",
+                    "streak": "L1",
+                    "waiverPriority": "10",
+                    "pts": "1655.34",
+                    "ptsAgainst": "1782.22",
+                    "playoffSeed": null,
+                    "playoffBracketType": null,
+                    "place": "9",
+                    "transactionAddCount": 25,
+                    "transactionTradeCount": 2,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "0"
+                  }
+                }
+              }
+            },
+            "2": {
+              "teamId": "2",
+              "name": "Burton is a  Bitch",
+              "ownerUserId": "27942850",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/08327a907b1f74b70c094178abc4c5cf.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/08327a907b1f74b70c094178abc4c5cf.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "10",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "10",
+                    "rankChange": "1",
+                    "divisionRank": "10",
+                    "record": "4-11-0",
+                    "wins": "4",
+                    "losses": "11",
+                    "ties": "0",
+                    "streak": "W1",
+                    "waiverPriority": "3",
+                    "pts": "1596.66",
+                    "ptsAgainst": "1787.64",
+                    "playoffSeed": null,
+                    "playoffBracketType": null,
+                    "place": "10",
+                    "transactionAddCount": 31,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "5"
+                  }
+                }
+              }
+            },
+            "12": {
+              "teamId": "12",
+              "name": "Zach Bottled It",
+              "ownerUserId": "27758378",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/30d03d1370037902e51225bf1766ae03.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/30d03d1370037902e51225bf1766ae03.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "11",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "11",
+                    "rankChange": "-1",
+                    "divisionRank": "11",
+                    "record": "4-11-0",
+                    "wins": "4",
+                    "losses": "11",
+                    "ties": "0",
+                    "streak": "L8",
+                    "waiverPriority": "2",
+                    "pts": "1561.16",
+                    "ptsAgainst": "1876.86",
+                    "playoffSeed": null,
+                    "playoffBracketType": null,
+                    "place": "11",
+                    "transactionAddCount": 38,
+                    "transactionTradeCount": 6,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "0"
+                  }
+                }
+              }
+            },
+            "5": {
+              "teamId": "5",
+              "name": "Ted Guinness Jr",
+              "ownerUserId": "25465346",
+              "coManagerUserId": null,
+              "imageUrl": "https://fantasy.nfl.com/image/3b3881d5ee7a2919f3e0faeb76e5bea1.jpg?&x=50&y=50",
+              "imageUrlLarge": "https://fantasy.nfl.com/image/3b3881d5ee7a2919f3e0faeb76e5bea1.jpg?&x=120&y=120",
+              "isActive": false,
+              "rank": "12",
+              "imageId": "DEF",
+              "divisionId": "1",
+              "hasFantasyPlus": false,
+              "stats": {
+                "season": {
+                  "2023": {
+                    "rank": "12",
+                    "rankChange": "0",
+                    "divisionRank": "12",
+                    "record": "2-13-0",
+                    "wins": "2",
+                    "losses": "13",
+                    "ties": "0",
+                    "streak": "L2",
+                    "waiverPriority": "1",
+                    "pts": "1589.48",
+                    "ptsAgainst": "1869.00",
+                    "playoffSeed": null,
+                    "playoffBracketType": null,
+                    "place": "12",
+                    "transactionAddCount": 51,
+                    "transactionTradeCount": 1,
+                    "trophyImageUrl": null,
+                    "waiverBudgetRemaining": "0"
+                  }
+                }
+              }
+            }
+          },
+          "teamIds": [
+            "10",
+            "9",
+            "1",
+            "11",
+            "8",
+            "3",
+            "7",
+            "4",
+            "6",
+            "2",
+            "12",
+            "5"
+          ],
+          "isSeasonOver": true,
+          "finalStandingsTeamIds": [
+            "1",
+            "11",
+            "9",
+            "10",
+            "8",
+            "7",
+            "4",
+            "3",
+            "6",
+            "2",
+            "12",
+            "5"
+          ]
+        }
+      }
+    }
+  },
+  "users": {
+    "25426829": {
+      "userId": "25426829",
+      "name": "Luke",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25492969": {
+      "userId": "25492969",
+      "name": "David",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "3737295": {
+      "userId": "3737295",
+      "name": "Robert",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "27762371": {
+      "userId": "27762371",
+      "name": "John",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25492505": {
+      "userId": "25492505",
+      "name": "Mike",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25459410": {
+      "userId": "25459410",
+      "name": "Sean",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25484465": {
+      "userId": "25484465",
+      "name": "Darren",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25481342": {
+      "userId": "25481342",
+      "name": "patrick",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25483545": {
+      "userId": "25483545",
+      "name": "Jonathan",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "27942850": {
+      "userId": "27942850",
+      "name": "zachary",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "27758378": {
+      "userId": "27758378",
+      "name": "Ryan",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    },
+    "25465346": {
+      "userId": "25465346",
+      "name": "Niall",
+      "emailAddress": "",
+      "timezone": "US/Eastern"
+    }
+  }
+}
