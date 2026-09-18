@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from . import constants as C
-from . import scouting, waivers
+from . import history, scouting, waivers
 from .config import PROJECT_ROOT, load_settings
 from .espn_client import EspnError, build_lineup_payload
 from .intel.service import IntelService
@@ -426,6 +426,29 @@ def read_pending_transactions():
     """Waiver claims you have already submitted but that have not processed."""
     service = get_service()
     return {"pending": service.pending_transactions()}
+
+
+@app.post("/api/history/snapshot")
+def take_snapshot(backfill: bool = False):
+    """Record this week's matchup predictions and settle finished games."""
+    service = get_service()
+    conn = history.open_db()
+    try:
+        return history.run_snapshot(service, conn, do_backfill=backfill)
+    finally:
+        conn.close()
+
+
+@app.get("/api/history/calibration")
+def read_calibration():
+    """How well past win probabilities matched what actually happened."""
+    conn = history.open_db()
+    try:
+        report = history.calibration(conn)
+        report["pending"] = history.pending_count(conn)
+        return report
+    finally:
+        conn.close()
 
 
 @app.get("/api/scouting/power-rankings")

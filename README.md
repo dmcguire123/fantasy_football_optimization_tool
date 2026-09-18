@@ -36,6 +36,13 @@ nflverse game logs (this season and last, downloaded once and cached under
 Set `FFOPT_NFLVERSE=false` to use fixed per-position spreads instead. If the
 download fails it falls back to those spreads automatically.
 
+**History and calibration.** `python -m ffopt snapshot` records the model's
+win probability for every matchup in the league, and settles finished games
+with their real scores. Run it once a week (or `--backfill` to rebuild earlier
+weeks). `python -m ffopt calibration` then shows whether a 70% call really
+wins about 70% of the time, and whether the measured player spreads beat the
+old fixed spread. Records live in `data/history.db`.
+
 ## Setup
 
 ### 1. Install
