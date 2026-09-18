@@ -1,0 +1,413 @@
+"""
+HTTP API and static UI host.
+
+Every read endpoint works as soon as a league id and season are configured.
+Endpoints that change your roster additionally need the two ESPN cookies and
+a team id, and they refuse to do anything unless the caller explicitly turns
+off dry run, so a mistyped request can never submit a real transaction.
+"""
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
+
+from . import constants as C
+from . import scouting, waivers
+from .config import PROJECT_ROOT, load_settings
+from .espn_client import EspnError, build_lineup_payload
+from .league import LeagueService
+from .optimizer import optimize_team, season_projection, week_projection
+
+
+WEB_DIR = PROJECT_ROOT / "web"
+
+app = FastAPI(
+    title="Fantasy Football Optimization Tool",
+    description="Read, analyze, and manage an ESPN fantasy football team.",
+    version="1.0.0",
+)
+
+# One service per process so the short-lived cache is actually shared.
+_service = None
+
+
+def get_service():
+    global _service
+    if _service is None:
+        settings = load_settings()
+        if not settings.is_configured:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "League is not configured yet.",
+                    "missing": settings.missing_fields(),
+                    "hint": "Copy .env.example to .env and fill in your league details.",
+                },
+            )
+        _service = LeagueService(settings)
+    return _service
+
+
+def reset_service():
+    """Drop the cached service, e.g. after configuration changes or in tests."""
+    global _service
+    if _service is not None:
+        try:
+            _service.close()
+        except Exception:
+            pass
+    _service = None
+
+
+# Turn an ESPN failure into a response that tells the user what to fix,
+# rather than a bare 500.
+@app.exception_handler(EspnError)
+def handle_espn_error(request, exc):
+    return JSONResponse(status_code=502, content=exc.to_dict())
+
+
+def require_writable(settings):
+    if settings.read_only:
+        raise HTTPException(
+            status_code=403,
+            detail="Running in read-only mode. Unset FFOPT_READ_ONLY to make moves.",
+        )
+    if not settings.has_credentials:
+        raise HTTPException(
+            status_code=403,
+            detail="Roster moves need ESPN_SWID and ESPN_S2 to be set in .env.",
+        )
+    if not settings.team_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Set ESPN_TEAM_ID in .env so the app knows which team is yours.",
+        )
+
+
+# Resolve the team whose moves we are making, and fail clearly if we cannot.
+def resolve_my_team(service, week=None):
+    team = service.my_team(week)
+    if not team:
+        raise HTTPException(status_code=404, detail="No teams found in this league.")
+    return team
+
+
+class LineupMove(BaseModel):
+    player_id: int
+    from_slot: int
+    to_slot: int
+
+
+class ApplyLineupRequest(BaseModel):
+    week: int | None = None
+    moves: list[LineupMove] | None = Field(
+        default=None,
+        description="Explicit moves. Omit to apply the optimizer's recommendation.",
+    )
+    dry_run: bool = Field(
+        default=True,
+        description="Must be false to actually submit the change to ESPN.",
+    )
+
+
+class ClaimRequest(BaseModel):
+    add_player_id: int
+    drop_player_id: int | None = None
+    bid_amount: float | None = Field(default=None, description="FAAB bid, if used.")
+    is_waiver: bool = Field(
+        default=True,
+        description="True queues a waiver claim; false takes a free agent now.",
+    )
+    week: int | None = None
+    dry_run: bool = True
+
+
+# Settings for the league this process is serving, falling back to the
+# environment before a service has been built.
+def current_settings():
+    if _service is not None:
+        return _service.settings
+    return load_settings()
+
+
+@app.get("/api/config")
+def read_config():
+    """What the app knows about the league, with secrets redacted."""
+    return current_settings().public_dict()
+
+
+@app.get("/api/league")
+def read_league(week: int | None = None):
+    """League settings, standings, and the week being viewed."""
+    service = get_service()
+    league = service.load_league(week)
+    my_team = service.my_team(week)
+
+    return {
+        "settings": league.settings.to_dict(),
+        "week": league.week,
+        "my_team_id": my_team.team_id if my_team else None,
+        "teams": [t.to_dict(include_roster=False) for t in league.teams],
+    }
+
+
+@app.get("/api/teams/{team_id}")
+def read_team(team_id: int, week: int | None = None):
+    """One team with its full roster, so you can scout it player by player."""
+    service = get_service()
+    league = service.load_league(week)
+    team = league.team_by_id(team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail=f"No team with id {team_id}.")
+
+    return {
+        "week": league.week,
+        "team": team.to_dict(),
+        "lineup_efficiency": scouting.lineup_efficiency(
+            team, league.settings.starting_slots()
+        ),
+    }
+
+
+@app.get("/api/my-team")
+def read_my_team(week: int | None = None):
+    """Your roster plus the optimal lineup and the moves to get there."""
+    service = get_service()
+    league = service.load_league(week)
+    team = resolve_my_team(service, week)
+
+    result = optimize_team(team, league.settings.starting_slots())
+
+    return {
+        "week": league.week,
+        "team": team.to_dict(),
+        "optimal": result.to_dict(),
+    }
+
+
+@app.get("/api/lineup/optimize")
+def optimize_lineup(
+    week: int | None = None,
+    horizon: str = Query("week", pattern="^(week|season)$"),
+):
+    """The best startable lineup, by this week or by rest-of-season value."""
+    service = get_service()
+    league = service.load_league(week)
+    team = resolve_my_team(service, week)
+
+    projection_fn = week_projection if horizon == "week" else season_projection
+    result = optimize_team(
+        team, league.settings.starting_slots(), projection_fn=projection_fn
+    )
+
+    return {"week": league.week, "horizon": horizon, "optimal": result.to_dict()}
+
+
+@app.post("/api/lineup/apply")
+def apply_lineup(request: ApplyLineupRequest):
+    """Submit lineup changes to ESPN. Requires dry_run to be false."""
+    service = get_service()
+    settings = service.settings
+    require_writable(settings)
+
+    league = service.load_league(request.week)
+    team = resolve_my_team(service, request.week)
+
+    if request.moves is not None:
+        moves = [m.model_dump() for m in request.moves]
+    else:
+        result = optimize_team(team, league.settings.starting_slots())
+        moves = result.moves
+
+    if not moves:
+        return {"submitted": False, "reason": "Lineup is already optimal.", "moves": []}
+
+    payload = build_lineup_payload(
+        team_id=team.team_id,
+        member_id=settings.swid,
+        week=league.week,
+        moves=moves,
+    )
+
+    if request.dry_run:
+        return {
+            "submitted": False,
+            "dry_run": True,
+            "moves": moves,
+            "payload": payload,
+            "hint": "Send the same request with dry_run false to apply it.",
+        }
+
+    response = service.client.submit_transaction(payload)
+    service.invalidate()
+    return {"submitted": True, "moves": moves, "espn_response": response}
+
+
+@app.get("/api/free-agents")
+def read_free_agents(
+    week: int | None = None,
+    limit: int = Query(100, ge=1, le=500),
+    positions: str | None = Query(
+        None, description="Comma-separated, e.g. RB,WR"
+    ),
+):
+    """The available player pool, newest projections first."""
+    service = get_service()
+    league = service.load_league(week)
+    position_list = [p.strip() for p in positions.split(",")] if positions else None
+
+    players = service.free_agents(
+        week=league.week, limit=limit, positions=position_list
+    )
+    players.sort(key=lambda p: p.effective_projection, reverse=True)
+
+    return {
+        "week": league.week,
+        "count": len(players),
+        "players": [p.to_dict() for p in players],
+    }
+
+
+@app.get("/api/waivers/recommendations")
+def read_waiver_recommendations(
+    week: int | None = None,
+    limit: int = Query(15, ge=1, le=50),
+    pool_size: int = Query(120, ge=10, le=400),
+    positions: str | None = None,
+):
+    """Available players ranked by what they would add to your lineup."""
+    service = get_service()
+    league = service.load_league(week)
+    team = resolve_my_team(service, week)
+
+    position_list = [p.strip() for p in positions.split(",")] if positions else None
+    pool = service.free_agents(week=league.week, limit=pool_size)
+
+    weeks_left = max(1, league.settings.final_week - league.week + 1)
+    recommendations = waivers.recommend_pickups(
+        team,
+        pool,
+        league.settings.starting_slots(),
+        roster_limit=league.settings.active_roster_size,
+        faab_remaining=team.faab_remaining,
+        weeks_left=weeks_left,
+        limit=limit,
+        positions=position_list,
+    )
+
+    return {
+        "week": league.week,
+        "uses_faab": league.settings.uses_faab,
+        "faab_remaining": team.faab_remaining,
+        "waiver_priority": team.waiver_priority,
+        "weeks_left": weeks_left,
+        "recommendations": [r.to_dict() for r in recommendations],
+        "drop_candidates": waivers.drop_candidates(
+            team, league.settings.starting_slots()
+        ),
+    }
+
+
+@app.post("/api/waivers/claim")
+def submit_claim(request: ClaimRequest):
+    """Submit a waiver claim or a free agent add. Requires dry_run false."""
+    service = get_service()
+    settings = service.settings
+    require_writable(settings)
+
+    league = service.load_league(request.week)
+    team = resolve_my_team(service, request.week)
+
+    roster_limit = league.settings.active_roster_size
+    if roster_limit and not request.drop_player_id:
+        roster_count = len([p for p in team.roster if p.lineup_slot != C.IR_SLOT])
+        if roster_count >= roster_limit:
+            raise HTTPException(
+                status_code=400,
+                detail="Roster is full, so this claim needs a player to drop.",
+            )
+
+    payload = waivers.build_claim(
+        team_id=team.team_id,
+        member_id=settings.swid,
+        week=league.week,
+        add_player_id=request.add_player_id,
+        drop_player_id=request.drop_player_id,
+        bid_amount=request.bid_amount,
+        is_waiver=request.is_waiver,
+    )
+
+    if request.dry_run:
+        return {
+            "submitted": False,
+            "dry_run": True,
+            "payload": payload,
+            "hint": "Send the same request with dry_run false to submit it.",
+        }
+
+    response = service.client.submit_transaction(payload)
+    service.invalidate()
+    return {"submitted": True, "payload": payload, "espn_response": response}
+
+
+@app.get("/api/transactions/pending")
+def read_pending_transactions():
+    """Waiver claims you have already submitted but that have not processed."""
+    service = get_service()
+    return {"pending": service.pending_transactions()}
+
+
+@app.get("/api/scouting/power-rankings")
+def read_power_rankings(week: int | None = None):
+    """Every team ranked by season scoring and current roster strength."""
+    service = get_service()
+    league = service.load_league(week)
+    return {
+        "week": league.week,
+        "rankings": scouting.power_rankings(league, league.settings.starting_slots()),
+    }
+
+
+@app.get("/api/scouting/opponent")
+def read_opponent(week: int | None = None):
+    """A scouting report on the team you are playing this week."""
+    service = get_service()
+    league = service.load_league(week)
+    team = resolve_my_team(service, week)
+    return scouting.opponent_report(
+        league, team, league.settings.starting_slots(), week=league.week
+    )
+
+
+@app.get("/api/scouting/trade-targets")
+def read_trade_targets(week: int | None = None):
+    """Other teams' surplus players that would improve your starting lineup."""
+    service = get_service()
+    league = service.load_league(week)
+    team = resolve_my_team(service, week)
+    return {
+        "week": league.week,
+        "targets": scouting.trade_targets(
+            league, team, league.settings.starting_slots()
+        ),
+    }
+
+
+@app.get("/api/scouting/positional-surplus")
+def read_positional_surplus(week: int | None = None):
+    """Roster depth by position for every team in the league."""
+    service = get_service()
+    league = service.load_league(week)
+    return {
+        "week": league.week,
+        "rows": scouting.positional_surplus(league, league.settings.starting_slots()),
+    }
+
+
+@app.get("/")
+def serve_index():
+    """The browser UI."""
+    index = WEB_DIR / "index.html"
+    if not index.exists():
+        return {"message": "UI not installed. The API is at /docs."}
+    return FileResponse(index)

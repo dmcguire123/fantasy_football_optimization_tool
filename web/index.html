@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fantasy Command Center</title>
+<style>
+  :root {
+    --bg: #0f1216;
+    --panel: #171c23;
+    --panel-2: #1e242d;
+    --line: #2a323d;
+    --text: #e8edf3;
+    --muted: #93a0b0;
+    --accent: #4f9cf9;
+    --good: #35c06d;
+    --bad: #e8544a;
+    --warn: #e0a634;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f7fa; --panel: #ffffff; --panel-2: #eef2f7; --line: #d9e0e8;
+      --text: #151a20; --muted: #5b6b7c; --accent: #1f6fd0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    padding: 18px 16px; border-bottom: 1px solid var(--line);
+    background: var(--panel); position: sticky; top: 0; z-index: 10;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  nav button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 14px;
+  }
+  nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  main { padding: 20px 0 60px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 16px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .stat { flex: 1 1 150px; background: var(--panel-2); border-radius: var(--radius); padding: 12px; }
+  .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .value { font-size: 22px; font-weight: 600; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  tbody tr:hover { background: var(--panel-2); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pos { display: inline-block; min-width: 38px; padding: 1px 6px; border-radius: 6px;
+         background: var(--panel-2); font-size: 12px; text-align: center; }
+  .starter { color: var(--text); }
+  .bench { color: var(--muted); }
+  .good { color: var(--good); }
+  .bad { color: var(--bad); }
+  .warn { color: var(--warn); }
+  button.action {
+    background: var(--accent); color: #fff; border: 0; padding: 9px 16px;
+    border-radius: var(--radius); cursor: pointer; font-size: 14px;
+  }
+  button.action:disabled { opacity: .5; cursor: not-allowed; }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+  button.small { padding: 5px 10px; font-size: 13px; }
+  input, select {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 9px; font-size: 14px;
+  }
+  input[type="number"] { width: 84px; }
+  .notice { padding: 12px 14px; border-radius: var(--radius); margin-bottom: 14px; }
+  .notice.err { background: rgba(232,84,74,.14); border: 1px solid var(--bad); }
+  .notice.ok { background: rgba(53,192,109,.14); border: 1px solid var(--good); }
+  .muted { color: var(--muted); }
+  pre { background: var(--panel-2); padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; }
+  .hidden { display: none; }
+  .bar { height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
+  @media (max-width: 640px) {
+    .hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1 id="league-name">Fantasy Command Center</h1>
+    <div class="sub" id="league-sub">Loading league…</div>
+    <nav>
+      <button data-tab="team" class="active">My Team</button>
+      <button data-tab="waivers">Waiver Wire</button>
+      <button data-tab="scout">Scout Opponent</button>
+      <button data-tab="league">League</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="global-error" class="notice err hidden"></div>
+
+  <section id="tab-team"></section>
+  <section id="tab-waivers" class="hidden"></section>
+  <section id="tab-scout" class="hidden"></section>
+  <section id="tab-league" class="hidden"></section>
+</main>
+
+<script>
+const state = { config: null, league: null, week: null };
+
+// Small helpers for building DOM without a framework.
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === "class") node.className = value;
+    else if (key === "html") node.innerHTML = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else if (value !== null && value !== undefined) node.setAttribute(key, value);
+  }
+  for (const child of [].concat(children)) {
+    if (child === null || child === undefined) continue;
+    node.appendChild(typeof child === "string" ? document.createTextNode(child) : child);
+  }
+  return node;
+}
+
+function fmt(n, digits = 1) {
+  if (n === null || n === undefined) return "-";
+  return Number(n).toFixed(digits);
+}
+
+function signed(n, digits = 2) {
+  const value = Number(n || 0);
+  return (value >= 0 ? "+" : "") + value.toFixed(digits);
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  const text = await response.text();
+  let data;
+  try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
+  if (!response.ok) {
+    const detail = data.detail || data.error || `HTTP ${response.status}`;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail, null, 2));
+  }
+  return data;
+}
+
+function showError(message) {
+  const box = document.getElementById("global-error");
+  box.textContent = message;
+  box.classList.remove("hidden");
+}
+
+function clearError() {
+  document.getElementById("global-error").classList.add("hidden");
+}
+
+function statusLabel(player) {
+  if (player.on_bye) return el("span", { class: "warn" }, "BYE");
+  if (player.injury_status_raw && player.injury_status_raw !== "ACTIVE" && player.injury_status_raw !== "NORMAL") {
+    const bad = ["OUT", "INJURY_RESERVE", "SUSPENSION", "DOUBTFUL"].includes(player.injury_status_raw);
+    return el("span", { class: bad ? "bad" : "warn" }, player.injury_status);
+  }
+  return el("span", { class: "muted" }, "—");
+}
+
+function table(headers, rows) {
+  return el("table", {}, [
+    el("thead", {}, el("tr", {}, headers.map(h =>
+      el("th", { class: h.num ? "num" : (h.hide ? "hide-sm" : "") }, h.label || h)))),
+    el("tbody", {}, rows),
+  ]);
+}
+
+// ---------- My Team tab ----------
+
+async function renderTeam() {
+  const target = document.getElementById("tab-team");
+  target.innerHTML = "<div class='card muted'>Loading your roster…</div>";
+
+  const data = await api("/api/my-team");
+  const team = data.team;
+  const optimal = data.optimal;
+  state.week = data.week;
+
+  const stats = el("div", { class: "row" }, [
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Lineup as set"),
+      el("div", { class: "value" }, fmt(optimal.current_projected_total, 2)),
+    ]),
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Optimal lineup"),
+      el("div", { class: "value" }, fmt(optimal.projected_total, 2)),
+    ]),
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Points available"),
+      el("div", { class: "value " + (optimal.points_gained > 0.05 ? "good" : "muted") },
+        signed(optimal.points_gained)),
+    ]),
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Record"),
+      el("div", { class: "value" }, team.record),
+    ]),
+  ]);
+
+  // Recommended lineup and the moves needed to get there.
+  const lineupRows = optimal.lineup.map(row => {
+    const player = row.player;
+    return el("tr", {}, [
+      el("td", {}, el("span", { class: "pos" }, row.slot_name)),
+      el("td", {}, player ? player.name : el("span", { class: "muted" }, "(empty)")),
+      el("td", { class: "hide-sm" }, player ? player.pro_team : "-"),
+      el("td", {}, player ? statusLabel(player) : ""),
+      el("td", { class: "num" }, player ? fmt(player.effective_projection, 1) : "0.0"),
+    ]);
+  });
+
+  const moveList = optimal.moves.length
+    ? el("ul", {}, optimal.moves.map(m =>
+        el("li", {}, `${m.player_name}: ${m.from_slot_name} → ${m.to_slot_name}`)))
+    : el("div", { class: "muted" }, "Your lineup is already optimal for this week.");
+
+  const applyButton = el("button", {
+    class: "action",
+    disabled: optimal.moves.length ? null : "disabled",
+    onclick: () => applyLineup(optimal.moves),
+  }, optimal.moves.length ? `Apply ${optimal.moves.length} move(s)` : "Nothing to apply");
+
+  const applyResult = el("div", { id: "apply-result" });
+
+  // Full roster, starters first.
+  const rosterRows = [...team.roster]
+    .sort((a, b) => (b.is_starting - a.is_starting) || (a.lineup_slot - b.lineup_slot))
+    .map(player => el("tr", { class: player.is_starting ? "starter" : "bench" }, [
+      el("td", {}, el("span", { class: "pos" }, player.lineup_slot_name)),
+      el("td", {}, player.name),
+      el("td", { class: "hide-sm" }, player.position),
+      el("td", { class: "hide-sm" }, player.pro_team),
+      el("td", {}, statusLabel(player)),
+      el("td", { class: "num" }, fmt(player.projected_points, 1)),
+      el("td", { class: "num hide-sm" }, fmt(player.season_actual_points, 1)),
+    ]));
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, `${team.name} — week ${data.week}`),
+      stats,
+    ]),
+    el("div", { class: "card" }, [
+      el("h2", {}, "Recommended lineup"),
+      table([
+        "Slot", "Player", { label: "Team", hide: true }, "Status", { label: "Proj", num: true },
+      ], lineupRows),
+      el("div", { style: "margin-top:14px" }, [
+        el("h2", {}, "Changes needed"),
+        moveList,
+        el("div", { class: "row", style: "margin-top:12px" }, [applyButton]),
+        applyResult,
+      ]),
+    ]),
+    el("div", { class: "card" }, [
+      el("h2", {}, "Full roster"),
+      table([
+        "Slot", "Player", { label: "Pos", hide: true }, { label: "Team", hide: true },
+        "Status", { label: "Proj", num: true }, { label: "Season", num: true, hide: true },
+      ], rosterRows),
+    ]),
+  );
+}
+
+// Preview first, then submit only after the user confirms the exact moves.
+async function applyLineup(moves) {
+  const box = document.getElementById("apply-result");
+  box.innerHTML = "";
+
+  if (!state.config.can_write) {
+    box.append(el("div", { class: "notice err" },
+      "Read-only: set ESPN_SWID, ESPN_S2 and ESPN_TEAM_ID in .env to submit moves."));
+    return;
+  }
+
+  const summary = moves.map(m => `${m.player_name}: ${m.from_slot_name} → ${m.to_slot_name}`).join("\n");
+  if (!confirm(`Submit these lineup changes to ESPN?\n\n${summary}`)) return;
+
+  try {
+    const result = await api("/api/lineup/apply", {
+      method: "POST",
+      body: JSON.stringify({ moves: moves.map(m => ({
+        player_id: m.player_id, from_slot: m.from_slot, to_slot: m.to_slot,
+      })), dry_run: false }),
+    });
+    box.append(el("div", { class: "notice ok" },
+      result.submitted ? "Lineup submitted to ESPN." : (result.reason || "Nothing to do.")));
+    if (result.submitted) setTimeout(renderTeam, 800);
+  } catch (error) {
+    box.append(el("div", { class: "notice err" }, error.message));
+  }
+}
+
+// ---------- Waivers tab ----------
+
+async function renderWaivers() {
+  const target = document.getElementById("tab-waivers");
+  target.innerHTML = "<div class='card muted'>Evaluating the waiver wire…</div>";
+
+  const data = await api("/api/waivers/recommendations?limit=20&pool_size=150");
+
+  const header = el("div", { class: "row" }, [
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, data.uses_faab ? "FAAB remaining" : "Waiver priority"),
+      el("div", { class: "value" }, data.uses_faab ? `$${fmt(data.faab_remaining, 0)}` : `#${data.waiver_priority}`),
+    ]),
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Week"),
+      el("div", { class: "value" }, data.week),
+    ]),
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Weeks left"),
+      el("div", { class: "value" }, data.weeks_left),
+    ]),
+  ]);
+
+  const rows = data.recommendations.map(rec => {
+    const player = rec.player;
+    const dropSelect = el("select", { class: "drop-select" }, [
+      el("option", { value: "" }, rec.needs_drop ? "-- pick a drop --" : "(no drop)"),
+      ...data.drop_candidates.map(c => el("option", {
+        value: c.player.player_id,
+        selected: rec.drop_player && c.player.player_id === rec.drop_player.player_id ? "selected" : null,
+      }, `${c.player.name} (costs ${fmt(c.weekly_cost, 1)})`)),
+    ]);
+
+    const bidInput = el("input", {
+      type: "number", min: "0", step: "1", value: String(rec.suggested_bid || 0),
+      class: "bid-input",
+    });
+
+    const claimButton = el("button", { class: "action small", onclick: () =>
+      submitClaim(player, dropSelect, bidInput, data.uses_faab) }, "Claim");
+
+    return el("tr", {}, [
+      el("td", {}, [el("div", {}, player.name), el("div", { class: "muted", style: "font-size:12px" },
+        `${player.position} · ${player.pro_team} · ${fmt(player.percent_owned, 0)}% owned`)]),
+      el("td", { class: "num" }, fmt(player.effective_projection, 1)),
+      el("td", { class: "num " + (rec.weekly_gain > 0 ? "good" : "muted") }, signed(rec.weekly_gain)),
+      el("td", { class: "num hide-sm" }, signed(rec.season_gain, 1)),
+      el("td", {}, dropSelect),
+      el("td", {}, data.uses_faab ? bidInput : el("span", { class: "muted" }, "—")),
+      el("td", {}, claimButton),
+    ]);
+  });
+
+  const dropRows = data.drop_candidates.map(c => el("tr", {}, [
+    el("td", {}, c.player.name),
+    el("td", { class: "hide-sm" }, c.player.position),
+    el("td", { class: "num" }, fmt(c.weekly_cost, 2)),
+    el("td", { class: "num" }, fmt(c.season_cost, 1)),
+  ]));
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [el("h2", {}, "Waiver budget"), header]),
+    el("div", { class: "card" }, [
+      el("h2", {}, "Best available, ranked by what they add to your lineup"),
+      el("div", { class: "muted", style: "margin-bottom:10px" },
+        "Gain is the change in your optimal starting total after adding this player and dropping the selected one."),
+      el("div", { id: "claim-result" }),
+      table([
+        "Player", { label: "Proj", num: true }, { label: "Wk gain", num: true },
+        { label: "Season gain", num: true, hide: true }, "Drop", "Bid", "",
+      ], rows),
+    ]),
+    el("div", { class: "card" }, [
+      el("h2", {}, "Cheapest players to drop"),
+      table(["Player", { label: "Pos", hide: true }, { label: "Week cost", num: true },
+        { label: "Season cost", num: true }], dropRows),
+    ]),
+  );
+}
+
+async function submitClaim(player, dropSelect, bidInput, usesFaab) {
+  const box = document.getElementById("claim-result");
+  box.innerHTML = "";
+
+  if (!state.config.can_write) {
+    box.append(el("div", { class: "notice err" },
+      "Read-only: set ESPN_SWID, ESPN_S2 and ESPN_TEAM_ID in .env to submit claims."));
+    return;
+  }
+
+  const dropId = dropSelect.value ? Number(dropSelect.value) : null;
+  const bid = usesFaab ? Number(bidInput.value || 0) : null;
+
+  const lines = [`Add: ${player.name}`];
+  if (dropId) {
+    const label = dropSelect.options[dropSelect.selectedIndex].textContent;
+    lines.push(`Drop: ${label}`);
+  }
+  if (usesFaab) lines.push(`Bid: $${bid}`);
+  if (!confirm(`Submit this waiver claim to ESPN?\n\n${lines.join("\n")}`)) return;
+
+  try {
+    const result = await api("/api/waivers/claim", {
+      method: "POST",
+      body: JSON.stringify({
+        add_player_id: player.player_id,
+        drop_player_id: dropId,
+        bid_amount: bid,
+        is_waiver: true,
+        dry_run: false,
+      }),
+    });
+    box.append(el("div", { class: "notice ok" },
+      result.submitted ? `Claim submitted for ${player.name}.` : "Claim not submitted."));
+  } catch (error) {
+    box.append(el("div", { class: "notice err" }, error.message));
+  }
+}
+
+// ---------- Scout tab ----------
+
+async function renderScout() {
+  const target = document.getElementById("tab-scout");
+  target.innerHTML = "<div class='card muted'>Scouting your opponent…</div>";
+
+  const report = await api("/api/scouting/opponent");
+  target.innerHTML = "";
+
+  if (!report.has_opponent) {
+    target.append(el("div", { class: "card muted" }, report.message || "No opponent this week."));
+    return;
+  }
+
+  const winPct = Math.round(report.win_probability_if_optimal * 100);
+
+  const stats = el("div", { class: "row" }, [
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Your best lineup"),
+      el("div", { class: "value" }, fmt(report.my_projected_best, 1)),
+    ]),
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Their lineup as set"),
+      el("div", { class: "value" }, fmt(report.their_projected_current, 1)),
+    ]),
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Projected margin"),
+      el("div", { class: "value " + (report.projected_margin >= 0 ? "good" : "bad") },
+        signed(report.projected_margin, 1)),
+    ]),
+    el("div", { class: "stat" }, [
+      el("div", { class: "label" }, "Win probability"),
+      el("div", { class: "value" }, `${winPct}%`),
+      el("div", { class: "bar" }, el("span", { style: `width:${winPct}%` })),
+    ]),
+  ]);
+
+  const edgeRows = report.positional_edges.map(row => el("tr", {}, [
+    el("td", {}, el("span", { class: "pos" }, row.slot_name)),
+    el("td", { class: "num" }, fmt(row.my_points, 1)),
+    el("td", { class: "num" }, fmt(row.their_points, 1)),
+    el("td", { class: "num " + (row.edge >= 0 ? "good" : "bad") }, signed(row.edge, 1)),
+  ]));
+
+  const starterRows = report.their_starters.map(player => el("tr", {}, [
+    el("td", {}, el("span", { class: "pos" }, player.lineup_slot_name)),
+    el("td", {}, player.name),
+    el("td", { class: "hide-sm" }, player.pro_team),
+    el("td", {}, statusLabel(player)),
+    el("td", { class: "num" }, fmt(player.projected_points, 1)),
+  ]));
+
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, `Week ${report.week} vs ${report.opponent.name} (${report.opponent.record})`),
+      stats,
+      el("div", { class: "muted", style: "margin-top:10px" },
+        `They are leaving ${fmt(report.their_lineup_efficiency.points_left_on_bench, 1)} points on their bench. ` +
+        `Their ceiling if they fix it is ${fmt(report.their_projected_best, 1)}.`),
+    ]),
+    el("div", { class: "card" }, [
+      el("h2", {}, "Position by position"),
+      table(["Slot", { label: "You", num: true }, { label: "Them", num: true }, { label: "Edge", num: true }], edgeRows),
+    ]),
+    report.their_risks.length ? el("div", { class: "card" }, [
+      el("h2", {}, "Their questionable starters"),
+      el("ul", {}, report.their_risks.map(p =>
+        el("li", {}, `${p.name} (${p.position}) — ${p.on_bye ? "on bye" : p.injury_status}`))),
+    ]) : null,
+    el("div", { class: "card" }, [
+      el("h2", {}, "Their starting lineup"),
+      table(["Slot", "Player", { label: "Team", hide: true }, "Status", { label: "Proj", num: true }], starterRows),
+    ]),
+  );
+}
+
+// ---------- League tab ----------
+
+async function renderLeague() {
+  const target = document.getElementById("tab-league");
+  target.innerHTML = "<div class='card muted'>Ranking the league…</div>";
+
+  const [rankings, trades] = await Promise.all([
+    api("/api/scouting/power-rankings"),
+    api("/api/scouting/trade-targets"),
+  ]);
+
+  const rankRows = rankings.rankings.map(row => {
+    const team = row.team;
+    return el("tr", {}, [
+      el("td", { class: "num" }, String(row.power_rank)),
+      el("td", {}, [
+        el("div", {}, team.name),
+        el("div", { class: "muted", style: "font-size:12px" },
+          team.owner_names.join(", ") || `Team ${team.team_id}`),
+      ]),
+      el("td", {}, team.record),
+      el("td", { class: "num hide-sm" }, fmt(row.points_per_game, 1)),
+      el("td", { class: "num" }, fmt(row.roster_strength_this_week, 1)),
+      el("td", { class: "num hide-sm" }, fmt(row.efficiency.points_left_on_bench, 1)),
+      el("td", { class: "num" }, fmt(row.power_score, 1)),
+      el("td", {}, el("button", { class: "action ghost small",
+        onclick: () => showRoster(team.team_id, team.name) }, "Roster")),
+    ]);
+  });
+
+  const tradeCards = trades.targets.map(entry => el("div", { class: "card" }, [
+    el("h2", {}, `${entry.team.name} (${entry.team.record})`),
+    el("div", { class: "muted", style: "margin-bottom:8px" },
+      `They are deep at: ${entry.their_surplus_positions.join(", ") || "nothing in particular"}`),
+    el("div", { style: "font-weight:600;margin-bottom:4px" }, "Ask for"),
+    el("ul", {}, entry.players.map(match => el("li", {}, [
+      `${match.player.name} (${match.player.position}, ${match.player.pro_team}` +
+      `${match.is_their_starter ? ", their starter" : ", on their bench"}) — ` +
+      `worth ${signed(match.weekly_gain_for_me)} to your lineup`,
+      match.they_can_spare ? el("span", { class: "good" }, " · they can spare it") : null,
+    ]))),
+    entry.could_offer.length ? el("div", { style: "font-weight:600;margin:10px 0 4px" }, "Could offer") : null,
+    entry.could_offer.length ? el("ul", {}, entry.could_offer.map(offer => el("li", {},
+      `${offer.player.name} (${offer.player.position}, ${offer.player.pro_team}) — ` +
+      `worth ${signed(offer.weekly_gain_for_them)} to them`))) : null,
+  ]));
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, `Power rankings — week ${rankings.week}`),
+      table(["#", "Team", "Rec", { label: "PPG", num: true, hide: true },
+        { label: "Best now", num: true }, { label: "On bench", num: true, hide: true },
+        { label: "Power", num: true }, ""], rankRows),
+    ]),
+    el("div", { id: "roster-panel" }),
+    el("div", { class: "card" }, [
+      el("h2", {}, "Trade targets"),
+      el("div", { class: "muted" },
+        trades.targets.length ? "Players on other rosters who would improve your starting lineup."
+                              : "No clear trade targets right now."),
+    ]),
+    ...tradeCards,
+  );
+}
+
+async function showRoster(teamId, teamName) {
+  const panel = document.getElementById("roster-panel");
+  panel.innerHTML = "<div class='card muted'>Loading roster…</div>";
+
+  const data = await api(`/api/teams/${teamId}`);
+  const rows = [...data.team.roster]
+    .sort((a, b) => (b.is_starting - a.is_starting) || (a.lineup_slot - b.lineup_slot))
+    .map(player => el("tr", { class: player.is_starting ? "starter" : "bench" }, [
+      el("td", {}, el("span", { class: "pos" }, player.lineup_slot_name)),
+      el("td", {}, player.name),
+      el("td", { class: "hide-sm" }, player.position),
+      el("td", { class: "hide-sm" }, player.pro_team),
+      el("td", {}, statusLabel(player)),
+      el("td", { class: "num" }, fmt(player.projected_points, 1)),
+    ]));
+
+  panel.innerHTML = "";
+  panel.append(el("div", { class: "card" }, [
+    el("h2", {}, `${teamName} roster`),
+    el("div", { class: "muted", style: "margin-bottom:10px" },
+      `Starting ${fmt(data.lineup_efficiency.current_projected, 1)}, ` +
+      `best available ${fmt(data.lineup_efficiency.best_projected, 1)}.`),
+    table(["Slot", "Player", { label: "Pos", hide: true }, { label: "Team", hide: true },
+      "Status", { label: "Proj", num: true }], rows),
+  ]));
+}
+
+// ---------- Bootstrap ----------
+
+const RENDERERS = { team: renderTeam, waivers: renderWaivers, scout: renderScout, league: renderLeague };
+const loaded = {};
+
+async function selectTab(name) {
+  document.querySelectorAll("nav button").forEach(b =>
+    b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll("main section").forEach(s =>
+    s.classList.toggle("hidden", s.id !== `tab-${name}`));
+
+  if (loaded[name]) return;
+  try {
+    clearError();
+    await RENDERERS[name]();
+    loaded[name] = true;
+  } catch (error) {
+    document.getElementById(`tab-${name}`).innerHTML = "";
+    showError(error.message);
+  }
+}
+
+document.querySelectorAll("nav button").forEach(button =>
+  button.addEventListener("click", () => selectTab(button.dataset.tab)));
+
+async function start() {
+  try {
+    state.config = await api("/api/config");
+    if (state.config.missing_fields && state.config.missing_fields.length) {
+      showError("League is not configured yet. Set " +
+        state.config.missing_fields.join(" and ") + " in your .env file, then reload.");
+      document.getElementById("league-sub").textContent = "Not configured";
+      return;
+    }
+
+    state.league = await api("/api/league");
+    document.getElementById("league-name").textContent = state.league.settings.name;
+    const s = state.league.settings;
+    document.getElementById("league-sub").textContent =
+      `Week ${state.league.week} · ${s.size} teams · ${s.scoring_type}` +
+      (state.config.can_write ? "" : " · read-only");
+
+    await selectTab("team");
+  } catch (error) {
+    showError(error.message);
+  }
+}
+
+start();
+</script>
+</body>
+</html>
