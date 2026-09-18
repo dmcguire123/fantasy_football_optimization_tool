@@ -69,12 +69,22 @@ def parse_settings(payload):
     roster_size = sum(slot_counts.values())
 
     scoring_type = scoring.get("scoringType") or ""
-    # ESPN reports PPR through a per-reception scoring item, not a flag.
-    if not scoring_type:
-        for item in scoring.get("scoringItems") or []:
-            if item.get("statId") == 53 and item.get("points"):
-                scoring_type = "PPR" if item["points"] >= 1 else "FRACTIONAL_PPR"
-                break
+
+    # ESPN reports PPR through a per-reception scoring item, not a flag, and
+    # scoringType is only the matchup format. Show both.
+    reception_format = ""
+    for item in scoring.get("scoringItems") or []:
+        if item.get("statId") == 53 and item.get("points"):
+            points = float(item["points"])
+            if points >= 1:
+                reception_format = "PPR"
+            else:
+                reception_format = f"{points:g} PPR"
+            break
+    if scoring_type and reception_format:
+        scoring_type = f"{scoring_type} · {reception_format}"
+    elif reception_format:
+        scoring_type = reception_format
 
     current_week = (
         payload.get("scoringPeriodId")

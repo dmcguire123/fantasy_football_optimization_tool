@@ -15,6 +15,7 @@ from . import constants as C
 from . import scouting, waivers
 from .config import PROJECT_ROOT, load_settings
 from .espn_client import EspnError, build_lineup_payload
+from .intel.service import IntelService
 from .league import LeagueService
 from .optimizer import optimize_team, season_projection, week_projection
 
@@ -48,9 +49,22 @@ def get_service():
     return _service
 
 
+# Intel is built on the league service so both share one ESPN connection.
+_intel = None
+
+
+def get_intel():
+    global _intel
+    service = get_service()
+    if _intel is None or _intel.league_service is not service:
+        _intel = IntelService(service)
+    return _intel
+
+
 def reset_service():
     """Drop the cached service, e.g. after configuration changes or in tests."""
-    global _service
+    global _service, _intel
+    _intel = None
     if _service is not None:
         try:
             _service.close()
@@ -306,6 +320,37 @@ def read_waiver_recommendations(
             team, league.settings.starting_slots()
         ),
     }
+
+
+@app.get("/api/waivers/consensus")
+def read_waiver_consensus(week: int | None = None, refresh: bool = False):
+    """Expert waiver picks scraped from the web, merged and ranked."""
+    intel = get_intel()
+    if refresh:
+        intel.refresh()
+    return intel.consensus(week)
+
+
+@app.get("/api/waivers/rosters")
+def read_waiver_rosters(week: int | None = None):
+    """Every team's roster, what it is short on, and its FAAB."""
+    return get_intel().rosters(week)
+
+
+@app.get("/api/waivers/targets")
+def read_waiver_targets(
+    week: int | None = None, limit: int = Query(20, ge=1, le=50)
+):
+    """Targets for your team with a suggested bid as a percent of FAAB."""
+    return get_intel().targets(week, limit=limit)
+
+
+@app.get("/api/waivers/stash")
+def read_waiver_stash(
+    week: int | None = None, limit: int = Query(20, ge=1, le=50)
+):
+    """Bench stashes: injury cover, handcuffs, bye weeks and rival threat."""
+    return get_intel().stash_picks(week, limit=limit)
 
 
 @app.post("/api/waivers/claim")

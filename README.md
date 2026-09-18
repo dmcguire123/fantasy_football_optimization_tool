@@ -97,6 +97,40 @@ Then open http://127.0.0.1:8000. Four tabs:
 - **Scout Opponent** — this week's matchup, broken down by position.
 - **League** — power rankings, any team's roster on demand, and trade targets.
 
+## Waiver wire intelligence
+
+The Waiver Wire tab has four sub-tabs:
+
+- **The List**: waiver picks gathered from the web (Sleeper trending adds, plus
+  waiver articles from FantasyPros, RotoBaller, CBS, Yahoo, 4for4, PFF and
+  others), merged into one ranked list. Names are matched against players who
+  are actually available in your league. The Athletic is paywalled, so only its
+  public headlines and summaries are read. A source that is down is shown as
+  such and never blocks the rest.
+- **Current Rosters**: every team's roster, what it is thin at, and its FAAB.
+  A team thin at a position is a likely rival bidder there.
+- **My Targets**: candidates ranked for your team, with the best drop, the
+  lineup gain, and a bid as a percent of the FAAB you have left. Kickers and
+  defenses are capped at small bids.
+
+- **Stash Picks**: players worth holding as insurance even if they never
+  start. Scored in expected points over the rest of the season from injury
+  cover for your starters (with handcuffs assumed to inherit 65% of the
+  starter's output), bye-week cover, and points rivals would gain by adding
+  the player. Bids are capped at 8% of remaining FAAB.
+
+Every projection comes from ESPN under your league's own scoring, so gains,
+stash values and bids already reflect PPR. Only the web consensus is
+scoring-agnostic, and it just decides who gets a look.
+
+Set `ANTHROPIC_API_KEY` in `.env` and Claude writes the priority and reasoning
+for each target. Without a key a plain heuristic does it. Claude only writes
+text: it never sets a bid or submits a claim, and its reply is validated first.
+Scraped pages are fetched once and reused for `FFOPT_INTEL_TTL` seconds.
+
+Endpoints: `GET /api/waivers/consensus`, `/api/waivers/rosters`,
+`/api/waivers/targets`, `/api/waivers/stash`.
+
 ## The command line
 
 ```bash

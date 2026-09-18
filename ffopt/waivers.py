@@ -71,7 +71,11 @@ def evaluate_pickup(
         pool = [p for p in roster if p.player_id != drop.player_id] + [candidate]
         total = best_possible_total(pool, starting_slots, projection_fn)
         gain = total - base_total
-        if best_gain is None or gain > best_gain:
+        # On a tie, give up whoever is worth the least over the season, so a
+        # move that changes nothing this week never suggests cutting a starter.
+        is_tie = best_gain is not None and abs(gain - best_gain) < 1e-9
+        cheaper = best_drop is not None and season_projection(drop) < season_projection(best_drop)
+        if best_gain is None or gain > best_gain + 1e-9 or (is_tie and cheaper):
             best_gain = gain
             best_drop = drop
 
@@ -115,6 +119,8 @@ def recommend_pickups(
     min_gain=0.1,
     evaluate_top=80,
     positions=None,
+    week_fn=week_projection,
+    season_fn=season_projection,
 ):
     candidates = list(free_agents)
 
@@ -136,7 +142,7 @@ def recommend_pickups(
             candidate,
             starting_slots,
             roster_limit=roster_limit,
-            projection_fn=week_projection,
+            projection_fn=week_fn,
         )
 
         # Also measure the move over the rest of the season, which is what
@@ -146,7 +152,7 @@ def recommend_pickups(
             candidate,
             starting_slots,
             roster_limit=roster_limit,
-            projection_fn=season_projection,
+            projection_fn=season_fn,
         )
         evaluation.season_gain = season_eval.weekly_gain
 

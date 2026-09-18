@@ -84,6 +84,9 @@ class Settings:
     read_only: bool = False
     request_timeout: float = 20.0
     cache_ttl_seconds: float = 90.0
+    anthropic_api_key: str = ""
+    intel_ttl_seconds: float = 21600.0
+    intel_model: str = "claude-sonnet-5"
 
     # True when we have enough to read a league at all.
     @property
@@ -118,6 +121,7 @@ class Settings:
             "has_credentials": self.has_credentials,
             "read_only": self.read_only,
             "can_write": self.can_write,
+            "llm_enabled": bool(self.anthropic_api_key),
             "missing_fields": self.missing_fields(),
         }
 
@@ -161,4 +165,7 @@ def load_settings(env=None, env_file=DEFAULT_ENV_FILE):
         read_only=as_bool("FFOPT_READ_ONLY", False),
         request_timeout=as_float("FFOPT_TIMEOUT", 20.0),
         cache_ttl_seconds=as_float("FFOPT_CACHE_TTL", 90.0),
+        anthropic_api_key=(env.get("ANTHROPIC_API_KEY") or "").strip(),
+        intel_ttl_seconds=as_float("FFOPT_INTEL_TTL", 21600.0),
+        intel_model=(env.get("FFOPT_INTEL_MODEL") or "claude-sonnet-5").strip(),
     )

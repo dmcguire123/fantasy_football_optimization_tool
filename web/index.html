@@ -82,6 +82,15 @@
   .muted { color: var(--muted); }
   pre { background: var(--panel-2); padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; }
   .hidden { display: none; }
+  .subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .subtabs button { background: transparent; border: 1px solid var(--line); color: var(--text);
+    padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: 14px; }
+  .subtabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { padding: 3px 10px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); }
+  .chip.ok { border-color: var(--good); }
+  .chip.off { border-color: var(--bad); color: var(--muted); }
+  .note { font-size: 12px; }
   .bar { height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
   .bar > span { display: block; height: 100%; background: var(--accent); }
   @media (max-width: 640px) {
@@ -311,82 +320,279 @@ async function applyLineup(moves) {
 
 // ---------- Waivers tab ----------
 
+const WAIVER_PANES = {
+  list: ["The List", renderWaiverList],
+  rosters: ["Current Rosters", renderWaiverRosters],
+  targets: ["My Targets", renderWaiverTargets],
+  stash: ["Stash Picks", renderWaiverStash],
+};
+const waiverLoaded = {};
+
+// Only ever link to plain web addresses, since the text came from the web.
+function safeLink(url, label) {
+  if (!/^https?:\/\//i.test(url || "")) return el("span", {}, label);
+  return el("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, label);
+}
+
+function sourceChips(sources) {
+  return el("div", { class: "chips" }, sources.map(s => el("span", {
+    class: "chip " + (s.ok ? "ok" : "off"),
+    title: s.note || (s.ok ? `${s.count} found` : "Unavailable"),
+  }, `${s.source} · ${s.ok ? s.count : "down"}`)));
+}
+
 async function renderWaivers() {
   const target = document.getElementById("tab-waivers");
-  target.innerHTML = "<div class='card muted'>Evaluating the waiver wire…</div>";
+  target.innerHTML = "";
 
-  const data = await api("/api/waivers/recommendations?limit=20&pool_size=150");
+  const bar = el("div", { class: "subtabs" }, Object.entries(WAIVER_PANES).map(([key, [label]]) =>
+    el("button", { "data-sub": key, onclick: () => selectWaiverPane(key) }, label)));
+  target.append(bar);
+  for (const key of Object.keys(WAIVER_PANES)) {
+    target.append(el("div", { id: `waiver-${key}`, class: "hidden" }));
+  }
+  await selectWaiverPane("targets");
+}
 
-  const header = el("div", { class: "row" }, [
-    el("div", { class: "stat" }, [
-      el("div", { class: "label" }, data.uses_faab ? "FAAB remaining" : "Waiver priority"),
-      el("div", { class: "value" }, data.uses_faab ? `$${fmt(data.faab_remaining, 0)}` : `#${data.waiver_priority}`),
-    ]),
-    el("div", { class: "stat" }, [
-      el("div", { class: "label" }, "Week"),
-      el("div", { class: "value" }, data.week),
-    ]),
-    el("div", { class: "stat" }, [
-      el("div", { class: "label" }, "Weeks left"),
-      el("div", { class: "value" }, data.weeks_left),
-    ]),
-  ]);
+async function selectWaiverPane(key) {
+  document.querySelectorAll(".subtabs button").forEach(b =>
+    b.classList.toggle("active", b.dataset.sub === key));
+  for (const name of Object.keys(WAIVER_PANES)) {
+    document.getElementById(`waiver-${name}`).classList.toggle("hidden", name !== key);
+  }
+  if (waiverLoaded[key]) return;
 
-  const rows = data.recommendations.map(rec => {
-    const player = rec.player;
-    const dropSelect = el("select", { class: "drop-select" }, [
-      el("option", { value: "" }, rec.needs_drop ? "-- pick a drop --" : "(no drop)"),
-      ...data.drop_candidates.map(c => el("option", {
-        value: c.player.player_id,
-        selected: rec.drop_player && c.player.player_id === rec.drop_player.player_id ? "selected" : null,
-      }, `${c.player.name} (costs ${fmt(c.weekly_cost, 1)})`)),
-    ]);
+  const pane = document.getElementById(`waiver-${key}`);
+  pane.innerHTML = "<div class='card muted'>Reading the web and your league. The first load can take a few seconds…</div>";
+  try {
+    clearError();
+    await WAIVER_PANES[key][1](pane);
+    waiverLoaded[key] = true;
+  } catch (error) {
+    pane.innerHTML = "";
+    showError(error.message);
+  }
+}
 
-    const bidInput = el("input", {
-      type: "number", min: "0", step: "1", value: String(rec.suggested_bid || 0),
-      class: "bid-input",
-    });
+// Sub-tab 1: the consensus list from the web.
+async function renderWaiverList(pane) {
+  const data = await api("/api/waivers/consensus");
 
-    const claimButton = el("button", { class: "action small", onclick: () =>
-      submitClaim(player, dropSelect, bidInput, data.uses_faab) }, "Claim");
-
+  const rows = data.players.slice(0, 60).map(entry => {
+    const p = entry.player;
+    const notes = entry.notes.map(n => el("div", { class: "muted note" }, `${n.source}: “${n.text}”`));
+    const links = entry.articles.slice(0, 3).map(a => el("div", { style: "font-size:12px" }, [safeLink(a.url, a.source)]));
     return el("tr", {}, [
-      el("td", {}, [el("div", {}, player.name), el("div", { class: "muted", style: "font-size:12px" },
-        `${player.position} · ${player.pro_team} · ${fmt(player.percent_owned, 0)}% owned`)]),
-      el("td", { class: "num" }, fmt(player.effective_projection, 1)),
-      el("td", { class: "num " + (rec.weekly_gain > 0 ? "good" : "muted") }, signed(rec.weekly_gain)),
-      el("td", { class: "num hide-sm" }, signed(rec.season_gain, 1)),
-      el("td", {}, dropSelect),
-      el("td", {}, data.uses_faab ? bidInput : el("span", { class: "muted" }, "—")),
-      el("td", {}, claimButton),
+      el("td", { class: "num" }, String(entry.rank)),
+      el("td", {}, [el("div", {}, p.name), el("div", { class: "muted", style: "font-size:12px" },
+        `${p.position} · ${p.pro_team} · ${fmt(p.percent_owned, 0)}% owned`)]),
+      el("td", { class: "num" }, fmt(entry.score, 1)),
+      el("td", { class: "num" }, String(entry.source_count)),
+      el("td", { class: "hide-sm" }, entry.trending_rank ? `#${entry.trending_rank} (${entry.trending_adds.toLocaleString()} adds)` : "—"),
+      el("td", { class: "hide-sm" }, [...notes.slice(0, 1), ...links]),
     ]);
   });
 
-  const dropRows = data.drop_candidates.map(c => el("tr", {}, [
-    el("td", {}, c.player.name),
-    el("td", { class: "hide-sm" }, c.player.position),
-    el("td", { class: "num" }, fmt(c.weekly_cost, 2)),
-    el("td", { class: "num" }, fmt(c.season_cost, 1)),
+  pane.innerHTML = "";
+  pane.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, "Where the data comes from"),
+      sourceChips(data.sources),
+      el("div", { class: "muted", style: "margin-top:8px" },
+        "The Athletic is paywalled, so only its public headlines and summaries are read. " +
+        "Names are matched against players actually available in your league."),
+      el("button", { class: "ghost small", style: "margin-top:10px", onclick: async () => {
+        waiverLoaded.list = false; waiverLoaded.targets = false;
+        await api("/api/waivers/consensus?refresh=true");
+        await selectWaiverPane("list");
+      } }, "Refresh from the web"),
+    ]),
+    el("div", { class: "card" }, [
+      el("h2", {}, "Top waiver targets across the web"),
+      table(["#", "Player", { label: "Score", num: true }, { label: "Sources", num: true },
+        { label: "Sleeper", hide: true }, { label: "What they said", hide: true }], rows),
+    ]),
+  );
+}
+
+// Sub-tab 2: every team's roster, what it lacks, and its budget.
+async function renderWaiverRosters(pane) {
+  const data = await api("/api/waivers/rosters");
+
+  const select = el("select", {}, data.teams.map(t => el("option", {
+    value: t.team_id, selected: t.team_id === data.my_team_id ? "selected" : null,
+  }, t.name)));
+
+  const summary = data.teams.map(t => el("tr", {}, [
+    el("td", {}, t.name + (t.team_id === data.my_team_id ? " (you)" : "")),
+    el("td", { class: "num" }, `$${fmt(t.faab_remaining, 0)}`),
+    el("td", { class: "hide-sm" }, t.waiver_priority ? `#${t.waiver_priority}` : "—"),
+    el("td", {}, t.needs.length ? t.needs.join(", ") : "—"),
   ]));
 
-  target.innerHTML = "";
-  target.append(
-    el("div", { class: "card" }, [el("h2", {}, "Waiver budget"), header]),
+  const detail = el("div", { id: "waiver-roster-detail" });
+
+  async function show(teamId) {
+    const team = data.teams.find(t => t.team_id === Number(teamId));
+    const rows = [...team.roster]
+      .sort((a, b) => (b.is_starting - a.is_starting) || (a.lineup_slot - b.lineup_slot))
+      .map(p => el("tr", {}, [
+        el("td", {}, el("span", { class: "pos" }, p.lineup_slot_name)),
+        el("td", {}, p.name),
+        el("td", { class: "hide-sm" }, p.position),
+        el("td", { class: "hide-sm" }, p.pro_team),
+        el("td", {}, statusLabel(p)),
+        el("td", { class: "num" }, fmt(p.projected_points, 1)),
+      ]));
+    detail.innerHTML = "";
+    detail.append(el("div", { class: "card" }, [
+      el("h2", {}, `${team.name} roster`),
+      table(["Slot", "Player", { label: "Pos", hide: true }, { label: "Team", hide: true },
+        "Status", { label: "Proj", num: true }], rows),
+    ]));
+  }
+  select.addEventListener("change", () => show(select.value));
+
+  pane.innerHTML = "";
+  pane.append(
     el("div", { class: "card" }, [
-      el("h2", {}, "Best available, ranked by what they add to your lineup"),
+      el("h2", {}, "Who is short where, and who can bid"),
       el("div", { class: "muted", style: "margin-bottom:10px" },
-        "Gain is the change in your optimal starting total after adding this player and dropping the selected one."),
-      el("div", { id: "claim-result" }),
-      table([
-        "Player", { label: "Proj", num: true }, { label: "Wk gain", num: true },
-        { label: "Season gain", num: true, hide: true }, "Drop", "Bid", "",
-      ], rows),
+        "A team below normal depth at a position is a likely rival bidder for players at that position."),
+      table(["Team", { label: "FAAB", num: true }, { label: "Priority", hide: true }, "Thin at"], summary),
+    ]),
+    el("div", { class: "card" }, [el("h2", {}, "View a roster"), select]),
+    detail,
+  );
+  await show(select.value);
+}
+
+// Sub-tab 4: bench stashes, valued as insurance rather than as starters.
+async function renderWaiverStash(pane) {
+  const data = await api("/api/waivers/stash");
+  const usesFaab = state.league.settings.uses_faab;
+
+  const rows = data.stashes.map(t => {
+    const player = t.player;
+    const onWaivers = player.availability === "WAIVERS";
+    const options = data.drop_candidates.map(c => ({ id: c.player.player_id, label: `${c.player.name} (costs ${fmt(c.weekly_cost, 1)})` }));
+    if (t.drop_player && !options.some(o => o.id === t.drop_player.player_id)) {
+      options.unshift({ id: t.drop_player.player_id, label: `${t.drop_player.name} (suggested)` });
+    }
+    const dropSelect = el("select", { class: "drop-select" }, [
+      el("option", { value: "" }, t.needs_drop ? "-- pick a drop --" : "(no drop)"),
+      ...options.map(o => el("option", { value: o.id,
+        selected: t.drop_player && o.id === t.drop_player.player_id ? "selected" : null }, o.label)),
+    ]);
+    const bidInput = el("input", { type: "number", min: "0", step: "1", value: String(t.bid_dollars || 0), class: "bid-input" });
+    const claim = el("button", { class: "action small", onclick: () =>
+      submitClaim(player, dropSelect, bidInput, usesFaab) }, onWaivers ? "Claim" : "Add");
+
+    const parts = [];
+    if (t.handcuff_of.length) parts.push(el("span", { class: "chip ok" }, "Handcuff: " + t.handcuff_of.join(", ")));
+    if (t.start_now_gain >= 0.5) parts.push(el("span", { class: "chip ok" }, `Also helps now +${fmt(t.start_now_gain, 1)}`));
+
+    return el("tr", {}, [
+      el("td", { class: "num" }, "★".repeat(t.priority)),
+      el("td", {}, [el("div", {}, player.name), el("div", { class: "muted", style: "font-size:12px" },
+        `${player.position} · ${player.pro_team} · ${onWaivers ? "on waivers" : "free agent"}`),
+        el("div", { class: "chips", style: "margin-top:4px" }, parts)]),
+      el("td", { class: "num" }, fmt(t.score, 1)),
+      el("td", { class: "num hide-sm" }, fmt(t.injury_cover, 1)),
+      el("td", { class: "num hide-sm" }, fmt(t.bye_cover, 1)),
+      el("td", { class: "num hide-sm" }, String(t.rivals_gaining)),
+      el("td", { class: "num" }, usesFaab && onWaivers && t.bid_dollars ? `${fmt(t.bid_percent, 1)}%` : "—"),
+      el("td", {}, usesFaab && onWaivers ? bidInput : el("span", { class: "muted" }, "no bid")),
+      el("td", { class: "hide-sm" }, [el("div", {}, t.reasoning), t.risk ? el("div", { class: "warn", style: "font-size:12px" }, "Risk: " + t.risk) : null]),
+      el("td", {}, dropSelect),
+      el("td", {}, claim),
+    ]);
+  });
+
+  pane.innerHTML = "";
+  pane.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, "Stash picks: insurance for your lineup"),
+      el("div", { class: "muted" },
+        `Scoring: ${data.scoring}. Scores are expected points over the remaining ${data.weeks_left} weeks from four things: ` +
+        "covering an injured starter (including handcuffs), covering bye weeks, and keeping the player from rivals who would start him. " +
+        "Projections come from ESPN under your league's scoring, so they already reflect PPR."),
+      data.analysis_note ? el("div", { class: "muted", style: "margin-top:6px" }, data.analysis_note) : null,
     ]),
     el("div", { class: "card" }, [
-      el("h2", {}, "Cheapest players to drop"),
-      table(["Player", { label: "Pos", hide: true }, { label: "Week cost", num: true },
-        { label: "Season cost", num: true }], dropRows),
+      data.stashes.length ? null : el("div", { class: "muted" }, "No stash adds anything meaningful for this roster right now."),
+      el("div", { id: "claim-result" }),
+      data.stashes.length ? table([{ label: "Pri", num: true }, "Player", { label: "Stash", num: true },
+        { label: "Injury", num: true, hide: true }, { label: "Bye", num: true, hide: true },
+        { label: "Rivals", num: true, hide: true }, { label: "Bid %", num: true }, "Bid $",
+        { label: "Why", hide: true }, "Drop", ""], rows) : null,
     ]),
+  );
+}
+
+// Sub-tab 3: the sheet for my team, with bids as a percent of FAAB left.
+async function renderWaiverTargets(pane) {
+  const data = await api("/api/waivers/targets");
+  const usesFaab = state.league.settings.uses_faab;
+
+  const rows = data.targets.map(t => {
+    const player = t.player;
+    // The model's chosen drop may not be one of the five cheapest, so make
+    // sure it is always in the list and selected.
+    const options = data.drop_candidates.map(c => ({ id: c.player.player_id, label: `${c.player.name} (costs ${fmt(c.weekly_cost, 1)})` }));
+    if (t.drop_player && !options.some(o => o.id === t.drop_player.player_id)) {
+      options.unshift({ id: t.drop_player.player_id, label: `${t.drop_player.name} (suggested)` });
+    }
+    const dropSelect = el("select", { class: "drop-select" }, [
+      el("option", { value: "" }, t.needs_drop ? "-- pick a drop --" : "(no drop)"),
+      ...options.map(o => el("option", {
+        value: o.id,
+        selected: t.drop_player && o.id === t.drop_player.player_id ? "selected" : null,
+      }, o.label)),
+    ]);
+    const bidInput = el("input", { type: "number", min: "0", step: "1", value: String(t.bid_dollars || 0), class: "bid-input" });
+    const onWaivers = player.availability === "WAIVERS";
+    const claim = el("button", { class: "action small", onclick: () =>
+      submitClaim(player, dropSelect, bidInput, usesFaab) }, onWaivers ? "Claim" : "Add");
+
+    return el("tr", {}, [
+      el("td", { class: "num" }, "★".repeat(t.priority)),
+      el("td", {}, [el("div", {}, player.name), el("div", { class: "muted", style: "font-size:12px" },
+        `${player.position} · ${player.pro_team} · ${t.source_count} source(s) · ${onWaivers ? "on waivers" : "free agent"}`)]),
+      el("td", { class: "num " + (t.weekly_gain > 0 ? "good" : "muted") }, signed(t.weekly_gain)),
+      el("td", { class: "num" }, usesFaab && onWaivers ? `${fmt(t.bid_percent, 1)}%` : "—"),
+      el("td", {}, usesFaab && onWaivers ? bidInput : el("span", { class: "muted" }, "no bid")),
+      el("td", { class: "hide-sm" }, [el("div", {}, t.reasoning),
+        t.risk ? el("div", { class: "warn", style: "font-size:12px" }, "Risk: " + t.risk) : null,
+        el("div", { class: "muted", style: "font-size:12px" }, t.bid_reasons.join(" "))]),
+      el("td", {}, dropSelect),
+      el("td", {}, claim),
+    ]);
+  });
+
+  pane.innerHTML = "";
+  pane.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, "Your waiver budget"),
+      el("div", { class: "row" }, [
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "FAAB remaining"),
+          el("div", { class: "value" }, `$${fmt(data.faab_remaining, 0)}`)]),
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Week"), el("div", { class: "value" }, String(data.week))]),
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Weeks left"), el("div", { class: "value" }, String(data.weeks_left))]),
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Analysis"),
+          el("div", { class: "value" }, data.analysis === "llm" ? "Claude" : "Heuristic")]),
+      ]),
+      data.analysis_note ? el("div", { class: "muted", style: "margin-top:8px" }, data.analysis_note) : null,
+    ]),
+    el("div", { class: "card" }, [
+      el("h2", {}, "Who to want, and what to bid"),
+      el("div", { class: "muted", style: "margin-bottom:10px" },
+        "Bid % is a share of the FAAB you have left. The dollar box is what a claim will actually submit, so edit it if you disagree."),
+      el("div", { id: "claim-result" }),
+      table([{ label: "Pri", num: true }, "Player", { label: "Wk gain", num: true }, { label: "Bid %", num: true },
+        "Bid $", { label: "Why", hide: true }, "Drop", ""], rows),
+    ]),
+    el("div", { class: "card" }, [el("h2", {}, "Data sources"), sourceChips(data.sources)]),
   );
 }
 
@@ -401,15 +607,19 @@ async function submitClaim(player, dropSelect, bidInput, usesFaab) {
   }
 
   const dropId = dropSelect.value ? Number(dropSelect.value) : null;
-  const bid = usesFaab ? Number(bidInput.value || 0) : null;
 
-  const lines = [`Add: ${player.name}`];
+  // A player past the waiver period is a free agent: ESPN adds them at once
+  // and rejects a waiver claim for them. Only waiver players take a bid.
+  const isWaiver = player.availability === "WAIVERS";
+  const bid = usesFaab && isWaiver ? Number(bidInput.value || 0) : null;
+
+  const lines = [`Add: ${player.name}${isWaiver ? "" : " (free agent, added immediately)"}`];
   if (dropId) {
     const label = dropSelect.options[dropSelect.selectedIndex].textContent;
     lines.push(`Drop: ${label}`);
   }
-  if (usesFaab) lines.push(`Bid: $${bid}`);
-  if (!confirm(`Submit this waiver claim to ESPN?\n\n${lines.join("\n")}`)) return;
+  if (bid !== null) lines.push(`Bid: $${bid}`);
+  if (!confirm(`${isWaiver ? "Submit this waiver claim to ESPN?" : "Add this free agent on ESPN now?"}\n\n${lines.join("\n")}`)) return;
 
   try {
     const result = await api("/api/waivers/claim", {
@@ -418,12 +628,12 @@ async function submitClaim(player, dropSelect, bidInput, usesFaab) {
         add_player_id: player.player_id,
         drop_player_id: dropId,
         bid_amount: bid,
-        is_waiver: true,
+        is_waiver: isWaiver,
         dry_run: false,
       }),
     });
     box.append(el("div", { class: "notice ok" },
-      result.submitted ? `Claim submitted for ${player.name}.` : "Claim not submitted."));
+      result.submitted ? (isWaiver ? `Claim submitted for ${player.name}.` : `${player.name} added.`) : "Not submitted."));
   } catch (error) {
     box.append(el("div", { class: "notice err" }, error.message));
   }
