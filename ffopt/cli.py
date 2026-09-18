@@ -10,7 +10,7 @@ import argparse
 import sys
 
 from . import constants as C
-from . import scouting, waivers
+from . import history, scouting, waivers
 from .config import load_settings
 from .espn_client import EspnError, build_lineup_payload
 from .league import LeagueService
@@ -336,6 +336,50 @@ def cmd_claim(args):
     return 0
 
 
+def cmd_snapshot(args):
+    service = build_service(args)
+    conn = history.open_db()
+    result = history.run_snapshot(service, conn, do_backfill=args.backfill)
+
+    print(f"Week {result['week']}: recorded {result['predicted']} matchup prediction(s).")
+    if args.backfill:
+        print(f"Backfilled {result['backfilled']} prediction(s) from earlier weeks.")
+    print(f"Settled {result['settled']} finished game(s).")
+    return 0
+
+
+def cmd_calibration(args):
+    conn = history.open_db()
+    report = history.calibration(conn)
+
+    if not report["games"]:
+        print("No finished games recorded yet. Run `snapshot` each week, or add --backfill.")
+        print(f"({history.pending_count(conn)} prediction(s) waiting on results.)")
+        return 0
+
+    print(f"{report['games']} finished game(s). Lower scores are better; a coin flip is")
+    print("0.250 (Brier) and 0.693 (log loss).\n")
+    print_table(
+        ["", "Brier", "Log loss"],
+        [
+            ["Measured spreads", f"{report['brier']:.3f}", f"{report['log_loss']:.3f}"],
+            ["Fixed spread", f"{report['brier_flat']:.3f}", f"{report['log_loss_flat']:.3f}"],
+        ],
+    )
+    print("\nWhen the model said...        it actually happened")
+    rows = [
+        [
+            f"{b['low'] * 100:.0f}-{b['high'] * 100:.0f}%",
+            str(b["count"]),
+            f"{b['predicted'] * 100:.1f}%",
+            f"{b['actual'] * 100:.1f}%",
+        ]
+        for b in report["bins"]
+    ]
+    print_table(["Band", "Sides", "Predicted", "Actual"], rows)
+    return 0
+
+
 def cmd_scout(args):
     service = build_service(args)
     league = service.load_league(args.week)
@@ -477,6 +521,14 @@ def build_parser():
 
     add_common(subparsers.add_parser("scout", help="Scout this week's opponent."))
 
+    snap = subparsers.add_parser(
+        "snapshot", help="Record this week's matchup predictions and settle finished games."
+    )
+    snap.add_argument(
+        "--backfill", action="store_true", help="Also rebuild predictions for earlier weeks."
+    )
+    subparsers.add_parser("calibration", help="How well win probabilities have held up.")
+
     trades = add_common(subparsers.add_parser("trades", help="Find trade targets."))
     trades.add_argument("--limit", type=int, default=5)
 
@@ -498,6 +550,8 @@ COMMANDS = {
     "waivers": cmd_waivers,
     "claim": cmd_claim,
     "scout": cmd_scout,
+    "snapshot": cmd_snapshot,
+    "calibration": cmd_calibration,
     "trades": cmd_trades,
     "serve": cmd_serve,
 }
