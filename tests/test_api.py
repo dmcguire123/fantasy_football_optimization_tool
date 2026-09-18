@@ -265,3 +265,9 @@ def test_an_unconfigured_league_explains_what_is_missing(monkeypatch):
     assert response.status_code == 400
     assert "ESPN_LEAGUE_ID" in str(response.json()["detail"]["missing"])
     api.reset_service()
+
+
+def test_league_history_endpoint(http):
+    body = http.get("/api/league-history").json()
+    assert body["years"][0] == 2020
+    assert len(body["champions"]) == 6

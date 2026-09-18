@@ -43,6 +43,13 @@ weeks). `python -m ffopt calibration` then shows whether a 70% call really
 wins about 70% of the time, and whether the measured player spreads beat the
 old fixed spread. Records live in `data/history.db`.
 
+**League history dashboard.** The History tab in the web app charts the league's
+NFL.com years from `doc/league_history/`: champions, win percentage, scoring
+margin, points per game by season, a final-place grid, trades and waiver
+activity, an owner ledger, the trade log, and draft recaps. Pick an owner to
+highlight them, or a season to scope the bars and tables. Every chart has a
+table view. Open it directly at `/#history`.
+
 ## Setup
 
 ### 1. Install
