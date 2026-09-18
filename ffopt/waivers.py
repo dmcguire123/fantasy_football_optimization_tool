@@ -10,7 +10,12 @@ already deep, and rewards a mediocre one at a position where you are thin.
 
 from . import constants as C
 from .espn_client import build_add_drop_payload
-from .optimizer import best_possible_total, season_projection, week_projection
+from .optimizer import (
+    best_lineup_win_probability,
+    best_possible_total,
+    season_projection,
+    week_projection,
+)
 
 
 # Players who should never be offered up as the drop side of a claim.
@@ -23,16 +28,19 @@ def is_droppable(player):
 class PickupEvaluation:
     """What one available player would be worth to one team."""
 
-    def __init__(self, player, drop_player, weekly_gain, season_gain, needs_drop):
+    def __init__(
+        self, player, drop_player, weekly_gain, season_gain, needs_drop, win_gain=None
+    ):
         self.player = player
         self.drop_player = drop_player
         self.weekly_gain = weekly_gain
         self.season_gain = season_gain
         self.needs_drop = needs_drop
+        self.win_gain = win_gain
         self.suggested_bid = 0.0
 
     def to_dict(self):
-        return {
+        result = {
             "player": self.player.to_dict(),
             "drop_player": self.drop_player.to_dict() if self.drop_player else None,
             "needs_drop": self.needs_drop,
@@ -40,6 +48,9 @@ class PickupEvaluation:
             "season_gain": round(self.season_gain, 2),
             "suggested_bid": round(self.suggested_bid, 2),
         }
+        if self.win_gain is not None:
+            result["win_probability_gain"] = round(self.win_gain, 4)
+        return result
 
 
 # Score one available player against one roster. Tries every legal drop and
@@ -50,6 +61,7 @@ def evaluate_pickup(
     starting_slots,
     roster_limit=0,
     projection_fn=week_projection,
+    opponent=None,
 ):
     roster = [p for p in team.roster if p.lineup_slot != C.IR_SLOT]
     base_total = best_possible_total(roster, starting_slots, projection_fn)
@@ -79,12 +91,22 @@ def evaluate_pickup(
             best_gain = gain
             best_drop = drop
 
+    # With an opponent known, also report how much the move changes the
+    # chance of winning this week's matchup.
+    win_gain = None
+    if opponent is not None:
+        after = [p for p in roster if best_drop is None or p.player_id != best_drop.player_id]
+        win_gain = best_lineup_win_probability(
+            after + [candidate], starting_slots, opponent, projection_fn
+        ) - best_lineup_win_probability(roster, starting_slots, opponent, projection_fn)
+
     return PickupEvaluation(
         player=candidate,
         drop_player=best_drop,
         weekly_gain=best_gain or 0.0,
         season_gain=0.0,
         needs_drop=needs_drop,
+        win_gain=win_gain,
     )
 
 
@@ -121,6 +143,8 @@ def recommend_pickups(
     positions=None,
     week_fn=week_projection,
     season_fn=season_projection,
+    opponent=None,
+    objective="points",
 ):
     candidates = list(free_agents)
 
@@ -143,6 +167,7 @@ def recommend_pickups(
             starting_slots,
             roster_limit=roster_limit,
             projection_fn=week_fn,
+            opponent=opponent,
         )
 
         # Also measure the move over the rest of the season, which is what
@@ -162,7 +187,12 @@ def recommend_pickups(
         evaluations.append(evaluation)
 
     evaluations = [e for e in evaluations if e.weekly_gain >= min_gain or e.season_gain > 0]
-    evaluations.sort(key=lambda e: (e.weekly_gain, e.season_gain), reverse=True)
+    if objective == "win" and opponent is not None:
+        evaluations.sort(
+            key=lambda e: (e.win_gain or 0.0, e.weekly_gain, e.season_gain), reverse=True
+        )
+    else:
+        evaluations.sort(key=lambda e: (e.weekly_gain, e.season_gain), reverse=True)
     return evaluations[:limit]
 
 

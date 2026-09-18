@@ -11,6 +11,7 @@ max-flow, which is instant at fantasy roster sizes.
 from collections import deque
 
 from . import constants as C
+from .winprob import lineup_distribution, win_probability
 
 
 # Projections are floats; the flow solver works in integers to stay exact.
@@ -115,19 +116,33 @@ def season_projection(player):
 class LineupResult:
     """The best lineup found, plus what it would take to get there."""
 
-    def __init__(self, assignments, bench, total, current_total, moves):
+    def __init__(
+        self,
+        assignments,
+        bench,
+        total,
+        current_total,
+        moves,
+        objective="points",
+        win_probability=None,
+        current_win_probability=None,
+    ):
         self.assignments = assignments
         self.bench = bench
         self.total = total
         self.current_total = current_total
         self.moves = moves
+        self.objective = objective
+        self.win_probability = win_probability
+        self.current_win_probability = current_win_probability
 
     @property
     def points_gained(self):
         return self.total - self.current_total
 
     def to_dict(self):
-        return {
+        result = {
+            "objective": self.objective,
             "projected_total": round(self.total, 2),
             "current_projected_total": round(self.current_total, 2),
             "points_gained": round(self.points_gained, 2),
@@ -143,6 +158,10 @@ class LineupResult:
             "bench": [p.to_dict() for p in self.bench],
             "moves": self.moves,
         }
+        if self.win_probability is not None:
+            result["win_probability"] = round(self.win_probability, 3)
+            result["current_win_probability"] = round(self.current_win_probability, 3)
+        return result
 
 
 # Assign players to slot groups, minimizing the total of cost_fn. Returns a
@@ -284,8 +303,59 @@ def build_moves(assignments, bench, locked_player_ids=None):
     return moves
 
 
+OBJECTIVE_POINTS = "points"
+OBJECTIVE_WIN = "win"
+
+
+# Chance a set of starters beats an opponent, given as a (mean, stddev) pair.
+def _win_chance(starters, opponent):
+    mean, stddev = lineup_distribution(starters)
+    return win_probability(mean, opponent[0], stddev, opponent[1])
+
+
+# Start from the points-optimal lineup and keep making the single starter-for-
+# bench swap that most raises the chance of winning, until none does. Each
+# swap is checked with the same solver to make sure the new set of starters
+# can still fill every slot. Underdogs drift toward boom-or-bust players and
+# favorites toward steady ones, at whatever cost in projected points the
+# win chance justifies.
+# Locked starters cannot move but still score, so they count toward the
+# distribution through `fixed`.
+def improve_for_win(
+    assignments, bench, slots, opponent, projection_fn=week_projection, fixed=()
+):
+    fixed = list(fixed)
+    starters = [p for _, p in assignments if p]
+    bench = [p for p in bench if projection_fn(p) > 0]
+    current = _win_chance(starters + fixed, opponent)
+
+    while True:
+        best_chance = current + 1e-6
+        best_swap = None
+        for out_player in starters:
+            for in_player in bench:
+                trial = [p for p in starters if p is not out_player] + [in_player]
+                trial_assignments, _ = solve_lineup(trial, slots, projection_fn)
+                if any(player is None for _, player in trial_assignments):
+                    continue
+                chance = _win_chance(trial + fixed, opponent)
+                if chance > best_chance:
+                    best_chance = chance
+                    best_swap = (out_player, in_player)
+        if best_swap is None:
+            break
+        out_player, in_player = best_swap
+        starters = [p for p in starters if p is not out_player] + [in_player]
+        bench = [p for p in bench if p is not in_player] + [out_player]
+        current = best_chance
+
+    return solve_lineup(starters, slots, projection_fn)[0]
+
+
 # Full optimization for one team: solve, diff against the current lineup,
-# and report the point swing.
+# and report the point swing. With objective="win" and an opponent given as
+# a (mean, stddev) pair, the lineup is tuned for the chance of winning that
+# matchup instead of for raw projected points.
 def optimize_team(
     team,
     starting_slots,
@@ -293,9 +363,12 @@ def optimize_team(
     locked_player_ids=None,
     extra_players=None,
     exclude_player_ids=None,
+    objective=OBJECTIVE_POINTS,
+    opponent=None,
 ):
     exclude = set(exclude_player_ids or [])
     locked = set(locked_player_ids or [])
+    use_win = objective == OBJECTIVE_WIN and opponent is not None
 
     # IR players cannot start, and locked starters cannot be moved out.
     candidates = []
@@ -322,6 +395,17 @@ def optimize_team(
                 candidates.remove(player)
 
     assignments, bench = solve_lineup(candidates, remaining_slots, projection_fn)
+    if use_win:
+        assignments = improve_for_win(
+            assignments,
+            bench,
+            remaining_slots,
+            opponent,
+            projection_fn,
+            fixed=[p for _, p in forced],
+        )
+        seated = {id(p) for _, p in assignments if p}
+        bench = [p for p in candidates if id(p) not in seated]
     assignments = forced + assignments
 
     total = sum(projection_fn(p) for _, p in assignments if p)
@@ -330,7 +414,24 @@ def optimize_team(
     )
     moves = build_moves(assignments, bench, locked_player_ids=locked)
 
-    return LineupResult(assignments, bench, total, current_total, moves)
+    win_chance = current_win_chance = None
+    if use_win:
+        win_chance = _win_chance([p for _, p in assignments if p], opponent)
+        current_win_chance = _win_chance(
+            [p for p in team.roster if p.is_starting and p.player_id not in exclude],
+            opponent,
+        )
+
+    return LineupResult(
+        assignments,
+        bench,
+        total,
+        current_total,
+        moves,
+        objective=OBJECTIVE_WIN if use_win else OBJECTIVE_POINTS,
+        win_probability=win_chance,
+        current_win_probability=current_win_chance,
+    )
 
 
 # The best total a roster could put up this week, ignoring what is currently
@@ -339,3 +440,12 @@ def best_possible_total(players, starting_slots, projection_fn=week_projection):
     startable = [p for p in players if p.lineup_slot != C.IR_SLOT]
     assignments, _ = solve_lineup(startable, starting_slots, projection_fn)
     return sum(projection_fn(p) for _, p in assignments if p)
+
+
+# Chance a roster's points-optimal lineup beats an opponent given as a
+# (mean, stddev) pair. Cheaper than the full win search, so it is what waiver
+# scoring uses.
+def best_lineup_win_probability(players, starting_slots, opponent, projection_fn=week_projection):
+    startable = [p for p in players if p.lineup_slot != C.IR_SLOT]
+    assignments, _ = solve_lineup(startable, starting_slots, projection_fn)
+    return _win_chance([p for _, p in assignments if p], opponent)
