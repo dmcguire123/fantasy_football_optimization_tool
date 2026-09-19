@@ -1217,23 +1217,28 @@ function columns(items, formatTip) {
 const TREND_COLORS = ["--v-c1", "--v-c2", "--v-c3", "--v-c4"];
 const TREND_MAX = 4;
 
-function trajectoryChart(data, allRows, chosen, colorOf) {
+function trajectoryChart(data, allRows, chosen, colorOf, opts = {}) {
+  const value = opts.getValue || (row => row.points_for / row.games);
+  const step = opts.step || 10;
+  const fmtValue = opts.format || (v => String(v));
+  const fmtEnd = opts.formatEnd || (v => v.toFixed(1));
+  const detail = opts.detail || (row => `rank ${row.rank}`);
+  const noun = opts.label || "Points per game";
   const years = data.years;
   const W = 720, H = 300, L = 44, R = 110, T = 14, B = 28;
-  const ppg = row => row.points_for / row.games;
-  const values = allRows.map(ppg);
-  const lo = Math.floor(Math.min(...values) / 10) * 10;
-  const hi = Math.ceil(Math.max(...values) / 10) * 10;
+  const values = allRows.map(value);
+  const lo = Math.floor(Math.min(...values) / step) * step;
+  const hi = Math.ceil(Math.max(...values) / step) * step;
   const x = i => L + (W - L - R) * (years.length === 1 ? 0.5 : i / (years.length - 1));
   const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
   const surface = vizVar("--v-surface") || "#171c23";
 
   const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img",
-    "aria-label": "Points per game by owner and season" });
+    "aria-label": `${noun} by owner and season` });
 
-  for (let v = lo; v <= hi; v += 10) {
+  for (let v = lo; v <= hi + 1e-9; v += step) {
     svg.appendChild(svgEl("line", { class: "grid", x1: L, x2: W - R, y1: y(v), y2: y(v) }));
-    svg.appendChild(svgEl("text", { x: L - 8, y: y(v) + 4, "text-anchor": "end" }, String(v)));
+    svg.appendChild(svgEl("text", { x: L - 8, y: y(v) + 4, "text-anchor": "end" }, fmtValue(v)));
   }
   years.forEach((year, i) =>
     svg.appendChild(svgEl("text", { x: x(i), y: H - 8, "text-anchor": "middle" }, String(year))));
@@ -1247,7 +1252,7 @@ function trajectoryChart(data, allRows, chosen, colorOf) {
     years.forEach((year, i) => {
       const row = perYear[year];
       if (!row) { pen = false; return; }
-      d += (pen ? "L" : "M") + x(i) + " " + y(ppg(row)) + " ";
+      d += (pen ? "L" : "M") + x(i) + " " + y(value(row)) + " ";
       pen = true;
     });
     return d.trim();
@@ -1268,7 +1273,7 @@ function trajectoryChart(data, allRows, chosen, colorOf) {
     years.forEach((year, i) => {
       const row = mine[year];
       if (!row) return;
-      svg.appendChild(svgEl("circle", { cx: x(i), cy: y(ppg(row)), r: 4,
+      svg.appendChild(svgEl("circle", { cx: x(i), cy: y(value(row)), r: 4,
         fill: colorOf(name), stroke: surface, "stroke-width": 2 }));
     });
   }
@@ -1276,13 +1281,13 @@ function trajectoryChart(data, allRows, chosen, colorOf) {
   // End labels. Where two would collide the legend carries the name instead.
   const ends = chosen.map(name => {
     const lastYear = [...years].reverse().find(yr => (byOwner[name] || {})[yr]);
-    return lastYear ? { name, i: years.indexOf(lastYear), v: ppg(byOwner[name][lastYear]) } : null;
+    return lastYear ? { name, i: years.indexOf(lastYear), v: value(byOwner[name][lastYear]) } : null;
   }).filter(Boolean).sort((p, q) => y(p.v) - y(q.v));
   let lastShown = -Infinity;
   for (const end of ends) {
     if (y(end.v) - lastShown < 13) continue;
     lastShown = y(end.v);
-    svg.appendChild(svgEl("text", { x: x(end.i) + 10, y: y(end.v) + 4 }, `${end.name} ${end.v.toFixed(1)}`));
+    svg.appendChild(svgEl("text", { x: x(end.i) + 10, y: y(end.v) + 4 }, `${end.name} ${fmtEnd(end.v)}`));
   }
 
   const cross = svgEl("line", { x1: 0, x2: 0, y1: T, y2: H - B, stroke: vizVar("--v-grid"),
@@ -1301,16 +1306,16 @@ function trajectoryChart(data, allRows, chosen, colorOf) {
     const year = years[i];
     cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.style.display = "";
     const seasonRows = allRows.filter(r => r.season === year);
-    const avg = seasonRows.reduce((s, r) => s + ppg(r), 0) / seasonRows.length;
-    const top = seasonRows.reduce((p, q) => ppg(p) > ppg(q) ? p : q);
+    const avg = seasonRows.reduce((s, r) => s + value(r), 0) / seasonRows.length;
+    const top = seasonRows.reduce((p, q) => value(p) > value(q) ? p : q);
     const rows = [];
     for (const name of chosen) {
       const row = (byOwner[name] || {})[year];
-      rows.push({ value: row ? ppg(row).toFixed(1) : "–",
-        label: row ? `${name} (rank ${row.rank})` : `${name} (not in league)`, color: colorOf(name) });
+      rows.push({ value: row ? fmtEnd(value(row)) : "–",
+        label: row ? `${name} (${detail(row)})` : `${name} (not in league)`, color: colorOf(name) });
     }
-    rows.push({ value: avg.toFixed(1), label: "league average", color: vizVar("--v-gray") });
-    rows.push({ value: ppg(top).toFixed(1), label: `highest: ${top.owner_name}` });
+    rows.push({ value: fmtEnd(avg), label: "league average", color: vizVar("--v-gray") });
+    rows.push({ value: fmtEnd(value(top)), label: `highest: ${top.owner_name}` });
     tip.show(e, String(year), rows);
   });
   hit.addEventListener("pointerleave", () => { cross.style.display = "none"; tip.hide(); });
@@ -1509,6 +1514,47 @@ async function renderHistory() {
         })),
       { controls: ownerChips(careers.map(o => o.name), chosen, colorOf, draw) });
 
+    // Career totals as they built up season by season, for the wins chart.
+    const cumRows = [];
+    const running = {};
+    for (const row of [...allRows].sort((p, q) => p.season - q.season)) {
+      const c = running[row.owner_name] || (running[row.owner_name] = { w: 0, l: 0, t: 0, g: 0 });
+      c.w += row.wins; c.l += row.losses; c.t += row.ties; c.g += row.games;
+      cumRows.push({ owner_name: row.owner_name, season: row.season, w: c.w, l: c.l, t: c.t, g: c.g });
+    }
+    const METRICS = {
+      wins: { label: "Total wins", value: r => r.w, step: 10, format: v => String(v), formatEnd: v => String(v),
+              detail: r => `${r.w}-${r.l}${r.t ? "-" + r.t : ""} career` },
+      net: { label: "Wins minus losses", value: r => r.w - r.l, step: 5,
+             format: v => (v > 0 ? "+" : "") + v, formatEnd: v => (v > 0 ? "+" : "") + v,
+             detail: r => `${r.w}-${r.l}${r.t ? "-" + r.t : ""} career` },
+      pct: { label: "Career win %", value: r => (r.w + 0.5 * r.t) / r.g * 100, step: 5,
+             format: v => v + "%", formatEnd: v => v.toFixed(1) + "%",
+             detail: r => `${r.w}-${r.l}${r.t ? "-" + r.t : ""} career` },
+    };
+    const metricKey = state.hMetric || "wins";
+    const metric = METRICS[metricKey];
+    const metricButtons = el("div", { class: "yearchips" }, Object.entries(METRICS).map(([key, m]) =>
+      el("button", { class: key === metricKey ? "on" : "", onclick: () => { state.hMetric = key; draw(); } }, m.label)));
+    const winsTrendCard = chartCard(`${metric.label} over the seasons`,
+      "Running career totals at the end of each season, so a line that climbs faster is winning more. Uses the same owners as the chart above.",
+      trajectoryChart(data, cumRows, chosen, colorOf, {
+        getValue: metric.value, step: metric.step, format: metric.format,
+        formatEnd: metric.formatEnd, detail: metric.detail, label: metric.label }),
+      simpleTable(["Season"].concat(chosen.map(n => n), ["League average"]),
+        data.years.map(year => {
+          const rows = cumRows.filter(r => r.season === year);
+          const avg = rows.reduce((s, r) => s + metric.value(r), 0) / rows.length;
+          return [String(year)].concat(chosen.map(n => {
+            const mine = rows.find(r => r.owner_name === n);
+            return mine ? metric.formatEnd(metric.value(mine)) : "–";
+          }), [metric.formatEnd(avg)]);
+        })),
+      { controls: el("div", {}, [
+          metricButtons,
+          ownerChips(careers.map(o => o.name), chosen, colorOf, draw),
+        ]) });
+
     // Finish grid.
     const heatCard = el("div", { class: "card" }, [
       el("h2", {}, "Final place by season"),
@@ -1593,7 +1639,7 @@ async function renderHistory() {
       el("div", { style: "height:16px" }),
       el("div", { class: "grid2" }, [winCard, marginCard]),
       el("div", { style: "height:16px" }),
-      trendCard, heatCard,
+      trendCard, winsTrendCard, heatCard,
       el("div", { class: "grid2" }, [tradesSeasonCard, tradeOwnerCard]),
       el("div", { style: "height:16px" }),
       ledger, tradeLog,
