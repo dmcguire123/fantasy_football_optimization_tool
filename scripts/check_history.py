@@ -26,9 +26,9 @@ from ffopt.espn_client import (
 )
 
 
-# ESPN moved older seasons to a separate endpoint. Seasons before this year
-# are only reachable through it.
-HISTORY_CUTOFF = 2018
+# ESPN serves past seasons from a separate endpoint. Seasons that were
+# imported from another site (like NFL.com) live ONLY there, whatever the
+# year, so it is tried for every season the normal endpoint does not have.
 HISTORY_PATH = "/apis/v3/games/ffl/leagueHistory/{league_id}"
 
 
@@ -112,9 +112,6 @@ def probe_year(settings, year, transport=None):
             return summarize(payload, "seasons")
         except EspnNotFoundError:
             pass
-
-        if year >= HISTORY_CUTOFF:
-            return missing("no league that year")
 
         try:
             payload = fetch_history_endpoint(client, year)

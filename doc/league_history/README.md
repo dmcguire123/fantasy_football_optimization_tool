@@ -1,6 +1,6 @@
 # WBA Fantasy Classic: league history
 
-History of the league from its NFL.com days (NFL.com league id `9072865`), before it moved to ESPN for 2026. ESPN only has 2026, so this folder is the only copy of 2020-2025 outside NFL.com's API.
+History of the league from its NFL.com days (NFL.com league id `9072865`), before it moved to ESPN for 2026. ESPN imported 2020-2025 too, but only as a shell (team names, final place and the league rules; see "What ESPN kept" below). This folder holds the richer data from NFL.com's API and emails.
 
 ## Where it came from
 
@@ -24,6 +24,8 @@ doc/league_history/
     trades.json              every completed trade, both sides, players parsed (from emails)
     players.json             every player move from those trades, oldest first (from emails)
     draft.json               draft grade, projection, slot and summary next to the actual result (from emails)
+    espn_settings.json       league rules ESPN kept: scoring, roster, trade, draft, schedule (from ESPN)
+    espn_teams.json          team name, final rank, waiver rank, transaction counts (from ESPN)
   players_all_time.json      one entry per player with every trade they were part of
   source/
     gmail_trade_processed.json   the trade emails as copied (message ids only, no bodies)
@@ -31,6 +33,16 @@ doc/league_history/
 ```
 
 `trades.json`, `players.json` and `draft.json` come from Gmail, not the API, and exist only for years with matching emails.
+
+## What ESPN kept
+
+ESPN serves imported seasons through its `leagueHistory` endpoint (`/apis/v3/games/ffl/leagueHistory/<league id>?seasonId=<year>`), not the normal `seasons/<year>` one. For 2020-2025 it holds only:
+
+- team names and how many owners each has (owner account ids are not saved here)
+- final rank (matches the NFL.com `place` for every team in every season), waiver rank and transaction counters
+- the league rules for each year: 30 scoring items, roster slots, trade, draft and acquisition settings, and the schedule layout
+
+It does **not** hold draft picks, matchups or scores, rosters at any week, or transactions, and the win-loss records and point totals are all zero. `scripts/fetch_espn_history.py` saves what exists into `espn_settings.json` and `espn_teams.json`. `scripts/check_history.py` lists which seasons ESPN has.
 
 Numbers are converted from NFL's strings to real numbers in the derived files. Owners are matched across years by `owner_user_id`, so renaming a team does not split a person's record.
 
@@ -75,6 +87,9 @@ If someone has a valid NFL Fantasy `appKey` (for example from an old saved brows
 ```
 uv run python scripts/fetch_nfl_history.py --league 9072865 --from 2025 --to 2020
 uv run python scripts/build_email_history.py
+uv run python scripts/fetch_espn_history.py --from 2025 --to 2020
 ```
+
+The ESPN command needs your cookies in `.env` (or `--env-file`).
 
 The first command overwrites the API-derived files with a fresh copy. The second rebuilds the trade, player and draft files from `source/`; run it after the first, since it reads each year's `teams.json`. The NFL API is undocumented and unofficial and could go offline at any time, which is why the raw responses are kept.

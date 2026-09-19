@@ -50,7 +50,7 @@ def test_found_season_reports_name_and_champion():
     assert result["top_team"] == "Bravo"
 
 
-def test_missing_recent_season_does_not_try_history_endpoint():
+def test_season_missing_from_both_endpoints_is_not_found():
     result = check_history.probe_year(SETTINGS, 2022, transport_for([2025]))
 
     assert not result["found"]
@@ -59,6 +59,16 @@ def test_missing_recent_season_does_not_try_history_endpoint():
 def test_old_season_falls_back_to_history_endpoint():
     transport = transport_for([], history_years=[2015])
     result = check_history.probe_year(SETTINGS, 2015, transport)
+
+    assert result["found"]
+    assert result["endpoint"] == "leagueHistory"
+
+
+# A league imported from another site keeps its recent seasons ONLY on the
+# history endpoint, so a recent year must fall back too.
+def test_recent_imported_season_is_found_on_the_history_endpoint():
+    transport = transport_for([2026], history_years=[2023])
+    result = check_history.probe_year(SETTINGS, 2023, transport)
 
     assert result["found"]
     assert result["endpoint"] == "leagueHistory"
