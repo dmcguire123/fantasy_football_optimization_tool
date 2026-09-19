@@ -135,12 +135,14 @@
   .viz .hbar .val { margin-left: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .viz .hbar .val b { color: var(--text); font-weight: 600; }
   .viz .hbar:hover .fill { filter: brightness(1.15); }
-  .viz .dbar { position: relative; height: 18px; }
-  .viz .dbar .zero { position: absolute; left: 50%; top: -4px; bottom: -4px; width: 1px; background: var(--v-grid); }
-  .viz .dbar .fill { position: absolute; top: 0; height: 18px; }
-  .viz .dbar .fill.pos { left: 50%; background: var(--v-blue); border-radius: 0 4px 4px 0; }
-  .viz .dbar .fill.neg { right: 50%; background: var(--v-red); border-radius: 4px 0 0 4px; }
-  .viz .dbar .val { position: absolute; top: 0; line-height: 18px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .viz .dbar { display: grid; grid-template-columns: 1fr 1fr; height: 18px; }
+  .viz .dbar .dhalf { display: flex; align-items: center; min-width: 0; }
+  .viz .dbar .dhalf.down { justify-content: flex-end; }
+  .viz .dbar .dhalf.up { border-left: 1px solid var(--v-grid); }
+  .viz .dbar .fill { height: 18px; flex: none; }
+  .viz .dbar .fill.up { background: var(--v-blue); border-radius: 0 4px 4px 0; }
+  .viz .dbar .fill.down { background: var(--v-red); border-radius: 4px 0 0 4px; }
+  .viz .dbar .val { font-size: 12px; color: var(--muted); white-space: nowrap; margin: 0 8px; }
   .viz .cols { display: flex; align-items: flex-end; gap: 10px; height: 170px; padding-top: 18px; }
   .viz .cols .c { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
   .viz .cols .c .bar { width: 24px; border-radius: 4px 4px 0 0; background: var(--v-blue); }
@@ -1170,19 +1172,20 @@ function hbars(items, { max, selected, format, detail }) {
   return list;
 }
 
-// Bars that grow left (red) or right (blue) from zero.
+// Bars that grow left (red) or right (blue) from zero. Each side is its own
+// row of bar then label, so a label always sits beside its bar.
 function divergingBars(items, { selected, format }) {
   const max = Math.max(...items.map(i => Math.abs(i.value)), 1);
   const list = el("div", {});
   for (const item of items) {
     const isSel = selected && item.name === selected;
-    const half = Math.abs(item.value) / max * 40;
+    const width = Math.abs(item.value) / max * 78;
     const positive = item.value >= 0;
+    const bar = el("div", { class: "fill " + (positive ? "up" : "down"), style: `width:${width}%` });
+    const label = el("div", { class: "val" }, format(item.value));
     const area = el("div", { class: "dbar" }, [
-      el("div", { class: "zero" }),
-      el("div", { class: "fill " + (positive ? "pos" : "neg"), style: `width:${half}%` }),
-      el("div", { class: "val", style: positive
-        ? `left:calc(50% + ${half}% + 8px)` : `right:calc(50% + ${half}% + 8px)` }, format(item.value)),
+      el("div", { class: "dhalf down" }, positive ? [] : [label, bar]),
+      el("div", { class: "dhalf up" }, positive ? [bar, label] : []),
     ]);
     const row = el("div", { class: "hbar", style: "grid-template-columns: 96px 1fr;", tabindex: "0" }, [
       el("div", { class: "lbl" + (isSel ? " sel" : ""), title: item.name }, item.name),
@@ -1514,36 +1517,41 @@ async function renderHistory() {
         })),
       { controls: ownerChips(careers.map(o => o.name), chosen, colorOf, draw) });
 
-    // Career totals as they built up season by season, for the wins chart.
+    // Win-loss record over time. Season rows are one year at a time; career rows
+    // are running totals up to the end of each season.
+    const seasonRecs = [...allRows].sort((p, q) => p.season - q.season).map(r => (
+      { owner_name: r.owner_name, season: r.season, w: r.wins, l: r.losses, t: r.ties, g: r.games }));
     const cumRows = [];
     const running = {};
-    for (const row of [...allRows].sort((p, q) => p.season - q.season)) {
-      const c = running[row.owner_name] || (running[row.owner_name] = { w: 0, l: 0, t: 0, g: 0 });
-      c.w += row.wins; c.l += row.losses; c.t += row.ties; c.g += row.games;
-      cumRows.push({ owner_name: row.owner_name, season: row.season, w: c.w, l: c.l, t: c.t, g: c.g });
+    for (const r of seasonRecs) {
+      const c = running[r.owner_name] || (running[r.owner_name] = { w: 0, l: 0, t: 0, g: 0 });
+      c.w += r.w; c.l += r.l; c.t += r.t; c.g += r.g;
+      cumRows.push({ owner_name: r.owner_name, season: r.season, w: c.w, l: c.l, t: c.t, g: c.g });
     }
+    const rec = r => `${r.w}-${r.l}${r.t ? "-" + r.t : ""}`;
+    const pctOf = r => (r.w + 0.5 * r.t) / r.g * 100;
     const METRICS = {
-      wins: { label: "Total wins", value: r => r.w, step: 10, format: v => String(v), formatEnd: v => String(v),
-              detail: r => `${r.w}-${r.l}${r.t ? "-" + r.t : ""} career` },
-      net: { label: "Wins minus losses", value: r => r.w - r.l, step: 5,
-             format: v => (v > 0 ? "+" : "") + v, formatEnd: v => (v > 0 ? "+" : "") + v,
-             detail: r => `${r.w}-${r.l}${r.t ? "-" + r.t : ""} career` },
-      pct: { label: "Career win %", value: r => (r.w + 0.5 * r.t) / r.g * 100, step: 5,
-             format: v => v + "%", formatEnd: v => v.toFixed(1) + "%",
-             detail: r => `${r.w}-${r.l}${r.t ? "-" + r.t : ""} career` },
+      season: { label: "Season win %", rows: seasonRecs, value: pctOf, step: 10,
+        format: v => v + "%", formatEnd: v => v.toFixed(0) + "%", detail: r => `${rec(r)} that season`,
+        caption: "Each season on its own, so a fall shows up right away. Use this to see who is losing more lately." },
+      net: { label: "Wins minus losses (career)", rows: cumRows, value: r => r.w - r.l, step: 5,
+        format: v => (v > 0 ? "+" : "") + v, formatEnd: v => (v > 0 ? "+" : "") + v, detail: r => `${rec(r)} career`,
+        caption: "Running career total. Above zero is a winning record overall; a line turning down means a losing stretch." },
+      pct: { label: "Career win %", rows: cumRows, value: pctOf, step: 5,
+        format: v => v + "%", formatEnd: v => v.toFixed(1) + "%", detail: r => `${rec(r)} career`,
+        caption: "Running career win percentage. It moves slowly, since every earlier season still counts." },
     };
-    const metricKey = state.hMetric || "wins";
+    const metricKey = METRICS[state.hMetric] ? state.hMetric : "season";
     const metric = METRICS[metricKey];
     const metricButtons = el("div", { class: "yearchips" }, Object.entries(METRICS).map(([key, m]) =>
       el("button", { class: key === metricKey ? "on" : "", onclick: () => { state.hMetric = key; draw(); } }, m.label)));
-    const winsTrendCard = chartCard(`${metric.label} over the seasons`,
-      "Running career totals at the end of each season, so a line that climbs faster is winning more. Uses the same owners as the chart above.",
-      trajectoryChart(data, cumRows, chosen, colorOf, {
+    const winsTrendCard = chartCard(`${metric.label} by year`, metric.caption + " Same owners as the chart above.",
+      trajectoryChart(data, metric.rows, chosen, colorOf, {
         getValue: metric.value, step: metric.step, format: metric.format,
         formatEnd: metric.formatEnd, detail: metric.detail, label: metric.label }),
       simpleTable(["Season"].concat(chosen.map(n => n), ["League average"]),
         data.years.map(year => {
-          const rows = cumRows.filter(r => r.season === year);
+          const rows = metric.rows.filter(r => r.season === year);
           const avg = rows.reduce((s, r) => s + metric.value(r), 0) / rows.length;
           return [String(year)].concat(chosen.map(n => {
             const mine = rows.find(r => r.owner_name === n);
@@ -1554,6 +1562,27 @@ async function renderHistory() {
           metricButtons,
           ownerChips(careers.map(o => o.name), chosen, colorOf, draw),
         ]) });
+
+    // Recent form: win % over the last two seasons against everything before.
+    const recentYears = data.years.slice(-2);
+    const sum = rows => rows.reduce((a, r) => ({ w: a.w + r.w, l: a.l + r.l, t: a.t + r.t, g: a.g + r.g }),
+      { w: 0, l: 0, t: 0, g: 0 });
+    const formItems = careers.map(o => {
+      const mine = seasonRecs.filter(r => r.owner_name === o.name);
+      const recent = sum(mine.filter(r => recentYears.includes(r.season)));
+      const earlier = sum(mine.filter(r => !recentYears.includes(r.season)));
+      if (!recent.g || !earlier.g) return null;
+      return { name: o.name, value: pctOf(recent) - pctOf(earlier),
+        tip: [
+          { value: `${rec(recent)} (${pctOf(recent).toFixed(0)}%)`, label: `${recentYears[0]}–${recentYears[1]}` },
+          { value: `${rec(earlier)} (${pctOf(earlier).toFixed(0)}%)`, label: "before that" },
+        ] };
+    }).filter(Boolean).sort((p, q) => p.value - q.value);
+    const formCard = chartCard(`Recent form: ${recentYears[0]}–${recentYears[1]} against earlier seasons`,
+      "Change in win percentage, in points. Red owners are winning less than they used to; blue are winning more. Owners without seasons in both periods are left out.",
+      divergingBars(formItems, { selected, format: v => (v > 0 ? "+" : "") + v.toFixed(0) + " pts" }),
+      simpleTable(["Owner", "Recent", "Earlier", "Change (pts)"], formItems.map(i => [
+        i.name, i.tip[0].value, i.tip[1].value, i.value.toFixed(0)])));
 
     // Finish grid.
     const heatCard = el("div", { class: "card" }, [
@@ -1639,7 +1668,7 @@ async function renderHistory() {
       el("div", { style: "height:16px" }),
       el("div", { class: "grid2" }, [winCard, marginCard]),
       el("div", { style: "height:16px" }),
-      trendCard, winsTrendCard, heatCard,
+      trendCard, winsTrendCard, formCard, heatCard,
       el("div", { class: "grid2" }, [tradesSeasonCard, tradeOwnerCard]),
       el("div", { style: "height:16px" }),
       ledger, tradeLog,
