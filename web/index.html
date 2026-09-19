@@ -96,12 +96,14 @@
   /* ---------- League history dashboard ---------- */
   #tab-history {
     --v-blue: #3987e5; --v-red: #e66767; --v-gray: #4a5462;
+    --v-c1: #3987e5; --v-c2: #d95926; --v-c3: #199e70; --v-c4: #c98500;
     --v-grid: #2c3440; --v-seq-lo: #0d366b; --v-seq-hi: #86b6ef;
     --v-surface: var(--panel);
   }
   @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) #tab-history {
       --v-blue: #2a78d6; --v-red: #e34948; --v-gray: #c3c2b7;
+      --v-c1: #2a78d6; --v-c2: #eb6834; --v-c3: #1baf7a; --v-c4: #eda100;
       --v-grid: #e1e0d9; --v-seq-lo: #cde2fb; --v-seq-hi: #0d366b;
     }
   }
@@ -158,6 +160,8 @@
   .viz .yearchips button { background: transparent; border: 1px solid var(--line); color: var(--muted);
     padding: 3px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; }
   .viz .yearchips button.on { background: var(--panel-2); color: var(--text); border-color: var(--v-blue); }
+  .viz .yearchips button:disabled { opacity: .4; cursor: not-allowed; }
+  .viz .yearchips .cdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
   .viz .dotaxis { position: relative; height: 18px; }
   .viz .dotaxis span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--muted); }
   .viz .dottrack { position: relative; height: 30px; }
@@ -1207,9 +1211,13 @@ function columns(items, formatTip) {
   return wrap;
 }
 
-// Points per game by owner across seasons: everyone in gray, one owner
-// highlighted. A crosshair snaps to the nearest season.
-function trajectoryChart(data, allRows, selected) {
+// Points per game across seasons: every owner in gray, the chosen owners in
+// color (up to four, each keeping the color it was given). A crosshair snaps
+// to the nearest season and lists every chosen owner.
+const TREND_COLORS = ["--v-c1", "--v-c2", "--v-c3", "--v-c4"];
+const TREND_MAX = 4;
+
+function trajectoryChart(data, allRows, chosen, colorOf) {
   const years = data.years;
   const W = 720, H = 300, L = 44, R = 110, T = 14, B = 28;
   const ppg = row => row.points_for / row.games;
@@ -1218,6 +1226,7 @@ function trajectoryChart(data, allRows, selected) {
   const hi = Math.ceil(Math.max(...values) / 10) * 10;
   const x = i => L + (W - L - R) * (years.length === 1 ? 0.5 : i / (years.length - 1));
   const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const surface = vizVar("--v-surface") || "#171c23";
 
   const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img",
     "aria-label": "Points per game by owner and season" });
@@ -1232,45 +1241,55 @@ function trajectoryChart(data, allRows, selected) {
   const byOwner = {};
   for (const row of allRows) (byOwner[row.owner_name] || (byOwner[row.owner_name] = {}))[row.season] = row;
 
+  // A line breaks where an owner sat a season out.
   const pathFor = perYear => {
-    let d = "";
+    let d = "", pen = false;
     years.forEach((year, i) => {
       const row = perYear[year];
-      if (!row) { d += " "; return; }
-      d += (d.trim() === "" || d.endsWith(" ") ? "M" : "L") + x(i) + " " + y(ppg(row));
+      if (!row) { pen = false; return; }
+      d += (pen ? "L" : "M") + x(i) + " " + y(ppg(row)) + " ";
+      pen = true;
     });
     return d.trim();
   };
 
   const names = Object.keys(byOwner);
-  const drawOrder = names.filter(n => n !== selected).concat(names.filter(n => n === selected));
+  const drawOrder = names.filter(n => !chosen.includes(n)).concat(chosen.filter(n => byOwner[n]));
   for (const name of drawOrder) {
-    const isSel = name === selected;
+    const isChosen = chosen.includes(name);
     svg.appendChild(svgEl("path", {
       d: pathFor(byOwner[name]), fill: "none", "stroke-width": 2,
       "stroke-linecap": "round", "stroke-linejoin": "round",
-      stroke: isSel ? vizVar("--v-blue") : vizVar("--v-gray"),
+      stroke: isChosen ? colorOf(name) : vizVar("--v-gray"),
     }));
   }
-  const mine = byOwner[selected] || {};
-  years.forEach((year, i) => {
-    const row = mine[year];
-    if (!row) return;
-    svg.appendChild(svgEl("circle", { cx: x(i), cy: y(ppg(row)), r: 4,
-      fill: vizVar("--v-blue"), stroke: vizVar("--v-surface") || "#171c23", "stroke-width": 2 }));
-  });
-  const lastYear = [...years].reverse().find(yr => mine[yr]);
-  if (lastYear) {
-    const i = years.indexOf(lastYear);
-    svg.appendChild(svgEl("text", { x: x(i) + 10, y: y(ppg(mine[lastYear])) + 4 },
-      `${selected} ${ppg(mine[lastYear]).toFixed(1)}`));
+  for (const name of chosen) {
+    const mine = byOwner[name] || {};
+    years.forEach((year, i) => {
+      const row = mine[year];
+      if (!row) return;
+      svg.appendChild(svgEl("circle", { cx: x(i), cy: y(ppg(row)), r: 4,
+        fill: colorOf(name), stroke: surface, "stroke-width": 2 }));
+    });
+  }
+
+  // End labels. Where two would collide the legend carries the name instead.
+  const ends = chosen.map(name => {
+    const lastYear = [...years].reverse().find(yr => (byOwner[name] || {})[yr]);
+    return lastYear ? { name, i: years.indexOf(lastYear), v: ppg(byOwner[name][lastYear]) } : null;
+  }).filter(Boolean).sort((p, q) => y(p.v) - y(q.v));
+  let lastShown = -Infinity;
+  for (const end of ends) {
+    if (y(end.v) - lastShown < 13) continue;
+    lastShown = y(end.v);
+    svg.appendChild(svgEl("text", { x: x(end.i) + 10, y: y(end.v) + 4 }, `${end.name} ${end.v.toFixed(1)}`));
   }
 
   const cross = svgEl("line", { x1: 0, x2: 0, y1: T, y2: H - B, stroke: vizVar("--v-grid"),
     "stroke-width": 1, style: "display:none" });
   svg.appendChild(cross);
   const hit = svgEl("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" });
-  const at = e => {
+  const nearest = e => {
     const box = svg.getBoundingClientRect();
     const px = (e.clientX - box.left) / box.width * W;
     let best = 0;
@@ -1278,14 +1297,18 @@ function trajectoryChart(data, allRows, selected) {
     return best;
   };
   hit.addEventListener("pointermove", e => {
-    const i = at(e);
+    const i = nearest(e);
     const year = years[i];
     cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.style.display = "";
     const seasonRows = allRows.filter(r => r.season === year);
     const avg = seasonRows.reduce((s, r) => s + ppg(r), 0) / seasonRows.length;
-    const top = seasonRows.reduce((a, b) => ppg(a) > ppg(b) ? a : b);
+    const top = seasonRows.reduce((p, q) => ppg(p) > ppg(q) ? p : q);
     const rows = [];
-    if (mine[year]) rows.push({ value: ppg(mine[year]).toFixed(1), label: `${selected} (rank ${mine[year].rank})`, color: vizVar("--v-blue") });
+    for (const name of chosen) {
+      const row = (byOwner[name] || {})[year];
+      rows.push({ value: row ? ppg(row).toFixed(1) : "–",
+        label: row ? `${name} (rank ${row.rank})` : `${name} (not in league)`, color: colorOf(name) });
+    }
     rows.push({ value: avg.toFixed(1), label: "league average", color: vizVar("--v-gray") });
     rows.push({ value: ppg(top).toFixed(1), label: `highest: ${top.owner_name}` });
     tip.show(e, String(year), rows);
@@ -1295,11 +1318,30 @@ function trajectoryChart(data, allRows, selected) {
 
   return el("div", {}, [
     svg,
-    el("div", { class: "legend" }, [
-      el("span", {}, [el("i", { style: `background:${vizVar("--v-blue")}` }), selected]),
-      el("span", {}, [el("i", { style: `background:${vizVar("--v-gray")}` }), "Other owners"]),
-    ]),
+    el("div", { class: "legend" }, chosen.map(name =>
+      el("span", {}, [el("i", { style: `background:${colorOf(name)}` }), name])
+    ).concat([el("span", {}, [el("i", { style: `background:${vizVar("--v-gray")}` }), "Other owners"])])),
   ]);
+}
+
+// Owner buttons for the trend chart. Each chosen owner shows the color of its
+// line; once four are chosen the rest wait until one is removed.
+function ownerChips(names, chosen, colorOf, onChange) {
+  const row = el("div", { class: "yearchips" });
+  for (const name of names) {
+    const on = chosen.includes(name);
+    const full = !on && chosen.length >= TREND_MAX;
+    const b = el("button", {
+      class: on ? "on" : "", disabled: full ? "disabled" : null,
+      title: full ? `Up to ${TREND_MAX} at a time` : null,
+    }, [on ? el("span", { class: "cdot", style: `background:${colorOf(name)}` }) : null, name]);
+    b.onclick = () => {
+      if (on) chosen.splice(chosen.indexOf(name), 1); else chosen.push(name);
+      onChange();
+    };
+    row.appendChild(b);
+  }
+  return row;
 }
 
 // Owners by seasons, colored by final place. Darker or brighter means a
@@ -1366,7 +1408,7 @@ async function renderHistory() {
 
     const filters = el("div", { class: "filters" }, [
       el("label", {}, ["Highlight owner", el("select", {
-        onchange: e => { state.hOwner = e.target.value; draw(); },
+        onchange: e => { state.hOwner = e.target.value; state.hTrend = [e.target.value]; draw(); },
       }, careers.map(o => el("option", { value: o.name, selected: o.name === selected ? "selected" : null }, o.name)))]),
       el("label", {}, ["Season", el("select", {
         onchange: e => { state.hSeason = e.target.value; draw(); },
@@ -1437,17 +1479,35 @@ async function renderHistory() {
       divergingBars(marginItems, { selected, format: v => (v >= 0 ? "+" : "") + v.toFixed(1) }),
       simpleTable(["Owner", "Margin per game"], marginItems.map(i => [i.name, i.value.toFixed(1)])));
 
-    // Trend.
+    // Trend. Any few owners can be compared; a color stays with its owner.
+    if (!state.hTrend) state.hTrend = [selected];
+    const chosen = state.hTrend;
+    // Each chosen owner keeps one color slot until removed, then it is freed.
+    const slots = state.hTrendSlots || (state.hTrendSlots = {});
+    for (const name of Object.keys(slots)) if (!chosen.includes(name)) delete slots[name];
+    for (const name of chosen) {
+      if (slots[name] !== undefined) continue;
+      const taken = new Set(Object.values(slots));
+      let slot = 0;
+      while (taken.has(slot)) slot++;
+      slots[name] = slot;
+    }
+    const colorOf = name => vizVar(TREND_COLORS[slots[name] % TREND_COLORS.length]);
     const trendCard = chartCard("Points per game by season",
-      `${selected} against the rest of the league. Hover a season for the league average and the top scorer.`,
-      trajectoryChart(data, allRows, selected),
-      simpleTable(["Season", `${selected} PPG`, "League average PPG"],
+      chosen.length
+        ? `Compare up to ${TREND_MAX} owners. Hover a season for each one, the league average and the top scorer.`
+        : "Pick an owner to compare against the rest of the league.",
+      trajectoryChart(data, allRows, chosen, colorOf),
+      simpleTable(["Season"].concat(chosen.map(n => `${n} PPG`), ["League average PPG"]),
         data.years.map(year => {
           const rows = allRows.filter(r => r.season === year);
-          const mine = rows.find(r => r.owner_name === selected);
           const avg = rows.reduce((s, r) => s + r.points_for / r.games, 0) / rows.length;
-          return [String(year), mine ? (mine.points_for / mine.games).toFixed(1) : "–", avg.toFixed(1)];
-        })));
+          return [String(year)].concat(chosen.map(n => {
+            const mine = rows.find(r => r.owner_name === n);
+            return mine ? (mine.points_for / mine.games).toFixed(1) : "–";
+          }), [avg.toFixed(1)]);
+        })),
+      { controls: ownerChips(careers.map(o => o.name), chosen, colorOf, draw) });
 
     // Finish grid.
     const heatCard = el("div", { class: "card" }, [
