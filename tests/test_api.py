@@ -252,3 +252,15 @@ def test_an_unconfigured_league_explains_what_is_missing(monkeypatch):
     assert response.status_code == 400
     assert "ESPN_LEAGUE_ID" in str(response.json()["detail"]["missing"])
     api.reset_service()
+
+
+def test_team_report_endpoint_scouts_any_team(http):
+    body = http.get("/api/scouting/team-report/3").json()
+
+    assert body["team"]["team_id"] == 3
+    assert body["position_strength"]
+    assert body["power_rank"] in (1, 2, 3)
+
+
+def test_team_report_for_an_unknown_team_is_a_404(http):
+    assert http.get("/api/scouting/team-report/99").status_code == 404

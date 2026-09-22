@@ -13,7 +13,7 @@ from . import constants as C
 from . import scouting, waivers
 from .config import load_settings
 from .espn_client import EspnError, build_lineup_payload
-from .league import LeagueService
+from .league import LeagueService, find_team
 from .optimizer import optimize_team
 
 
@@ -58,6 +58,32 @@ def confirm(prompt, assume_yes):
     return answer in ("y", "yes")
 
 
+# Resolve whichever team the user named, printing a useful message when the
+# name is ambiguous or matches nobody.
+def resolve_team(league, service, args):
+    query = getattr(args, "who", None) or getattr(args, "team_id", None)
+
+    if not query:
+        return service.my_team(args.week)
+
+    team, candidates = find_team(league, query)
+    if team:
+        return team
+
+    if not candidates:
+        print(f"No team matches '{query}'. Teams in this league:")
+        for other in league.teams:
+            owners = ", ".join(other.owner_names) or "unknown owner"
+            print(f"  id {other.team_id}: {other.name} ({owners})")
+        return None
+
+    print(f"'{query}' matches more than one team:")
+    for other in candidates:
+        owners = ", ".join(other.owner_names) or "unknown owner"
+        print(f"  id {other.team_id}: {other.name} ({owners})")
+    return None
+
+
 def cmd_info(args):
     service = build_service(args)
     league = service.load_league(args.week)
@@ -93,14 +119,18 @@ def cmd_teams(args):
         rows.append(
             [
                 row["power_rank"],
-                team["name"][:24],
+                str(team["team_id"]),
+                team["name"][:22],
+                (", ".join(team["owner_names"]) or "unknown")[:20],
                 team["record"],
                 f"{row['points_per_game']:.1f}",
                 f"{row['roster_strength_this_week']:.1f}",
                 f"{row['power_score']:.1f}",
             ]
         )
-    print_table(["#", "Team", "Rec", "PPG", "BestNow", "Power"], rows)
+    print_table(
+        ["#", "Id", "Team", "Owner", "Rec", "PPG", "BestNow", "Power"], rows
+    )
     return 0
 
 
@@ -108,13 +138,8 @@ def cmd_roster(args):
     service = build_service(args)
     league = service.load_league(args.week)
 
-    if args.team_id:
-        team = league.team_by_id(args.team_id)
-    else:
-        team = service.my_team(args.week)
-
+    team = resolve_team(league, service, args)
     if not team:
-        print("Team not found.")
         return 1
 
     print(f"{team.name} ({team.record}), week {league.week}\n")
@@ -396,6 +421,79 @@ def cmd_trades(args):
     return 0
 
 
+def cmd_analyze(args):
+    service = build_service(args)
+    league = service.load_league(args.week)
+    team = resolve_team(league, service, args)
+    if not team:
+        return 1
+
+    slots = league.settings.starting_slots()
+    report = scouting.team_report(league, team, slots, week=league.week)
+
+    owners = ", ".join(team.owner_names) or "unknown owner"
+    print(f"{team.name} ({owners}) - week {report['week']}\n")
+
+    print(f"  Record:            {team.record}")
+    print(f"  Power rank:        {report['power_rank']} of {len(league.teams)}")
+    print(f"  Points per game:   {report['points_per_game']:.2f}")
+
+    efficiency = report["lineup_efficiency"]
+    print(f"  Lineup as set:     {efficiency['current_projected']:.2f}")
+    print(f"  Best available:    {efficiency['best_projected']:.2f}")
+    print(f"  Left on bench:     {efficiency['points_left_on_bench']:.2f}")
+
+    if report["opponent"]:
+        print(
+            f"  This week:         vs {report['opponent']['name']}"
+            f" ({report['opponent']['record']}),"
+            f" win probability {report['win_probability'] * 100:.0f}%"
+        )
+
+    print("\n  Roster strength by position, against the league median:")
+    rows = []
+    for row in report["position_strength"]:
+        rows.append(
+            [
+                row["slot_name"],
+                f"{row['points']:.1f}",
+                f"{row['league_median']:.1f}",
+                f"{row['vs_median']:+.1f}",
+                f"{row['rank_in_league']} of {len(league.teams)}",
+            ]
+        )
+    print_table(["Slot", "Points", "Median", "Diff", "Rank"], rows)
+
+    if report["should_be_starting"]:
+        print("\n  Sitting on their bench but projected to start:")
+        for player in report["should_be_starting"]:
+            print(
+                f"    {player['name']} ({player['position']}, {player['pro_team']})"
+                f"  {player['projected_points']:.1f} projected"
+            )
+
+    if report["risks"]:
+        print("\n  Starters who may not play:")
+        for player in report["risks"]:
+            flag = "on bye" if player["on_bye"] else player["injury_status"]
+            print(f"    {player['name']} ({player['position']}) - {flag}")
+
+    print("\n  Top scorers so far this season:")
+    rows = []
+    for player in report["top_players"]:
+        rows.append(
+            [
+                player["name"][:24],
+                player["position"],
+                player["pro_team"],
+                f"{player['season_actual_points']:.1f}",
+                f"{player['projected_points']:.1f}",
+            ]
+        )
+    print_table(["Player", "Pos", "Team", "Season", "ThisWk"], rows)
+    return 0
+
+
 def cmd_serve(args):
     import uvicorn
 
@@ -425,7 +523,24 @@ def build_parser():
     add_common(subparsers.add_parser("teams", help="Power rankings for the league."))
 
     roster = add_common(subparsers.add_parser("roster", help="Show a roster."))
-    roster.add_argument("--team-id", type=int, default=None, help="Defaults to your team.")
+    roster.add_argument(
+        "who",
+        nargs="?",
+        default=None,
+        help="Team id, team name, or an owner's name. Defaults to your team.",
+    )
+    roster.add_argument("--team-id", type=int, default=None, help="Same, by id.")
+
+    analyze = add_common(
+        subparsers.add_parser("analyze", help="Full report on one team.")
+    )
+    analyze.add_argument(
+        "who",
+        nargs="?",
+        default=None,
+        help="Team id, team name, or an owner's name. Defaults to your team.",
+    )
+    analyze.add_argument("--team-id", type=int, default=None, help="Same, by id.")
 
     add_common(subparsers.add_parser("lineup", help="Show the optimal lineup."))
 
@@ -470,6 +585,7 @@ COMMANDS = {
     "info": cmd_info,
     "teams": cmd_teams,
     "roster": cmd_roster,
+    "analyze": cmd_analyze,
     "lineup": cmd_lineup,
     "apply-lineup": cmd_apply_lineup,
     "waivers": cmd_waivers,

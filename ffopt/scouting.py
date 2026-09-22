@@ -303,3 +303,119 @@ def trade_targets(
         reverse=True,
     )
     return entries
+
+
+# A full report on a single team: how well it is set, how its roster ranks
+# against the rest of the league position by position, and what is wrong
+# with it right now. This is the "scout one manager" view.
+def team_report(league, team, starting_slots, week=None):
+    week = week or league.week
+
+    efficiency = lineup_efficiency(team, starting_slots)
+    rankings = power_rankings(league, starting_slots)
+    my_ranking = next(
+        (row for row in rankings if row["team"]["team_id"] == team.team_id), None
+    )
+
+    # Strength at each position, measured as the total projection of the
+    # players this team would actually start there, against the league median.
+    def position_strength():
+        by_team = {}
+        for other in league.teams:
+            assignments, _ = solve_lineup(
+                [p for p in other.roster if p.lineup_slot != C.IR_SLOT],
+                starting_slots,
+                week_projection,
+            )
+            totals = {}
+            for slot_id, player in assignments:
+                name = C.slot_name(slot_id)
+                totals[name] = totals.get(name, 0.0) + (
+                    player.effective_projection if player else 0.0
+                )
+            by_team[other.team_id] = totals
+
+        mine = by_team.get(team.team_id, {})
+        rows = []
+        for slot_name in sorted(mine):
+            values = sorted(
+                totals.get(slot_name, 0.0) for totals in by_team.values()
+            )
+            middle = len(values) // 2
+            median = (
+                values[middle]
+                if len(values) % 2
+                else (values[middle - 1] + values[middle]) / 2
+            )
+            rank = sorted(
+                by_team.values(),
+                key=lambda totals: totals.get(slot_name, 0.0),
+                reverse=True,
+            )
+            position = 1 + next(
+                index
+                for index, totals in enumerate(rank)
+                if totals.get(slot_name, 0.0) == mine[slot_name]
+            )
+            rows.append(
+                {
+                    "slot_name": slot_name,
+                    "points": round(mine[slot_name], 2),
+                    "league_median": round(median, 2),
+                    "vs_median": round(mine[slot_name] - median, 2),
+                    "rank_in_league": position,
+                }
+            )
+        rows.sort(key=lambda row: row["vs_median"], reverse=True)
+        return rows
+
+    # Bench players projected above someone this team is actually starting.
+    def bench_better_than_starters():
+        assignments, _ = solve_lineup(
+            [p for p in team.roster if p.lineup_slot != C.IR_SLOT],
+            starting_slots,
+            week_projection,
+        )
+        should_start = {p.player_id for _, p in assignments if p}
+        return [
+            p.to_dict()
+            for p in team.roster
+            if not p.is_starting
+            and p.lineup_slot != C.IR_SLOT
+            and p.player_id in should_start
+        ]
+
+    opponent = league.opponent_for(team.team_id, week)
+
+    return {
+        "week": week,
+        "team": team.to_dict(),
+        "power_rank": my_ranking["power_rank"] if my_ranking else None,
+        "power_score": my_ranking["power_score"] if my_ranking else None,
+        "points_per_game": my_ranking["points_per_game"] if my_ranking else None,
+        "lineup_efficiency": efficiency,
+        "position_strength": position_strength(),
+        "should_be_starting": bench_better_than_starters(),
+        "risks": [
+            p.to_dict()
+            for p in team.starters
+            if not p.is_playable or p.injury_status != "ACTIVE"
+        ],
+        "top_players": [
+            p.to_dict()
+            for p in sorted(
+                team.roster, key=lambda p: p.season_actual_points, reverse=True
+            )[:5]
+        ],
+        "opponent": opponent.to_dict(include_roster=False) if opponent else None,
+        "win_probability": (
+            round(
+                win_probability(
+                    efficiency["best_projected"], opponent.projected_starting_points
+                ),
+                3,
+            )
+            if opponent
+            else None
+        ),
+    }

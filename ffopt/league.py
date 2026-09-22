@@ -280,3 +280,39 @@ class LeagueService:
 
     def pending_transactions(self):
         return self._cached("pending", self.client.fetch_pending_transactions)
+
+
+# Find a team by whatever the user typed: a team id, part of the team name,
+# or part of an owner's name. Returns (team, candidates). When the match is
+# ambiguous the team is None and candidates holds everything that matched,
+# so the caller can ask which one was meant.
+def find_team(league, query):
+    text = str(query).strip().lower()
+    if not text:
+        return None, []
+
+    # A bare number is a team id.
+    if text.isdigit():
+        team = league.team_by_id(int(text))
+        return (team, [team]) if team else (None, [])
+
+    exact = []
+    partial = []
+    for team in league.teams:
+        names = [team.name, team.abbrev] + list(team.owner_names)
+        lowered = [n.lower() for n in names if n]
+
+        if any(text == name for name in lowered):
+            exact.append(team)
+        elif any(text in name for name in lowered):
+            partial.append(team)
+
+        # Match a first or last name on its own, which is how people refer
+        # to each other in a league.
+        elif any(text in name.split() for name in lowered):
+            partial.append(team)
+
+    matches = exact or partial
+    if len(matches) == 1:
+        return matches[0], matches
+    return None, matches

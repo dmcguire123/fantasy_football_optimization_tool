@@ -379,6 +379,20 @@ def read_opponent(week: int | None = None):
     )
 
 
+@app.get("/api/scouting/team-report/{team_id}")
+def read_team_report(team_id: int, week: int | None = None):
+    """A full scouting report on any single team in the league."""
+    service = get_service()
+    league = service.load_league(week)
+    team = league.team_by_id(team_id)
+    if not team:
+        raise HTTPException(status_code=404, detail=f"No team with id {team_id}.")
+
+    return scouting.team_report(
+        league, team, league.settings.starting_slots(), week=league.week
+    )
+
+
 @app.get("/api/scouting/trade-targets")
 def read_trade_targets(week: int | None = None):
     """Other teams' surplus players that would improve your starting lineup."""

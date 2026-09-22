@@ -196,7 +196,7 @@ def league_payload():
         "members": [
             {"id": "{OWNER-1}", "displayName": "manager1", "firstName": "Dana", "lastName": "Reed"},
             {"id": "{OWNER-2}", "displayName": "manager2", "firstName": "Sam", "lastName": "Cole"},
-            {"id": "{OWNER-3}", "displayName": "manager3", "firstName": "Jo", "lastName": "Park"},
+            {"id": "{OWNER-3}", "displayName": "manager3", "firstName": "Darren", "lastName": "Park"},
         ],
         "teams": [
             {

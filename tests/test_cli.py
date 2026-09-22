@@ -156,3 +156,49 @@ def test_espn_failures_are_reported_not_raised(wired, monkeypatch, capsys):
 def test_the_parser_rejects_an_unknown_command():
     with pytest.raises(SystemExit):
         cli.main(["not-a-command"])
+
+
+def test_analyze_finds_a_team_by_owner_name(wired, capsys):
+    assert cli.main(["analyze", "Darren"]) == 0
+    output = capsys.readouterr().out
+
+    assert "Darren Park" in output
+    assert "Power rank" in output
+    assert "Roster strength by position" in output
+
+
+def test_analyze_reports_bench_players_who_should_start(wired, capsys):
+    assert cli.main(["analyze", "1"]) == 0
+    output = capsys.readouterr().out
+
+    assert "Sitting on their bench" in output
+    assert "Bench Burner" in output
+
+
+def test_analyze_flags_starters_who_may_not_play(wired, capsys):
+    cli.main(["analyze", "1"])
+    output = capsys.readouterr().out
+
+    assert "Starters who may not play" in output
+    assert "Bye Week Back" in output
+
+
+def test_an_unknown_name_lists_the_league(wired, capsys):
+    assert cli.main(["analyze", "Nobody"]) == 1
+    output = capsys.readouterr().out
+
+    assert "No team matches" in output
+    assert "Rival Crew" in output
+
+
+def test_roster_accepts_an_owner_name(wired, capsys):
+    assert cli.main(["roster", "Darren"]) == 0
+    assert "Deep Backfield" in capsys.readouterr().out
+
+
+def test_teams_lists_owners_and_ids(wired, capsys):
+    assert cli.main(["teams"]) == 0
+    output = capsys.readouterr().out
+
+    assert "Owner" in output
+    assert "Darren Park" in output

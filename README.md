@@ -98,7 +98,8 @@ Then open http://127.0.0.1:8000. Four tabs:
 ```bash
 python -m ffopt info                 # league and team summary
 python -m ffopt roster               # your roster, starters first
-python -m ffopt roster --team-id 4   # somebody else's roster
+python -m ffopt roster Darren        # somebody else's, by owner or team name
+python -m ffopt analyze Darren       # full report on one team
 python -m ffopt lineup               # optimal lineup and the moves to get there
 python -m ffopt apply-lineup         # submit those moves, after confirming
 python -m ffopt waivers              # ranked waiver targets with bids
@@ -111,6 +112,16 @@ python -m ffopt serve                # run the browser app
 
 Every command takes `--week N` to look at a different week. Commands that
 change your roster ask for confirmation; `--yes` skips the prompt.
+
+Anywhere a team is named you can use a team id, part of the team's name, or
+an owner's first or last name. `python -m ffopt teams` lists all three for
+every team in the league. If a name matches more than one team, the tool
+prints the candidates instead of guessing.
+
+`analyze` is the scout-one-manager view: record, power rank, how their lineup
+is set against the best they could start, their strength at each position
+against the league median, anyone good sitting on their bench, starters who
+may not play, and their top scorers so far.
 
 ## Not submitting things by accident
 
@@ -143,6 +154,7 @@ Served alongside the UI. Interactive docs are at `/docs`.
 | `GET /api/transactions/pending` | Claims you have already submitted |
 | `GET /api/scouting/power-rankings` | The league ranked |
 | `GET /api/scouting/opponent` | This week's matchup report |
+| `GET /api/scouting/team-report/{id}` | Full report on any one team |
 | `GET /api/scouting/trade-targets` | Who to trade with and for what |
 | `GET /api/scouting/positional-surplus` | Roster depth by position, league-wide |
 
