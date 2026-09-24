@@ -96,6 +96,9 @@ class Settings:
     # Run our own model each week and nudge the blend toward it where the
     # backtest showed that helps.
     use_model: bool = False
+    # News watcher (ffopt/news.py): email alerts to this address. The
+    # watcher suggests claims but never makes them.
+    news_email: str = ""
 
     # True when we have enough to read a league at all.
     @property
@@ -182,4 +185,8 @@ def load_settings(env=None, env_file=DEFAULT_ENV_FILE):
         fantasypros_api_key=(env.get("FANTASYPROS_API_KEY") or "").strip(),
         projections_ttl_seconds=as_float("FFOPT_PROJECTIONS_TTL", 3 * 3600.0),
         use_model=as_bool("FFOPT_MODEL", True),
+        news_email=(
+            (env.get("FFOPT_REPORT_EMAIL") or "").strip()
+            if as_bool("FFOPT_NEWS_EMAIL", True) else ""
+        ),
     )

@@ -326,6 +326,17 @@ class LeagueService:
 
         return self._cached(("league", week), producer)
 
+    # The league straight from ESPN, without the multi-source projections:
+    # quick, for the news watcher's frequent scans.
+    def load_league_basic(self, week=None):
+        def producer():
+            payload = self.client.fetch_league_snapshot(week=week)
+            return parse_league(
+                payload, week=week, season=self.settings.season, bye_weeks=self.bye_weeks()
+            )
+
+        return self._cached(("league_basic", week), producer)
+
     def current_week(self):
         return self.load_league().week
 

@@ -561,6 +561,53 @@ def cmd_trends(args):
     return 0
 
 
+# Breaking news: scan for openings (run every few minutes by the LaunchAgent
+# in scripts/launchd/), or list what has been found.
+def cmd_news(args):
+    import datetime
+
+    from . import news
+
+    connection = news.open_db()
+    if args.action == "scan":
+        service = build_service(args)
+        scanner = news.Scanner(
+            service,
+            connection,
+            notify=not args.quiet,
+            email_to=service.settings.news_email,
+        )
+        result = scanner.run()
+        print(f"Scanned {result['scanned']} players, {result['signals']} news signal(s), "
+              f"{len(result['events'])} new opening(s).")
+        events = result["events"]
+    else:
+        events = news.recent_events(connection, limit=500)
+        if not args.all:
+            events = [e for e in events if e["action"] != "none"]
+        events = events[: args.limit]
+
+    rows = []
+    for event in events:
+        when = datetime.datetime.fromtimestamp(event["detected_at"]).strftime("%a %H:%M")
+        rows.append([
+            when, event["kind"], event["subject_name"] or "",
+            f"{event['candidate_name']} ({event['candidate_position']})",
+            "FA" if event["candidate_availability"] == "FREEAGENT" else "waivers",
+            f"{event['projection']:.1f}",
+            f"{event['weekly_gain']:+.1f}", f"{event['season_gain']:+.1f}",
+            event["drop_name"] or "-", event["action"],
+        ])
+    if rows:
+        print_table(["When", "Kind", "News about", "Pick up", "Status", "Proj", "For you",
+                     "ROS", "Drop", "Action"], rows)
+        for event in events[:5]:
+            print(f"\n  {event['candidate_name']}: {event['headline']}")
+            if event["note"]:
+                print(f"  {event['note']}")
+    return 0
+
+
 def cmd_calibration(args):
     conn = history.open_db()
     report = history.calibration(conn)
@@ -758,6 +805,16 @@ def build_parser():
     trends_cmd.add_argument("--player", default=None, help="Part of a player's name.")
     trends_cmd.add_argument("--limit", type=int, default=10)
 
+    news_cmd = subparsers.add_parser(
+        "news", help="Scan breaking news for pickups, or list openings found."
+    )
+    news_cmd.add_argument("action", choices=["scan", "list"])
+    news_cmd.add_argument("--quiet", action="store_true", help="No Mac notification or email.")
+    news_cmd.add_argument("--limit", type=int, default=20)
+    news_cmd.add_argument("--all", action="store_true",
+                          help="Also list openings too small to alert on.")
+    news_cmd.set_defaults(week=None)
+
     backtest_cmd = subparsers.add_parser(
         "backtest", help="Grade ESPN, Sleeper, and our model on past seasons."
     )
@@ -800,6 +857,7 @@ COMMANDS = {
     "value": cmd_value,
     "report": cmd_report,
     "trends": cmd_trends,
+    "news": cmd_news,
     "trades": cmd_trades,
     "serve": cmd_serve,
 }

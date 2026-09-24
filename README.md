@@ -126,6 +126,7 @@ Then open http://127.0.0.1:8000. The tabs:
   and a claim button per player.
 - **Value**: pickups our model likes, and players the other sources rate
   above ESPN.
+- **News**: openings from breaking news, with an Add button that asks first.
 - **Trends**: projection risers and fallers, and each player's history.
 - **Scout Opponent**: this week's matchup, broken down by position.
 - **League**: power rankings, any team's roster on demand, and trade targets.
@@ -328,6 +329,53 @@ To stop it, run `launchctl unload ~/Library/LaunchAgents/com.ffopt.morning-repor
 The Mac has to be awake (or wake) at 7:30. launchd runs a missed job when
 the Mac next wakes up.
 
+## Breaking news
+
+The news watcher looks for pickups the moment a story breaks, before the
+rest of the league reacts. Every 3 minutes it checks:
+
+- **ESPN/Rotowire player news** for the 600 most-owned players. One request
+  shows whose news changed, and only those players' new items are fetched.
+- **ESPN injury statuses**, for a starter who turns Out, Doubtful, or IR.
+- **Sleeper add rushes**: a player added at twice his normal hourly pace or
+  more.
+
+A starter ruled out, placed on IR, benched, or released opens a spot for
+his backups. A player named the starter is an opening for himself. Each
+opening that lands on a free agent (or a waiver player) in your league is
+sized like any waiver pickup. The projections won't have caught up yet, so
+the backup is credited with a share of the starter's usual week, for the
+weeks he is expected to miss. You get alerted (a Mac notification plus one
+email per scan) when an opening:
+
+- improves your lineup (1+ point this week, or 6+ rest of season), or
+- is a starter-level player at his position for anyone, worth grabbing
+  before a rival does.
+
+The strongest openings (3+ points this week, or 15+ rest of season, not a
+one-week stream, and never dropping one of your starters) come as a
+**suggested claim**. It spells out the add, the drop, and the bid, with the
+command to run it. **The watcher never makes a roster move.** You make it
+from the email's command, the **News** tab's Add button (which asks first),
+or `python -m ffopt claim`.
+
+```bash
+python -m ffopt news scan      # one scan now (the first one records a baseline)
+python -m ffopt news list      # openings worth an alert; --all for everything
+```
+
+To run it every 3 minutes (it runs read-only; each quiet scan takes about a
+second):
+
+```bash
+sed "s#__REPO__#$PWD#" scripts/launchd/com.ffopt.news.plist \
+  > ~/Library/LaunchAgents/com.ffopt.news.plist
+launchctl load ~/Library/LaunchAgents/com.ffopt.news.plist
+```
+
+Alerts are emailed to `FFOPT_REPORT_EMAIL`. Set `FFOPT_NEWS_EMAIL=false` for
+Mac notifications only. Scans are logged to `data/logs/news.log`.
+
 ## The command line
 
 ```bash
@@ -346,6 +394,7 @@ python -m ffopt value                # undervalued players this week
 python -m ffopt backtest             # grade the sources and our model on 2018-2025
 python -m ffopt report               # today's report as JSON (feeds the morning email)
 python -m ffopt trends               # projection risers and fallers; --player NAME for one
+python -m ffopt news scan            # breaking news: openings on players free in your league
 python -m ffopt serve                # run the browser app
 ```
 

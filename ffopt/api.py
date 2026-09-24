@@ -444,6 +444,39 @@ def read_player_outlook(player_id: int):
     )
 
 
+@app.get("/api/news/events")
+def read_news_events(include_small: bool = False, limit: int = Query(50, ge=1, le=500)):
+    """Openings found by the news watcher, newest first. Nothing here is claimed."""
+    from . import news
+
+    connection = news.open_db()
+    try:
+        events = news.recent_events(connection, limit=500)
+        last_scan = connection.execute("SELECT MAX(updated_at) FROM player_state").fetchone()[0]
+    finally:
+        connection.close()
+    if not include_small:
+        events = [e for e in events if e["action"] != "none"]
+    for event in events:
+        event["instructions"] = news.claim_instructions(event)
+    return {"last_scan": last_scan, "events": events[:limit]}
+
+
+@app.post("/api/news/scan")
+def run_news_scan():
+    """Scan for breaking news now, without a notification or email."""
+    from . import news
+
+    service = get_service()
+    connection = news.open_db()
+    try:
+        result = news.Scanner(service, connection, notify=False).run()
+    finally:
+        connection.close()
+    return {"scanned": result["scanned"], "signals": result["signals"],
+            "new_openings": len(result["events"])}
+
+
 @app.get("/api/waivers/recommendations")
 def read_waiver_recommendations(
     week: int | None = None,
