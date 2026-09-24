@@ -267,6 +267,12 @@ def test_an_unconfigured_league_explains_what_is_missing(monkeypatch):
     api.reset_service()
 
 
+def test_league_history_endpoint(http):
+    body = http.get("/api/league-history").json()
+    assert body["years"][0] == 2020
+    assert len(body["champions"]) == 6
+
+
 def test_dashboard_season_and_matchup(http):
     season = http.get("/api/dashboard/season").json()
     assert season["current_week"] == 5

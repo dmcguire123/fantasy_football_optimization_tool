@@ -124,6 +124,104 @@
   .note { font-size: 12px; }
   .bar { height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
   .bar > span { display: block; height: 100%; background: var(--accent); }
+  /* ---------- League history dashboard ---------- */
+  #tab-history {
+    --v-blue: #3987e5; --v-red: #e66767; --v-gray: #4a5462;
+    --v-c1: #3987e5; --v-c2: #d95926; --v-c3: #199e70; --v-c4: #c98500;
+    --v-grid: #2c3440; --v-seq-lo: #0d366b; --v-seq-hi: #86b6ef;
+    --v-surface: var(--panel);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) #tab-history {
+      --v-blue: #2a78d6; --v-red: #e34948; --v-gray: #c3c2b7;
+      --v-c1: #2a78d6; --v-c2: #eb6834; --v-c3: #1baf7a; --v-c4: #eda100;
+      --v-grid: #e1e0d9; --v-seq-lo: #cde2fb; --v-seq-hi: #0d366b;
+    }
+  }
+  .viz .filters { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .viz .filters label { color: var(--muted); font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .viz .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .viz .grid2 .card { margin-bottom: 0; }
+  .viz .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
+  .viz .card-head h2 { margin: 0; }
+  .viz .cap { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+  .viz .toggle { display: flex; gap: 2px; }
+  .viz .toggle button { background: transparent; border: 1px solid var(--line); color: var(--muted);
+    padding: 3px 9px; font-size: 12px; cursor: pointer; }
+  .viz .toggle button:first-child { border-radius: 6px 0 0 6px; }
+  .viz .toggle button:last-child { border-radius: 0 6px 6px 0; }
+  .viz .toggle button.active { color: var(--text); background: var(--panel-2); }
+  .viz .hero { font-size: 48px; font-weight: 600; line-height: 1.1; }
+  .viz .champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .viz .champ { background: var(--panel-2); border-radius: var(--radius); padding: 10px 12px; }
+  .viz .champ .yr { color: var(--muted); font-size: 12px; }
+  .viz .champ .tm { font-weight: 600; margin-top: 2px; }
+  .viz .champ .ow { color: var(--muted); font-size: 13px; }
+  .viz .hbar { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; height: 26px; }
+  .viz .hbar .lbl { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .viz .hbar .lbl.sel { font-weight: 600; }
+  .viz .hbar .track { display: flex; align-items: center; }
+  .viz .hbar .fill { height: 18px; border-radius: 0 4px 4px 0; background: var(--v-blue); flex: none; }
+  .viz .hbar .fill.gray { background: var(--v-gray); }
+  .viz .hbar .val { margin-left: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .viz .hbar .val b { color: var(--text); font-weight: 600; }
+  .viz .hbar:hover .fill { filter: brightness(1.15); }
+  .viz .dbar { display: grid; grid-template-columns: 1fr 1fr; height: 18px; }
+  .viz .dbar .dhalf { display: flex; align-items: center; min-width: 0; }
+  .viz .dbar .dhalf.down { justify-content: flex-end; }
+  .viz .dbar .dhalf.up { border-left: 1px solid var(--v-grid); }
+  .viz .dbar .fill { height: 18px; flex: none; }
+  .viz .dbar .fill.up { background: var(--v-blue); border-radius: 0 4px 4px 0; }
+  .viz .dbar .fill.down { background: var(--v-red); border-radius: 4px 0 0 4px; }
+  .viz .dbar .val { font-size: 12px; color: var(--muted); white-space: nowrap; margin: 0 8px; }
+  .viz .cols { display: flex; align-items: flex-end; gap: 10px; height: 170px; padding-top: 18px; }
+  .viz .cols .c { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .viz .cols .c .bar { width: 24px; border-radius: 4px 4px 0 0; background: var(--v-blue); }
+  .viz .cols .c .bar.gray { background: var(--v-gray); }
+  .viz .cols .c .v { font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .viz .cols .c .y { font-size: 12px; color: var(--muted); margin-top: 6px; border-top: 1px solid var(--v-grid); padding-top: 4px; width: 100%; text-align: center; }
+  .viz .heat { display: grid; gap: 2px; }
+  .viz .heat .hc { height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; cursor: default; }
+  .viz .heat .hc.none { background: transparent; color: var(--muted); font-weight: 400; }
+  .viz .heat .hc:hover { outline: 2px solid var(--text); outline-offset: -2px; }
+  .viz .heat .hh { font-size: 12px; color: var(--muted); text-align: center; padding-bottom: 2px; }
+  .viz .heat .hh.sel { color: var(--text); font-weight: 600; }
+  .viz .heat .ho { font-size: 13px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .viz .heat .ho.sel { font-weight: 600; }
+  .viz .yearchips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+  .viz .yearchips button { background: transparent; border: 1px solid var(--line); color: var(--muted);
+    padding: 3px 10px; border-radius: 999px; font-size: 12px; cursor: pointer; }
+  .viz .yearchips button.on { background: var(--panel-2); color: var(--text); border-color: var(--v-blue); }
+  .viz .yearchips button:disabled { opacity: .4; cursor: not-allowed; }
+  .viz .yearchips .cdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .viz .dotaxis { position: relative; height: 18px; }
+  .viz .dotaxis span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--muted); }
+  .viz .dottrack { position: relative; height: 30px; }
+  .viz .dband { position: absolute; top: 4px; bottom: 4px; background: var(--panel-2); border-radius: 4px; }
+  .viz .dmean { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--v-grid); }
+  .viz .dot { position: absolute; top: 0; height: 30px; width: 24px; margin-left: -12px; display: flex;
+    align-items: center; justify-content: center; cursor: default; }
+  .viz .dot .d { width: 10px; height: 10px; border-radius: 50%; background: var(--v-gray);
+    box-shadow: 0 0 0 2px var(--v-surface); }
+  .viz .dot.hi .d { background: var(--v-blue); width: 12px; height: 12px; }
+  .viz .dot.lo .d { background: var(--v-red); width: 12px; height: 12px; }
+  .viz .dot .dl { position: absolute; top: -3px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .viz .dot:hover .d, .viz .dot:focus .d { outline: 2px solid var(--text); outline-offset: 1px; }
+  .viz .legend i.sw { width: 10px; height: 10px; border-radius: 50%; background: var(--v-gray); }
+  .viz .legend i.sw.hi { background: var(--v-blue); }
+  .viz .legend i.sw.lo { background: var(--v-red); }
+  .viz .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+  .viz .legend i { display: inline-block; width: 16px; height: 2px; vertical-align: middle; margin-right: 6px; }
+  .viz .ramp { display: inline-block; width: 90px; height: 10px; border-radius: 3px; vertical-align: middle; margin: 0 6px; }
+  .viz svg text { fill: var(--muted); font-size: 11px; }
+  .viz svg .grid { stroke: var(--v-grid); stroke-width: 1; }
+  #viz-tip { position: fixed; z-index: 50; pointer-events: none; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.25); max-width: 260px; display: none; }
+  #viz-tip .t { color: var(--muted); margin-bottom: 4px; }
+  #viz-tip .r { display: flex; align-items: center; gap: 6px; }
+  #viz-tip .r b { font-size: 13px; }
+  #viz-tip .k { width: 10px; height: 2px; flex: none; }
   @media (max-width: 640px) {
     .hide-sm { display: none; }
   }
@@ -144,6 +242,7 @@
       <button data-tab="trends">Trends</button>
       <button data-tab="scout">Scout Opponent</button>
       <button data-tab="league">League</button>
+      <button data-tab="history">History</button>
     </nav>
   </div>
 </header>
@@ -160,6 +259,7 @@
   <section id="tab-trends" class="hidden"></section>
   <section id="tab-scout" class="hidden"></section>
   <section id="tab-league" class="hidden"></section>
+  <section id="tab-history" class="hidden"></section>
 </main>
 
 <script>
@@ -1521,12 +1621,765 @@ async function showRoster(teamId, teamName) {
   ]));
 }
 
+// ---------- League history tab ----------
+
+const SVGNS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs = {}, children = []) {
+  const node = document.createElementNS(SVGNS, tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+  for (const child of [].concat(children)) {
+    if (child === null || child === undefined) continue;
+    node.appendChild(typeof child === "string" ? document.createTextNode(child) : child);
+  }
+  return node;
+}
+
+// One shared tooltip. Everything goes in with textContent, since team and
+// owner names are data.
+const tip = {
+  node: null,
+  show(event, title, rows) {
+    if (!this.node) {
+      this.node = el("div", { id: "viz-tip" });
+      document.body.appendChild(this.node);
+    }
+    this.node.replaceChildren();
+    if (title) this.node.appendChild(el("div", { class: "t" }, title));
+    for (const row of rows) {
+      this.node.appendChild(el("div", { class: "r" }, [
+        row.color ? el("span", { class: "k", style: `background:${row.color}` }) : null,
+        el("b", {}, String(row.value)),
+        el("span", { class: "muted" }, row.label || ""),
+      ]));
+    }
+    this.node.style.display = "block";
+    const pad = 14;
+    const width = this.node.offsetWidth;
+    const left = Math.min(event.clientX + pad, window.innerWidth - width - 8);
+    this.node.style.left = Math.max(8, left) + "px";
+    this.node.style.top = (event.clientY + pad) + "px";
+  },
+  hide() { if (this.node) this.node.style.display = "none"; },
+};
+
+function isLightTheme() {
+  const forced = document.documentElement.dataset.theme;
+  if (forced) return forced === "light";
+  return window.matchMedia("(prefers-color-scheme: light)").matches;
+}
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+// Blend between two hex colors; t of 0 gives the first, 1 the second.
+function mixHex(a, b, t) {
+  const [ar, ag, ab] = hexToRgb(a);
+  const [br, bg, bb] = hexToRgb(b);
+  const mix = (x, y) => Math.round(x + (y - x) * t);
+  return [mix(ar, br), mix(ag, bg), mix(ab, bb)];
+}
+
+function inkFor([r, g, b]) {
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return lum > 0.55 ? "#0b0b0b" : "#ffffff";
+}
+
+function vizVar(name) {
+  return getComputedStyle(document.getElementById("tab-history")).getPropertyValue(name).trim();
+}
+
+const pct = n => (n * 100).toFixed(1) + "%";
+
+// A chart card with a Chart / Table toggle. The table is the same data, so
+// nothing depends on hovering.
+function chartCard(title, caption, chartNode, tableNode, options = {}) {
+  const views = [
+    { key: "chart", label: "Chart", node: el("div", {}, [chartNode]) },
+  ];
+  if (options.extra) views.push({ key: "extra", label: options.extra.label, node: el("div", {}, [options.extra.node]) });
+  views.push({ key: "table", label: "Table", node: el("div", {}, [tableNode]) });
+
+  const buttons = views.map(v => el("button", { class: v.key === "chart" ? "active" : "" }, v.label));
+  const setMode = key => {
+    views.forEach((v, i) => {
+      buttons[i].classList.toggle("active", v.key === key);
+      v.node.classList.toggle("hidden", v.key !== key);
+    });
+  };
+  views.forEach((v, i) => {
+    if (v.key !== "chart") v.node.classList.add("hidden");
+    buttons[i].onclick = () => setMode(v.key);
+  });
+  return el("div", { class: "card" }, [
+    el("div", { class: "card-head" }, [
+      el("h2", {}, title),
+      el("div", { class: "toggle" }, buttons),
+    ]),
+    caption ? el("p", { class: "cap" }, caption) : null,
+    options.controls || null,
+    ...views.map(v => v.node),
+  ]);
+}
+
+// A row of season buttons that can be switched on together. Nothing on means
+// every season.
+function yearChips(years, selected, onChange) {
+  const row = el("div", { class: "yearchips" });
+  const all = el("button", { class: selected.size === 0 ? "on" : "" }, "All");
+  all.onclick = () => { selected.clear(); onChange(); };
+  row.appendChild(all);
+  for (const year of years) {
+    const b = el("button", { class: selected.has(year) ? "on" : "" }, String(year));
+    b.onclick = () => {
+      if (selected.has(year)) selected.delete(year); else selected.add(year);
+      onChange();
+    };
+    row.appendChild(b);
+  }
+  return row;
+}
+
+// Every owner-season as a dot on a win-percentage scale, so a single great or
+// terrible year stands out from the owner's usual. Dots more than 1.5 standard
+// deviations from the league's 50% are marked and labeled.
+function seasonDots(rows, order, selected) {
+  const points = rows.map(r => ({
+    name: r.owner_name, year: r.season, team: r.team_name,
+    value: r.games ? (r.wins + 0.5 * r.ties) / r.games : 0,
+    record: `${r.wins}-${r.losses}${r.ties ? "-" + r.ties : ""}`,
+  }));
+  if (!points.length) return el("div", { class: "muted" }, "No seasons selected.");
+
+  const mean = points.reduce((s, p) => s + p.value, 0) / points.length;
+  const sd = Math.sqrt(points.reduce((s, p) => s + (p.value - mean) ** 2, 0) / points.length) || 0.0001;
+  const band = 1.5 * sd;
+  const lo = Math.max(0, Math.floor((Math.min(...points.map(p => p.value)) - 0.04) * 20) / 20);
+  const hi = Math.min(1, Math.ceil((Math.max(...points.map(p => p.value)) + 0.04) * 20) / 20);
+  const at = v => (v - lo) / (hi - lo) * 100;
+
+  const wrap = el("div", {});
+  const axis = el("div", { class: "hbar", style: "height:18px" }, [
+    el("div"),
+    el("div", { class: "dotaxis" }, [
+      ...[lo, (lo + hi) / 2, hi].map(v => el("span", { style: `left:${at(v)}%` }, pct(v))),
+    ]),
+  ]);
+  wrap.appendChild(axis);
+
+  for (const name of order) {
+    const mine = points.filter(p => p.name === name);
+    if (!mine.length) continue;
+    const track = el("div", { class: "dottrack" }, [
+      el("div", { class: "dband", style: `left:${at(mean - band)}%; width:${at(mean + band) - at(mean - band)}%` }),
+      el("div", { class: "dmean", style: `left:${at(mean)}%` }),
+    ]);
+    for (const p of mine) {
+      const z = (p.value - mean) / sd;
+      const kind = z > 1.5 ? "hi" : (z < -1.5 ? "lo" : "");
+      const dot = el("div", { class: "dot " + kind, tabindex: "0", style: `left:${at(p.value)}%` }, [
+        el("span", { class: "d" }),
+        kind ? el("span", { class: "dl" }, String(p.year)) : null,
+      ]);
+      const show = e => tip.show(e, `${p.name} · ${p.year}`, [
+        { value: pct(p.value), label: `win percentage (${p.record})` },
+        { value: (z >= 0 ? "+" : "") + z.toFixed(1), label: "standard deviations from the league" },
+        { value: p.team, label: "" },
+      ]);
+      dot.addEventListener("pointermove", show);
+      dot.addEventListener("pointerleave", () => tip.hide());
+      dot.addEventListener("focus", () => {
+        const b = dot.getBoundingClientRect();
+        show({ clientX: b.left, clientY: b.top });
+      });
+      dot.addEventListener("blur", () => tip.hide());
+      track.appendChild(dot);
+    }
+    wrap.appendChild(el("div", { class: "hbar", style: "height:30px" }, [
+      el("div", { class: "lbl" + (name === selected ? " sel" : ""), title: name }, name),
+      track,
+    ]));
+  }
+
+  const outliers = points.filter(p => Math.abs(p.value - mean) > band);
+  wrap.appendChild(el("div", { class: "legend" }, [
+    el("span", {}, [el("i", { class: "sw hi" }), `Well above (over ${pct(mean + band)})`]),
+    el("span", {}, [el("i", { class: "sw lo" }), `Well below (under ${pct(mean - band)})`]),
+    el("span", {}, [el("i", { class: "sw" }), "Typical season"]),
+    el("span", {}, `${outliers.length} of ${points.length} seasons are outliers`),
+  ]));
+  return wrap;
+}
+
+function simpleTable(headers, rows) {
+  return table(headers, rows.map(r => el("tr", {}, r.map((cell, i) =>
+    el("td", { class: i > 0 && typeof cell === "number" ? "num" : "" },
+      typeof cell === "number" ? String(cell) : cell)))));
+}
+
+// Career totals per owner over the chosen seasons.
+function ownerTotals(rows) {
+  const byOwner = {};
+  for (const row of rows) {
+    const o = byOwner[row.owner_name] || (byOwner[row.owner_name] = {
+      name: row.owner_name, wins: 0, losses: 0, ties: 0, games: 0, pf: 0, pa: 0,
+      titles: 0, seasons: 0, trades: 0, adds: 0,
+    });
+    o.wins += row.wins; o.losses += row.losses; o.ties += row.ties; o.games += row.games;
+    o.pf += row.points_for; o.pa += row.points_against;
+    o.titles += row.final_place === 1 ? 1 : 0;
+    o.seasons += 1; o.trades += row.trades; o.adds += row.adds;
+  }
+  const list = Object.values(byOwner);
+  for (const o of list) o.winPct = o.games ? (o.wins + 0.5 * o.ties) / o.games : 0;
+  return list.sort((a, b) => b.winPct - a.winPct || b.pf - a.pf);
+}
+
+// Horizontal bars, one per owner. With an owner selected, that owner is the
+// accent and the rest recede to gray.
+function hbars(items, { max, selected, format, detail }) {
+  const list = el("div", {});
+  for (const item of items) {
+    const isSel = selected && item.name === selected;
+    const dim = selected && !isSel;
+    const width = max ? Math.max(0, item.value) / max * (detail ? 50 : 80) : 0;
+    const row = el("div", { class: "hbar", tabindex: "0" }, [
+      el("div", { class: "lbl" + (isSel ? " sel" : ""), title: item.name }, item.name),
+      el("div", { class: "track" }, [
+        el("div", { class: "fill" + (dim ? " gray" : ""), style: `width:${width}%` }),
+        el("div", { class: "val" }, [el("b", {}, format(item.value)), detail ? "  " + detail(item) : ""]),
+      ]),
+    ]);
+    const show = e => tip.show(e, item.name, item.tip || [{ value: format(item.value) }]);
+    row.addEventListener("pointermove", show);
+    row.addEventListener("pointerleave", () => tip.hide());
+    row.addEventListener("focus", () => {
+      const box = row.getBoundingClientRect();
+      show({ clientX: box.left + 120, clientY: box.top });
+    });
+    row.addEventListener("blur", () => tip.hide());
+    list.appendChild(row);
+  }
+  return list;
+}
+
+// Bars that grow left (red) or right (blue) from zero. Each side is its own
+// row of bar then label, so a label always sits beside its bar.
+function divergingBars(items, { selected, format }) {
+  const max = Math.max(...items.map(i => Math.abs(i.value)), 1);
+  const list = el("div", {});
+  for (const item of items) {
+    const isSel = selected && item.name === selected;
+    const width = Math.abs(item.value) / max * 78;
+    const positive = item.value >= 0;
+    const bar = el("div", { class: "fill " + (positive ? "up" : "down"), style: `width:${width}%` });
+    const label = el("div", { class: "val" }, format(item.value));
+    const area = el("div", { class: "dbar" }, [
+      el("div", { class: "dhalf down" }, positive ? [] : [label, bar]),
+      el("div", { class: "dhalf up" }, positive ? [bar, label] : []),
+    ]);
+    const row = el("div", { class: "hbar", style: "grid-template-columns: 96px 1fr;", tabindex: "0" }, [
+      el("div", { class: "lbl" + (isSel ? " sel" : ""), title: item.name }, item.name),
+      area,
+    ]);
+    row.addEventListener("pointermove", e => tip.show(e, item.name, item.tip));
+    row.addEventListener("pointerleave", () => tip.hide());
+    list.appendChild(row);
+  }
+  return list;
+}
+
+function columns(items, formatTip) {
+  const max = Math.max(...items.map(i => i.value), 1);
+  const wrap = el("div", { class: "cols" });
+  for (const item of items) {
+    const col = el("div", { class: "c", tabindex: "0" }, [
+      el("div", { class: "v" }, String(item.value)),
+      el("div", { class: "bar" + (item.dim ? " gray" : ""), style: `height:${item.value / max * 100}px` }),
+      el("div", { class: "y" }, String(item.label)),
+    ]);
+    col.addEventListener("pointermove", e => tip.show(e, item.label, formatTip(item)));
+    col.addEventListener("pointerleave", () => tip.hide());
+    wrap.appendChild(col);
+  }
+  return wrap;
+}
+
+// Points per game across seasons: every owner in gray, the chosen owners in
+// color (up to four, each keeping the color it was given). A crosshair snaps
+// to the nearest season and lists every chosen owner.
+const TREND_COLORS = ["--v-c1", "--v-c2", "--v-c3", "--v-c4"];
+const TREND_MAX = 4;
+
+function trajectoryChart(data, allRows, chosen, colorOf, opts = {}) {
+  const value = opts.getValue || (row => row.points_for / row.games);
+  const step = opts.step || 10;
+  const fmtValue = opts.format || (v => String(v));
+  const fmtEnd = opts.formatEnd || (v => v.toFixed(1));
+  const detail = opts.detail || (row => `rank ${row.rank}`);
+  const noun = opts.label || "Points per game";
+  const years = data.years;
+  const W = 720, H = 300, L = 44, R = 110, T = 14, B = 28;
+  const values = allRows.map(value);
+  const lo = Math.floor(Math.min(...values) / step) * step;
+  const hi = Math.ceil(Math.max(...values) / step) * step;
+  const x = i => L + (W - L - R) * (years.length === 1 ? 0.5 : i / (years.length - 1));
+  const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const surface = vizVar("--v-surface") || "#171c23";
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img",
+    "aria-label": `${noun} by owner and season` });
+
+  for (let v = lo; v <= hi + 1e-9; v += step) {
+    svg.appendChild(svgEl("line", { class: "grid", x1: L, x2: W - R, y1: y(v), y2: y(v) }));
+    svg.appendChild(svgEl("text", { x: L - 8, y: y(v) + 4, "text-anchor": "end" }, fmtValue(v)));
+  }
+  years.forEach((year, i) =>
+    svg.appendChild(svgEl("text", { x: x(i), y: H - 8, "text-anchor": "middle" }, String(year))));
+
+  const byOwner = {};
+  for (const row of allRows) (byOwner[row.owner_name] || (byOwner[row.owner_name] = {}))[row.season] = row;
+
+  // A line breaks where an owner sat a season out.
+  const pathFor = perYear => {
+    let d = "", pen = false;
+    years.forEach((year, i) => {
+      const row = perYear[year];
+      if (!row) { pen = false; return; }
+      d += (pen ? "L" : "M") + x(i) + " " + y(value(row)) + " ";
+      pen = true;
+    });
+    return d.trim();
+  };
+
+  const names = Object.keys(byOwner);
+  const drawOrder = names.filter(n => !chosen.includes(n)).concat(chosen.filter(n => byOwner[n]));
+  for (const name of drawOrder) {
+    const isChosen = chosen.includes(name);
+    svg.appendChild(svgEl("path", {
+      d: pathFor(byOwner[name]), fill: "none", "stroke-width": 2,
+      "stroke-linecap": "round", "stroke-linejoin": "round",
+      stroke: isChosen ? colorOf(name) : vizVar("--v-gray"),
+    }));
+  }
+  for (const name of chosen) {
+    const mine = byOwner[name] || {};
+    years.forEach((year, i) => {
+      const row = mine[year];
+      if (!row) return;
+      svg.appendChild(svgEl("circle", { cx: x(i), cy: y(value(row)), r: 4,
+        fill: colorOf(name), stroke: surface, "stroke-width": 2 }));
+    });
+  }
+
+  // End labels. Where two would collide the legend carries the name instead.
+  const ends = chosen.map(name => {
+    const lastYear = [...years].reverse().find(yr => (byOwner[name] || {})[yr]);
+    return lastYear ? { name, i: years.indexOf(lastYear), v: value(byOwner[name][lastYear]) } : null;
+  }).filter(Boolean).sort((p, q) => y(p.v) - y(q.v));
+  let lastShown = -Infinity;
+  for (const end of ends) {
+    if (y(end.v) - lastShown < 13) continue;
+    lastShown = y(end.v);
+    svg.appendChild(svgEl("text", { x: x(end.i) + 10, y: y(end.v) + 4 }, `${end.name} ${fmtEnd(end.v)}`));
+  }
+
+  const cross = svgEl("line", { x1: 0, x2: 0, y1: T, y2: H - B, stroke: vizVar("--v-grid"),
+    "stroke-width": 1, style: "display:none" });
+  svg.appendChild(cross);
+  const hit = svgEl("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" });
+  const nearest = e => {
+    const box = svg.getBoundingClientRect();
+    const px = (e.clientX - box.left) / box.width * W;
+    let best = 0;
+    years.forEach((_, i) => { if (Math.abs(x(i) - px) < Math.abs(x(best) - px)) best = i; });
+    return best;
+  };
+  hit.addEventListener("pointermove", e => {
+    const i = nearest(e);
+    const year = years[i];
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.style.display = "";
+    const seasonRows = allRows.filter(r => r.season === year);
+    const avg = seasonRows.reduce((s, r) => s + value(r), 0) / seasonRows.length;
+    const top = seasonRows.reduce((p, q) => value(p) > value(q) ? p : q);
+    const rows = [];
+    for (const name of chosen) {
+      const row = (byOwner[name] || {})[year];
+      rows.push({ value: row ? fmtEnd(value(row)) : "–",
+        label: row ? `${name} (${detail(row)})` : `${name} (not in league)`, color: colorOf(name) });
+    }
+    rows.push({ value: fmtEnd(avg), label: "league average", color: vizVar("--v-gray") });
+    rows.push({ value: fmtEnd(value(top)), label: `highest: ${top.owner_name}` });
+    tip.show(e, String(year), rows);
+  });
+  hit.addEventListener("pointerleave", () => { cross.style.display = "none"; tip.hide(); });
+  svg.appendChild(hit);
+
+  return el("div", {}, [
+    svg,
+    el("div", { class: "legend" }, chosen.map(name =>
+      el("span", {}, [el("i", { style: `background:${colorOf(name)}` }), name])
+    ).concat([el("span", {}, [el("i", { style: `background:${vizVar("--v-gray")}` }), "Other owners"])])),
+  ]);
+}
+
+// Owner buttons for the trend chart. Each chosen owner shows the color of its
+// line; once four are chosen the rest wait until one is removed.
+function ownerChips(names, chosen, colorOf, onChange) {
+  const row = el("div", { class: "yearchips" });
+  for (const name of names) {
+    const on = chosen.includes(name);
+    const full = !on && chosen.length >= TREND_MAX;
+    const b = el("button", {
+      class: on ? "on" : "", disabled: full ? "disabled" : null,
+      title: full ? `Up to ${TREND_MAX} at a time` : null,
+    }, [on ? el("span", { class: "cdot", style: `background:${colorOf(name)}` }) : null, name]);
+    b.onclick = () => {
+      if (on) chosen.splice(chosen.indexOf(name), 1); else chosen.push(name);
+      onChange();
+    };
+    row.appendChild(b);
+  }
+  return row;
+}
+
+// Owners by seasons, colored by final place. Darker or brighter means a
+// better finish; the number is in the cell, so it reads without color.
+function finishHeatmap(data, allRows, order, selected, season) {
+  const years = data.years;
+  const lo = vizVar("--v-seq-lo"), hi = vizVar("--v-seq-hi");
+  const grid = el("div", { class: "heat", style: `grid-template-columns: 96px repeat(${years.length}, 1fr);` });
+  grid.appendChild(el("div"));
+  for (const year of years) {
+    grid.appendChild(el("div", { class: "hh" + (String(year) === season ? " sel" : "") }, String(year)));
+  }
+  const cell = {};
+  for (const row of allRows) cell[row.owner_name + "|" + row.season] = row;
+
+  for (const name of order) {
+    grid.appendChild(el("div", { class: "ho" + (name === selected ? " sel" : ""), title: name }, name));
+    for (const year of years) {
+      const row = cell[name + "|" + year];
+      if (!row) { grid.appendChild(el("div", { class: "hc none" }, "–")); continue; }
+      const place = row.final_place || row.rank;
+      const t = 1 - (place - 1) / Math.max(1, data.seasons.find(s => s.season === year).num_teams - 1);
+      const rgb = mixHex(lo, hi, t);
+      const c = el("div", { class: "hc", tabindex: "0",
+        style: `background: rgb(${rgb.join(",")}); color: ${inkFor(rgb)}` }, String(place));
+      c.addEventListener("pointermove", e => tip.show(e, `${name} · ${year}`, [
+        { value: `Finished ${place}`, label: row.final_place === 1 ? "champion" : `(regular season ${row.rank})` },
+        { value: `${row.wins}-${row.losses}${row.ties ? "-" + row.ties : ""}`, label: row.team_name },
+        { value: row.points_for.toFixed(0), label: "points for" },
+      ]));
+      c.addEventListener("pointerleave", () => tip.hide());
+      grid.appendChild(c);
+    }
+  }
+  return el("div", {}, [
+    grid,
+    el("div", { class: "legend" }, [el("span", {}, [
+      "Worse finish",
+      el("span", { class: "ramp", style: `background: linear-gradient(90deg, ${lo}, ${hi})` }),
+      "Better finish · numbers are final place",
+    ])]),
+  ]);
+}
+
+async function renderHistory() {
+  const target = document.getElementById("tab-history");
+  target.innerHTML = "<div class='card muted'>Loading league history…</div>";
+  const data = await api("/api/league-history");
+  state.history = data;
+
+  const allRows = data.seasons.flatMap(s => s.rows);
+  const careers = ownerTotals(allRows);
+  if (!state.hOwner) state.hOwner = careers[0].name;
+  if (!state.hSeason) state.hSeason = "all";
+
+  const draw = () => {
+    const season = state.hSeason;
+    const selected = state.hOwner;
+    const scoped = season === "all" ? allRows : allRows.filter(r => String(r.season) === season);
+    const totals = ownerTotals(scoped);
+    const scopeLabel = season === "all" ? `${data.years[0]}–${data.years[data.years.length - 1]}` : season;
+    const seasonData = season === "all" ? data.seasons : data.seasons.filter(s => String(s.season) === season);
+    const trades = seasonData.flatMap(s => s.trades);
+
+    const filters = el("div", { class: "filters" }, [
+      el("label", {}, ["Highlight owner", el("select", {
+        onchange: e => { state.hOwner = e.target.value; state.hTrend = [e.target.value]; draw(); },
+      }, careers.map(o => el("option", { value: o.name, selected: o.name === selected ? "selected" : null }, o.name)))]),
+      el("label", {}, ["Season", el("select", {
+        onchange: e => { state.hSeason = e.target.value; draw(); },
+      }, [el("option", { value: "all" }, "All seasons")].concat(data.years.map(y =>
+        el("option", { value: String(y), selected: String(y) === season ? "selected" : null }, String(y)))))]),
+      el("span", { class: "muted note" }, "Season scopes the bars, tables and trades. The trend and finish grid always show every season."),
+    ]);
+
+    const titleHolders = [...new Set(data.champions.map(c => c.owner_name))];
+    const kpis = el("div", { class: "row", style: "margin-bottom:16px" }, [
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "Seasons on record"),
+        el("div", { class: "hero" }, String(data.years.length))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "Different champions"),
+        el("div", { class: "value" }, `${titleHolders.length} of ${careers.length} owners`)]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, `Trades, ${scopeLabel}`),
+        el("div", { class: "value" }, String(trades.length))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, `Waiver adds, ${scopeLabel}`),
+        el("div", { class: "value" }, String(totals.reduce((s, o) => s + o.adds, 0)))]),
+    ]);
+
+    const champs = el("div", { class: "card" }, [
+      el("h2", {}, "Champions"),
+      el("div", { class: "champs" }, data.champions.map(c => el("div", { class: "champ" }, [
+        el("div", { class: "yr" }, String(c.season)),
+        el("div", { class: "tm" }, c.team_name),
+        el("div", { class: "ow" }, c.owner_name),
+      ]))),
+    ]);
+
+    // Win percentage. It has its own season buttons, so a few seasons can be
+    // compared side by side to spot an outlier year.
+    const winYears = state.hWinYears || (state.hWinYears = new Set());
+    const winRows = winYears.size ? allRows.filter(r => winYears.has(r.season)) : allRows;
+    const winTotals = ownerTotals(winRows);
+    const winScope = winYears.size
+      ? [...winYears].sort().join(", ")
+      : `${data.years[0]}–${data.years[data.years.length - 1]}`;
+    const winItems = winTotals.map(o => ({
+      name: o.name, value: o.winPct,
+      tip: [
+        { value: pct(o.winPct), label: "win percentage" },
+        { value: `${o.wins}-${o.losses}${o.ties ? "-" + o.ties : ""}`, label: `over ${o.seasons} season${o.seasons === 1 ? "" : "s"}` },
+        { value: o.titles, label: o.titles === 1 ? "title" : "titles" },
+      ],
+      titles: o.titles, record: `${o.wins}-${o.losses}`,
+    }));
+    const winCard = chartCard(`Win percentage, ${winScope}`,
+      "Regular season, ties count half. Pick seasons to compare them; \"By season\" shows each year as a dot to spot outliers.",
+      hbars(winItems, { max: Math.max(...winItems.map(i => i.value), 0.01), selected,
+        format: pct, detail: i => `${i.record}${i.titles ? " · " + i.titles + (i.titles === 1 ? " title" : " titles") : ""}` }),
+      simpleTable(["Owner", "Win %", "Record", "Titles"],
+        winItems.map(i => [i.name, pct(i.value), i.record, i.titles])),
+      {
+        controls: yearChips(data.years, winYears, draw),
+        extra: { label: "By season", node: seasonDots(winRows, winTotals.map(o => o.name), selected) },
+      });
+
+    // Scoring margin.
+    const marginItems = [...totals].map(o => ({
+      name: o.name, value: o.games ? (o.pf - o.pa) / o.games : 0,
+      tip: [
+        { value: (o.games ? o.pf / o.games : 0).toFixed(1), label: "points for per game" },
+        { value: (o.games ? o.pa / o.games : 0).toFixed(1), label: "points against per game" },
+      ],
+    })).sort((a, b) => b.value - a.value);
+    const marginCard = chartCard(`Scoring margin per game, ${scopeLabel}`,
+      "Points scored minus points allowed. Blue outscored opponents; red was outscored.",
+      divergingBars(marginItems, { selected, format: v => (v >= 0 ? "+" : "") + v.toFixed(1) }),
+      simpleTable(["Owner", "Margin per game"], marginItems.map(i => [i.name, i.value.toFixed(1)])));
+
+    // Trend. Any few owners can be compared; a color stays with its owner.
+    if (!state.hTrend) state.hTrend = [selected];
+    const chosen = state.hTrend;
+    // Each chosen owner keeps one color slot until removed, then it is freed.
+    const slots = state.hTrendSlots || (state.hTrendSlots = {});
+    for (const name of Object.keys(slots)) if (!chosen.includes(name)) delete slots[name];
+    for (const name of chosen) {
+      if (slots[name] !== undefined) continue;
+      const taken = new Set(Object.values(slots));
+      let slot = 0;
+      while (taken.has(slot)) slot++;
+      slots[name] = slot;
+    }
+    const colorOf = name => vizVar(TREND_COLORS[slots[name] % TREND_COLORS.length]);
+    const trendCard = chartCard("Points per game by season",
+      chosen.length
+        ? `Compare up to ${TREND_MAX} owners. Hover a season for each one, the league average and the top scorer.`
+        : "Pick an owner to compare against the rest of the league.",
+      trajectoryChart(data, allRows, chosen, colorOf),
+      simpleTable(["Season"].concat(chosen.map(n => `${n} PPG`), ["League average PPG"]),
+        data.years.map(year => {
+          const rows = allRows.filter(r => r.season === year);
+          const avg = rows.reduce((s, r) => s + r.points_for / r.games, 0) / rows.length;
+          return [String(year)].concat(chosen.map(n => {
+            const mine = rows.find(r => r.owner_name === n);
+            return mine ? (mine.points_for / mine.games).toFixed(1) : "–";
+          }), [avg.toFixed(1)]);
+        })),
+      { controls: ownerChips(careers.map(o => o.name), chosen, colorOf, draw) });
+
+    // Win-loss record over time. Season rows are one year at a time; career rows
+    // are running totals up to the end of each season.
+    const seasonRecs = [...allRows].sort((p, q) => p.season - q.season).map(r => (
+      { owner_name: r.owner_name, season: r.season, w: r.wins, l: r.losses, t: r.ties, g: r.games }));
+    const cumRows = [];
+    const running = {};
+    for (const r of seasonRecs) {
+      const c = running[r.owner_name] || (running[r.owner_name] = { w: 0, l: 0, t: 0, g: 0 });
+      c.w += r.w; c.l += r.l; c.t += r.t; c.g += r.g;
+      cumRows.push({ owner_name: r.owner_name, season: r.season, w: c.w, l: c.l, t: c.t, g: c.g });
+    }
+    const rec = r => `${r.w}-${r.l}${r.t ? "-" + r.t : ""}`;
+    const pctOf = r => (r.w + 0.5 * r.t) / r.g * 100;
+    const METRICS = {
+      season: { label: "Season win %", rows: seasonRecs, value: pctOf, step: 10,
+        format: v => v + "%", formatEnd: v => v.toFixed(0) + "%", detail: r => `${rec(r)} that season`,
+        caption: "Each season on its own, so a fall shows up right away. Use this to see who is losing more lately." },
+      net: { label: "Wins minus losses (career)", rows: cumRows, value: r => r.w - r.l, step: 5,
+        format: v => (v > 0 ? "+" : "") + v, formatEnd: v => (v > 0 ? "+" : "") + v, detail: r => `${rec(r)} career`,
+        caption: "Running career total. Above zero is a winning record overall; a line turning down means a losing stretch." },
+      pct: { label: "Career win %", rows: cumRows, value: pctOf, step: 5,
+        format: v => v + "%", formatEnd: v => v.toFixed(1) + "%", detail: r => `${rec(r)} career`,
+        caption: "Running career win percentage. It moves slowly, since every earlier season still counts." },
+    };
+    const metricKey = METRICS[state.hMetric] ? state.hMetric : "season";
+    const metric = METRICS[metricKey];
+    const metricButtons = el("div", { class: "yearchips" }, Object.entries(METRICS).map(([key, m]) =>
+      el("button", { class: key === metricKey ? "on" : "", onclick: () => { state.hMetric = key; draw(); } }, m.label)));
+    const winsTrendCard = chartCard(`${metric.label} by year`, metric.caption + " Same owners as the chart above.",
+      trajectoryChart(data, metric.rows, chosen, colorOf, {
+        getValue: metric.value, step: metric.step, format: metric.format,
+        formatEnd: metric.formatEnd, detail: metric.detail, label: metric.label }),
+      simpleTable(["Season"].concat(chosen.map(n => n), ["League average"]),
+        data.years.map(year => {
+          const rows = metric.rows.filter(r => r.season === year);
+          const avg = rows.reduce((s, r) => s + metric.value(r), 0) / rows.length;
+          return [String(year)].concat(chosen.map(n => {
+            const mine = rows.find(r => r.owner_name === n);
+            return mine ? metric.formatEnd(metric.value(mine)) : "–";
+          }), [metric.formatEnd(avg)]);
+        })),
+      { controls: el("div", {}, [
+          metricButtons,
+          ownerChips(careers.map(o => o.name), chosen, colorOf, draw),
+        ]) });
+
+    // Recent form: win % over the last two seasons against everything before.
+    const recentYears = data.years.slice(-2);
+    const sum = rows => rows.reduce((a, r) => ({ w: a.w + r.w, l: a.l + r.l, t: a.t + r.t, g: a.g + r.g }),
+      { w: 0, l: 0, t: 0, g: 0 });
+    const formItems = careers.map(o => {
+      const mine = seasonRecs.filter(r => r.owner_name === o.name);
+      const recent = sum(mine.filter(r => recentYears.includes(r.season)));
+      const earlier = sum(mine.filter(r => !recentYears.includes(r.season)));
+      if (!recent.g || !earlier.g) return null;
+      return { name: o.name, value: pctOf(recent) - pctOf(earlier),
+        tip: [
+          { value: `${rec(recent)} (${pctOf(recent).toFixed(0)}%)`, label: `${recentYears[0]}–${recentYears[1]}` },
+          { value: `${rec(earlier)} (${pctOf(earlier).toFixed(0)}%)`, label: "before that" },
+        ] };
+    }).filter(Boolean).sort((p, q) => p.value - q.value);
+    const formCard = chartCard(`Recent form: ${recentYears[0]}–${recentYears[1]} against earlier seasons`,
+      "Change in win percentage, in points. Red owners are winning less than they used to; blue are winning more. Owners without seasons in both periods are left out.",
+      divergingBars(formItems, { selected, format: v => (v > 0 ? "+" : "") + v.toFixed(0) + " pts" }),
+      simpleTable(["Owner", "Recent", "Earlier", "Change (pts)"], formItems.map(i => [
+        i.name, i.tip[0].value, i.tip[1].value, i.value.toFixed(0)])));
+
+    // Finish grid.
+    const heatCard = el("div", { class: "card" }, [
+      el("h2", {}, "Final place by season"),
+      el("p", { class: "cap" }, "After the playoffs. A dash means the owner was not in the league that year."),
+      finishHeatmap(data, allRows, careers.map(o => o.name), selected, season),
+    ]);
+
+    // Activity.
+    const perSeason = data.seasons.map(s => ({
+      label: s.season, value: s.trades.length,
+      dim: season !== "all" && String(s.season) !== season,
+    }));
+    const tradesSeasonCard = chartCard("Trades per season", "Completed trades, from NFL.com processing emails.",
+      columns(perSeason, i => [{ value: i.value, label: i.value === 1 ? "trade" : "trades" }]),
+      simpleTable(["Season", "Trades"], perSeason.map(i => [String(i.label), i.value])));
+
+    const tradeOwners = [...totals].sort((a, b) => b.trades - a.trades).filter(o => o.trades > 0);
+    const tradeOwnerCard = chartCard(`Trades by owner, ${scopeLabel}`, "A trade counts once for each side.",
+      hbars(tradeOwners.map(o => ({ name: o.name, value: o.trades,
+        tip: [{ value: o.trades, label: "trades" }, { value: o.adds, label: "waiver adds" }] })),
+        { max: Math.max(...tradeOwners.map(o => o.trades), 1), selected, format: v => String(v) }),
+      simpleTable(["Owner", "Trades", "Waiver adds"], tradeOwners.map(o => [o.name, o.trades, o.adds])));
+
+    // Ledger.
+    const ledger = el("div", { class: "card" }, [
+      el("h2", {}, `Owner ledger, ${scopeLabel}`),
+      table(["Owner", { label: "Titles", num: true }, { label: "Seasons", num: true },
+        "Record", { label: "Win %", num: true }, { label: "Points for", num: true, hide: true },
+        { label: "Points against", num: true, hide: true }, { label: "Trades", num: true },
+        { label: "Adds", num: true, hide: true }],
+        totals.map(o => el("tr", { class: o.name === selected ? "starter" : "" }, [
+          el("td", {}, o.name),
+          el("td", { class: "num" }, String(o.titles)),
+          el("td", { class: "num" }, String(o.seasons)),
+          el("td", {}, `${o.wins}-${o.losses}${o.ties ? "-" + o.ties : ""}`),
+          el("td", { class: "num" }, pct(o.winPct)),
+          el("td", { class: "num hide-sm" }, o.pf.toFixed(0)),
+          el("td", { class: "num hide-sm" }, o.pa.toFixed(0)),
+          el("td", { class: "num" }, String(o.trades)),
+          el("td", { class: "num hide-sm" }, String(o.adds)),
+        ]))),
+    ]);
+
+    // Trade log.
+    const tradeLog = el("div", { class: "card" }, [
+      el("h2", {}, `Trade log, ${scopeLabel}`),
+      trades.length ? table(["Date", "Team", "Gave", "Team", "Gave"],
+        [...trades].sort((a, b) => b.date.localeCompare(a.date)).map(t => el("tr", {}, [
+          el("td", {}, t.date.slice(0, 10)),
+          el("td", {}, `${t.sides[0].owner_name}`),
+          el("td", {}, t.sides[0].gives.join(", ")),
+          el("td", {}, `${t.sides[1].owner_name}`),
+          el("td", {}, t.sides[1].gives.join(", ")),
+        ]))) : el("div", { class: "muted" }, "No trades in this period."),
+    ]);
+
+    const movers = el("div", { class: "card" }, [
+      el("h2", {}, "Most-traded players"),
+      el("p", { class: "cap" }, "Players who changed teams more than once."),
+      table(["Player", "Pos", { label: "Moves", num: true }, { label: "Last season", num: true }],
+        data.most_moved_players.map(p => el("tr", {}, [
+          el("td", {}, p.player), el("td", {}, p.position),
+          el("td", { class: "num" }, String(p.moves)), el("td", { class: "num" }, String(p.last_season)),
+        ]))),
+    ]);
+
+    const drafts = el("div", { class: "card" }, [
+      el("h2", {}, "Draft recaps"),
+      el("p", { class: "cap" }, "NFL.com's post-draft grade against how the season ended. Covers one team only."),
+      table(["Season", "Grade", { label: "Projected", num: true }, { label: "Actual", num: true },
+        { label: "Headline", hide: true }],
+        data.drafts.map(d => el("tr", {}, [
+          el("td", {}, String(d.season)), el("td", {}, d.grade || "–"),
+          el("td", { class: "num" }, d.projected_finish || "–"),
+          el("td", { class: "num" }, d.actual ? String(d.actual.final_place) : "–"),
+          el("td", { class: "hide-sm" }, d.headline || ""),
+        ]))),
+    ]);
+
+    target.replaceChildren(el("div", { class: "viz" }, [
+      filters, kpis, champs,
+      el("div", { style: "height:16px" }),
+      el("div", { class: "grid2" }, [winCard, marginCard]),
+      el("div", { style: "height:16px" }),
+      trendCard, winsTrendCard, formCard, heatCard,
+      el("div", { class: "grid2" }, [tradesSeasonCard, tradeOwnerCard]),
+      el("div", { style: "height:16px" }),
+      ledger, tradeLog,
+      el("div", { class: "grid2" }, [movers, drafts]),
+    ]));
+  };
+
+  draw();
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+    if (!target.classList.contains("hidden")) draw();
+  });
+}
+
 // ---------- Bootstrap ----------
 
 const RENDERERS = {
   team: renderTeam, season: renderSeason, players: renderPlayers,
   waivers: renderWaivers, news: renderNews, value: renderValue, trends: renderTrends,
-  scout: renderScout, league: renderLeague,
+  scout: renderScout, league: renderLeague, history: renderHistory,
 };
 const loaded = {};
 
@@ -1567,7 +2420,8 @@ async function start() {
       `Week ${state.league.week} · ${s.size} teams · ${s.scoring_type}` +
       (state.config.can_write ? "" : " · read-only");
 
-    await selectTab("team");
+    const wanted = location.hash.slice(1);
+    await selectTab(RENDERERS[wanted] ? wanted : "team");
   } catch (error) {
     showError(error.message);
   }

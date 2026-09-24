@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from . import constants as C
-from . import history, scouting, waivers
+from . import history, league_history, scouting, waivers
 from .config import PROJECT_ROOT, load_settings
 from .espn_client import EspnError, build_lineup_payload
 from .intel.service import IntelService
@@ -598,6 +598,15 @@ def read_pending_transactions():
     """Waiver claims you have already submitted but that have not processed."""
     service = get_service()
     return {"pending": service.pending_transactions()}
+
+
+@app.get("/api/league-history")
+def read_league_history():
+    """The league's 2020-2025 record, joined per owner and season."""
+    data = league_history.load_history()
+    if data is None:
+        raise HTTPException(status_code=404, detail="No league history saved.")
+    return data
 
 
 @app.post("/api/history/snapshot")
