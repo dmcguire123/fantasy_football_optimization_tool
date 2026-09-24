@@ -10,7 +10,8 @@ league's rules, and falls back to the generic points when it has to.
   - Sleeper: public and keyless. Its projections come from Rotowire, and
     past weeks stay available, which makes it useful for backtesting.
   - FantasyPros: official API, needs a free personal key in
-    FANTASYPROS_API_KEY. Their projections are an average over experts.
+    FANTASYPROS_API_KEY. Their projections are an average over experts. The
+    personal key is limited to 100 calls a day, ten players a call.
   - ESPN, public feed: ESPN's weekly stat-line projections for every week of
     the season. The league feed only carries the current week, so this is
     where ESPN's rest-of-season numbers come from. The stat lines are already
@@ -22,7 +23,10 @@ the consensus is built from whatever did come back.
 
 import json
 import logging
+import time
 from dataclasses import dataclass, field
+from datetime import date
+from pathlib import Path
 
 import httpx
 
@@ -208,16 +212,72 @@ def parse_fantasypros(payload, source="fantasypros"):
     return projections
 
 
-# Weekly projections, or rest-of-season totals when ros is True.
-def fetch_fantasypros(season, week, api_key, http=None, ros=False):
-    if not api_key:
+# FantasyPros' personal API key allows one call a second and 100 calls a
+# day, and every response holds at most ten players. So players are asked
+# for by id, ten at a time, a little over a second apart, and every call is
+# counted against a daily budget kept on disk. Results are cached (see
+# service.py), so each player costs a tenth of a call once a day at most.
+FANTASYPROS_BATCH = 10
+FANTASYPROS_PAUSE = 1.1
+FANTASYPROS_DAILY_CALLS = 90
+FANTASYPROS_BUDGET_PATH = (
+    Path(__file__).resolve().parents[2] / "data" / "projections" / "fantasypros_calls.json"
+)
+
+
+class DailyBudget:
+    """A count of API calls made today, kept on disk across runs."""
+
+    def __init__(self, path=FANTASYPROS_BUDGET_PATH, limit=FANTASYPROS_DAILY_CALLS):
+        self.path = Path(path)
+        self.limit = limit
+
+    def _read(self):
+        try:
+            data = json.loads(self.path.read_text())
+        except (OSError, ValueError):
+            data = {}
+        if data.get("date") != date.today().isoformat():
+            data = {"date": date.today().isoformat(), "calls": 0}
+        return data
+
+    def remaining(self):
+        return max(0, self.limit - self._read()["calls"])
+
+    def spend(self, calls=1):
+        data = self._read()
+        data["calls"] += calls
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(json.dumps(data))
+
+    # FantasyPros says the day's calls are gone: stop until tomorrow.
+    def exhaust(self):
+        data = self._read()
+        data["calls"] = max(data["calls"], self.limit)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(json.dumps(data))
+
+
+# Weekly projections (or rest-of-season totals) for specific players, by
+# FantasyPros id, in the order given, until the day's budget runs out.
+def fetch_fantasypros_players(season, week, api_key, fp_ids, budget, http=None, ros=False):
+    if not api_key or not fp_ids:
         return []
     http = http or httpx
+    fp_ids = list(fp_ids)
     projections = []
-    for position in FANTASYPROS_POSITIONS:
-        params = {"position": position, "week": week}
+    for start in range(0, len(fp_ids), FANTASYPROS_BATCH):
+        if budget.remaining() <= 0:
+            log.info("FantasyPros daily budget used; %d players wait for tomorrow",
+                     len(fp_ids) - start)
+            break
+        if start:
+            time.sleep(FANTASYPROS_PAUSE)
+        batch = fp_ids[start : start + FANTASYPROS_BATCH]
+        params = {"position": "ALL", "week": week, "players": ":".join(batch)}
         if ros:
             params["ros"] = "true"
+        budget.spend()
         try:
             payload = _get_json(
                 http,
@@ -225,9 +285,16 @@ def fetch_fantasypros(season, week, api_key, http=None, ros=False):
                 params=params,
                 headers={"x-api-key": api_key},
             )
+        except httpx.HTTPStatusError as error:
+            if error.response.status_code == 429:
+                log.warning("FantasyPros daily limit reached; the rest wait for tomorrow")
+                budget.exhaust()
+            else:
+                log.warning("FantasyPros batch unavailable: %s", error)
+            break
         except Exception as error:
-            log.warning("FantasyPros %s projections unavailable: %s", position, error)
-            continue
+            log.warning("FantasyPros batch unavailable: %s", error)
+            break
         projections.extend(
             parse_fantasypros(payload, source="fantasypros_ros" if ros else "fantasypros")
         )

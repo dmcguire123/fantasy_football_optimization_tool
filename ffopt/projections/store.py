@@ -95,6 +95,23 @@ def latest_pull(connection, season, week, before=None):
     return [dict(row) for row in cursor.fetchall()]
 
 
+# Every row a source pulled for a week since a given time, newest pull of
+# each player only. Used as a cache for sources with tight rate limits.
+def recent_rows(connection, season, week, source, since):
+    cursor = connection.execute(
+        """
+        SELECT * FROM raw_projections
+        WHERE season = ? AND week = ? AND source = ? AND fetched_at >= ?
+        ORDER BY fetched_at
+        """,
+        (season, week, source, since),
+    )
+    latest = {}
+    for row in cursor.fetchall():
+        latest[row["source_id"]] = dict(row)
+    return list(latest.values())
+
+
 # How many rows each source has, by week, for a quick look at the archive.
 def summary(connection, season=None):
     query = (

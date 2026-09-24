@@ -25,10 +25,20 @@ from . import store
 from .consensus import MIN_RELEVANT_POINTS, blend, nudge
 from .ids import PlayerIds, clean_name
 from .scoring import STAT_SCORED_POSITIONS
-from .sources import espn_team, fetch_espn_weekly, fetch_fantasypros, fetch_sleeper
+from .sources import (
+    DailyBudget,
+    espn_team,
+    fetch_espn_weekly,
+    fetch_fantasypros_players,
+    fetch_sleeper,
+)
 
 
 log = logging.getLogger(__name__)
+
+# FantasyPros rows are reused for this long before a player is asked for
+# again, to stay inside the personal key's 100 calls a day.
+FANTASYPROS_CACHE_SECONDS = 24 * 3600
 
 # The id column in the DynastyProcess table for each source's player ids.
 SOURCE_ID_COLUMNS = {
@@ -69,6 +79,9 @@ class ProjectionSet:
         # How far to nudge the experts' blend toward our model, by position.
         # Zero until a backtest has shown the model helps there.
         self.model_weights = {}
+        # FantasyPros ids already added, this week and rest of season, so a
+        # player fetched twice is never counted twice.
+        self.fantasypros_seen = {"weekly": set(), "ros": set()}
 
     # Record one scored row under every key it can be found by.
     def add(self, table, source, espn_id, name, position, team, points):
@@ -103,10 +116,11 @@ class ProjectionSet:
 class ProjectionService:
     """Builds and caches ProjectionSets, and applies them to players."""
 
-    def __init__(self, settings, http=None, db_path=None, ids=None):
+    def __init__(self, settings, http=None, db_path=None, ids=None, budget=None):
         self.settings = settings
         self.http = http or httpx
         self.db_path = db_path or store.DEFAULT_DB_PATH
+        self.budget = budget or DailyBudget()
         self._ids = ids
         self._cache = {}
 
@@ -154,27 +168,26 @@ class ProjectionService:
             return hit[1]
 
         projection_set = ProjectionSet(season, week)
-        api_key = self.settings.fantasypros_api_key
         fetched_at = time.time()
 
-        # This week, from each source.
-        weekly_pulls = {
-            "sleeper": fetch_sleeper(season, week, http=self.http),
-            "fantasypros": fetch_fantasypros(season, week, api_key, http=self.http),
-        }
+        # This week, from Sleeper. FantasyPros is asked for player by player
+        # later (add_fantasypros), because of its rate limit.
+        sleeper_rows = fetch_sleeper(season, week, http=self.http)
         connection = store.open_db(self.db_path) if archive else None
-        for source, rows in weekly_pulls.items():
-            if not rows:
-                continue
-            projection_set.sources.add(source)
-            scored = self._score_rows(rows, scoring)
+        if sleeper_rows:
+            projection_set.sources.add("sleeper")
+            scored = self._score_rows(sleeper_rows, scoring)
             for row in scored:
                 projection_set.add(
-                    projection_set.weekly, source, row["espn_id"], row["name"],
+                    projection_set.weekly, "sleeper", row["espn_id"], row["name"],
                     row["position"], row["team"], row["points"],
                 )
             if connection:
-                store.save_pull(connection, season, week, source, scored, fetched_at)
+                store.save_pull(connection, season, week, "sleeper", scored, fetched_at)
+
+        # FantasyPros rows pulled in the last day are reused from the archive.
+        if connection:
+            self._load_cached_fantasypros(connection, projection_set)
 
         # Our own model, when switched on and its libraries are installed.
         if self.settings.use_model:
@@ -195,7 +208,7 @@ class ProjectionService:
         weeks = list(range(week, max(week, final_week) + 1))
         projection_set.ros_weeks = len(weeks)
         for future_week in weeks:
-            rows = weekly_pulls["sleeper"] if future_week == week else fetch_sleeper(
+            rows = sleeper_rows if future_week == week else fetch_sleeper(
                 season, future_week, http=self.http
             )
             for row in self._score_rows(rows, scoring):
@@ -215,20 +228,90 @@ class ProjectionService:
                     total += scoring.score(stats, position)
             projection_set.ros.setdefault(("espn", espn_id), {})["espn"] = total
 
-        ros_rows = fetch_fantasypros(season, week, api_key, http=self.http, ros=True)
-        scored_ros = self._score_rows(ros_rows, scoring)
-        for row in scored_ros:
-            projection_set.add(
-                projection_set.ros, "fantasypros", row["espn_id"], row["name"],
-                row["position"], row["team"], row["points"],
-            )
         if connection:
-            if scored_ros:
-                store.save_pull(connection, season, week, "fantasypros_ros", scored_ros, fetched_at)
             connection.close()
 
         self._cache[key] = (time.monotonic(), projection_set)
         return projection_set
+
+    # FantasyPros rows already pulled for this week within the cache time,
+    # from the archive, so restarts and repeat runs cost no API calls.
+    def _load_cached_fantasypros(self, connection, projection_set):
+        since = time.time() - FANTASYPROS_CACHE_SECONDS
+        for source, table, seen in (
+            ("fantasypros", projection_set.weekly, "weekly"),
+            ("fantasypros_ros", projection_set.ros, "ros"),
+        ):
+            rows = store.recent_rows(
+                connection, projection_set.season, projection_set.week, source, since
+            )
+            for row in rows:
+                projection_set.add(
+                    table, "fantasypros", row["espn_id"], row["name"],
+                    row["position"], row["team"], row["points"],
+                )
+            projection_set.fantasypros_seen[seen].update(row["source_id"] for row in rows)
+            if rows and seen == "weekly":
+                projection_set.sources.add("fantasypros")
+
+    # Fill in FantasyPros for the given players, in the order given, as far
+    # as today's call budget allows: this week's projection first, then the
+    # rest-of-season total. Everything fetched is archived, which is also
+    # the cache.
+    def add_fantasypros(self, projection_set, players, scoring, archive=True):
+        api_key = self.settings.fantasypros_api_key
+        if not api_key:
+            return 0
+        wanted = []
+        for player in players:
+            fp_id = self.ids().other_id(player.player_id, "fantasypros_id")
+            if fp_id and fp_id not in projection_set.fantasypros_seen["weekly"]:
+                wanted.append(fp_id)
+        wanted = list(dict.fromkeys(wanted))
+        if not wanted:
+            return 0
+
+        season, week = projection_set.season, projection_set.week
+        weekly = self._score_rows(
+            fetch_fantasypros_players(
+                season, week, api_key, wanted, self.budget, http=self.http
+            ),
+            scoring,
+        )
+        returned = [row["source_id"] for row in weekly]
+        need_ros = [fp for fp in returned if fp not in projection_set.fantasypros_seen["ros"]]
+        ros = self._score_rows(
+            fetch_fantasypros_players(
+                season, week, api_key, need_ros, self.budget, http=self.http, ros=True
+            ),
+            scoring,
+        )
+
+        for row in weekly:
+            projection_set.add(
+                projection_set.weekly, "fantasypros", row["espn_id"], row["name"],
+                row["position"], row["team"], row["points"],
+            )
+        for row in ros:
+            projection_set.add(
+                projection_set.ros, "fantasypros", row["espn_id"], row["name"],
+                row["position"], row["team"], row["points"],
+            )
+        # Only players that came back count as done; the rest are asked for
+        # again once there is budget.
+        projection_set.fantasypros_seen["weekly"].update(returned)
+        projection_set.fantasypros_seen["ros"].update(row["source_id"] for row in ros)
+        if weekly:
+            projection_set.sources.add("fantasypros")
+
+        if archive and (weekly or ros):
+            connection = store.open_db(self.db_path)
+            try:
+                store.save_pull(connection, season, week, "fantasypros", weekly)
+                store.save_pull(connection, season, week, "fantasypros_ros", ros)
+            finally:
+                connection.close()
+        return len(weekly)
 
     # The model's predictions for a week, as archive rows keyed to ESPN ids.
     def _model_rows(self, season, week, scoring):

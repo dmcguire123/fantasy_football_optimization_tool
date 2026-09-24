@@ -200,6 +200,12 @@ def parse_league(payload, week=None, season=None, bye_weeks=None):
     )
 
 
+# How many free agents, most-owned first, get FantasyPros projections. The
+# personal key allows 100 calls a day at ten players each, and every
+# rostered player comes first.
+FANTASYPROS_FREE_AGENTS = 60
+
+
 class LeagueService:
     """Loads and caches league state for the configured league."""
 
@@ -257,18 +263,20 @@ class LeagueService:
         return self._projections
 
     # Replace ESPN's projections with the multi-source consensus. Any failure
-    # leaves ESPN's numbers in place.
-    def _with_projections(self, players, league):
+    # leaves ESPN's numbers in place. fantasypros_limit caps how many of the
+    # players (in the order given) may spend FantasyPros' daily call budget.
+    def _with_projections(self, players, league, fantasypros_limit=None):
         service = self.projection_service()
         if not service:
             return players
         try:
+            scoring = LeagueScoring.from_settings(league.settings.scoring_settings)
             projection_set = service.build(
-                self.settings.season,
-                league.week,
-                league.settings.final_week,
-                LeagueScoring.from_settings(league.settings.scoring_settings),
+                self.settings.season, league.week, league.settings.final_week, scoring
             )
+            # The free FantasyPros tier only lists each position's top ten,
+            # so ask for these players by id.
+            service.add_fantasypros(projection_set, players[:fantasypros_limit], scoring)
             projections.apply(players, projection_set)
         except Exception as error:
             logging.getLogger(__name__).warning(
@@ -293,7 +301,10 @@ class LeagueService:
                 season=self.settings.season,
                 bye_weeks=self.bye_weeks(),
             )
-            for team in league.teams:
+            # Your own team first, so it gets FantasyPros' limited daily calls
+            # before anyone else.
+            mine = self.settings.team_id
+            for team in sorted(league.teams, key=lambda t: t.team_id != mine):
                 self._with_spreads(team.roster)
                 self._with_projections(team.roster, league)
             return league
@@ -352,7 +363,11 @@ class LeagueService:
                 player.availability = record.get("status") or C.STATUS_FREEAGENT
                 players.append(player)
             self._with_spreads(players)
-            return self._with_projections(players, league)
+            # Free agents come most-owned first; only the top of the list
+            # gets FantasyPros calls.
+            return self._with_projections(
+                players, league, fantasypros_limit=FANTASYPROS_FREE_AGENTS
+            )
 
         return self._cached(key, producer)
 

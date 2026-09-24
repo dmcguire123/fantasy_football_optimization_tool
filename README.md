@@ -160,7 +160,7 @@ Endpoints: `GET /api/waivers/consensus`, `/api/waivers/rosters`,
 |---|---|---|
 | ESPN | your league's feed, plus ESPN's public feed for future weeks | already in your scoring |
 | Sleeper | public API, no key | Rotowire's projections |
-| FantasyPros | official API, `FANTASYPROS_API_KEY` in `.env` | expert average; [request a free personal key](https://secure.fantasypros.com/api-keys/request/) |
+| FantasyPros | official API, `FANTASYPROS_API_KEY` in `.env` | expert average; [free personal key](https://secure.fantasypros.com/api-keys/request/), limited (see below) |
 | Our model | trained on nflverse data, 2013 on | only nudges the blend; see below |
 
 Sleeper and FantasyPros give stat lines, which are scored with your league's
@@ -169,6 +169,14 @@ projections exactly, at every position including K and D/ST. The experts are
 averaged with equal weight. Twelve seasons of public accuracy research, and
 our own backtest, both find that a plain average beats any single source, and
 that weighting sources by their past accuracy doesn't help.
+
+The free FantasyPros key allows 1 call a second and 100 calls a day, with
+at most 10 players per call, for personal, non-commercial use. So the app
+asks for players by id, 10 at a time. Your roster goes first, then everyone
+else's rostered players, then the 60 most-owned free agents. Each player is
+fetched at most once a day, and the app stops at 90 calls
+(`data/projections/fantasypros_calls.json`). Players it didn't get to just
+use ESPN and Sleeper until the next day.
 
 Every pull is saved to `data/projections.db`, so each source can be graded on
 this season later. Nobody else keeps old weekly projections around.

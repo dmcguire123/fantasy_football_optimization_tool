@@ -253,8 +253,8 @@ def mock_http(fantasypros=True):
         if "fantasypros" in url:
             if not fantasypros:
                 return httpx.Response(403, json={})
-            position = request.url.params.get("position")
-            if request.headers.get("x-api-key") != "KEY" or position != "RB":
+            players = request.url.params.get("players", "").split(":")
+            if request.headers.get("x-api-key") != "KEY" or "22968" not in players:
                 return httpx.Response(200, json={"players": []})
             ros = request.url.params.get("ros") == "true"
             return httpx.Response(200, json=fantasypros_payload(200.0 if ros else 18.0))
@@ -273,15 +273,22 @@ def id_table():
 
 
 def make_service(tmp_path, **kwargs):
+    from ffopt.projections.sources import DailyBudget
+
     settings = Settings(fantasypros_api_key="KEY", projections_ttl_seconds=60, **kwargs)
     return ProjectionService(
-        settings, http=mock_http(), db_path=tmp_path / "p.db", ids=id_table()
+        settings, http=mock_http(), db_path=tmp_path / "p.db", ids=id_table(),
+        budget=DailyBudget(tmp_path / "calls.json"),
     )
 
 
+# Build the week and ask FantasyPros for Gibbs, the way the league service
+# asks for every rostered player.
 def build(service):
     scoring = LeagueScoring.from_settings(SCORING_SETTINGS)
-    return service.build(SEASON, WEEK, 4, scoring)
+    projection_set = service.build(SEASON, WEEK, 4, scoring)
+    service.add_fantasypros(projection_set, [gibbs()], scoring)
+    return projection_set
 
 
 def gibbs():
@@ -359,7 +366,8 @@ def test_apply_can_leave_espn_in_charge(tmp_path):
 
 def test_missing_fantasypros_key_still_blends_the_rest(tmp_path):
     settings = Settings(projections_ttl_seconds=0)
-    service = ProjectionService(settings, http=mock_http(), db_path=tmp_path / "p.db", ids=id_table())
+    service = ProjectionService(settings, http=mock_http(), db_path=tmp_path / "p.db", ids=id_table(),
+                                budget=None)
     player = gibbs()
     apply([player], build(service))
     assert set(player.source_points) == {"espn", "sleeper"}
@@ -433,3 +441,75 @@ def test_model_does_not_move_players_the_experts_project_near_zero(tmp_path):
     projection_set.add(projection_set.weekly, "model", "77", "Deep Backup", "RB", "DET", 12.0)
     apply([backup], projection_set)
     assert backup.consensus_points == pytest.approx(1.0)
+
+
+def test_fantasypros_players_are_fetched_by_id_within_the_daily_budget(tmp_path, monkeypatch):
+    from ffopt.projections.sources import DailyBudget
+
+    monkeypatch.setattr("ffopt.projections.sources.FANTASYPROS_PAUSE", 0)
+    requested = []
+
+    def handler(request):
+        if "fantasypros" not in str(request.url):
+            return mock_http().get(str(request.url), params=request.url.params,
+                                   headers=request.headers)
+        ids = request.url.params["players"].split(":")
+        requested.append(ids)
+        ros = request.url.params.get("ros") == "true"
+        players = [
+            {"fpid": fp_id, "name": f"Player {fp_id}", "position_id": "WR", "team_id": "DET",
+             "stats": {"points": 5.0, "points_half": 6.0, "points_ppr": 7.0, "rec_rec": 2.0,
+                       "rec_yds": 50.0 * (10 if ros else 1)}}
+            for fp_id in ids
+        ]
+        return httpx.Response(200, json={"players": players})
+
+    rows = [{"espn_id": str(i), "fantasypros_id": f"fp{i}", "gsis_id": f"g{i}"} for i in range(25)]
+    budget = DailyBudget(tmp_path / "calls.json", limit=4)
+    settings = Settings(fantasypros_api_key="KEY", projections_ttl_seconds=60)
+    service = ProjectionService(settings, http=httpx.Client(transport=httpx.MockTransport(handler)),
+                                db_path=tmp_path / "p.db", ids=PlayerIds(rows), budget=budget)
+    projection_set = build(service)
+    players = [Player(player_id=i, name=f"Player fp{i}", position="WR", pro_team="DET",
+                      espn_projected_points=6.0) for i in range(25)]
+    scoring = LeagueScoring.from_settings(SCORING_SETTINGS)
+
+    # Four calls: three weekly batches (10, 10, 5) use most of the budget,
+    # and one rest-of-season batch uses the rest.
+    assert service.add_fantasypros(projection_set, players, scoring) == 25
+    assert [len(batch) for batch in requested] == [10, 10, 5, 10]
+    assert budget.remaining() == 0
+    assert service.add_fantasypros(projection_set, players, scoring) == 0
+
+    apply(players, projection_set)
+    assert players[0].source_points["fantasypros"] == pytest.approx(2 + 5)
+
+    # A fresh service reuses the archived rows instead of calling again.
+    again = ProjectionService(settings, http=httpx.Client(transport=httpx.MockTransport(handler)),
+                              db_path=tmp_path / "p.db", ids=PlayerIds(rows),
+                              budget=DailyBudget(tmp_path / "calls2.json"))
+    cached = build(again)
+    assert again.add_fantasypros(cached, players, scoring) == 0
+    fresh = Player(player_id=24, name="Player fp24", position="WR", pro_team="DET",
+                   espn_projected_points=6.0)
+    apply([fresh], cached)
+    assert fresh.source_points["fantasypros"] == pytest.approx(7.0)
+
+
+def test_daily_budget_resets_each_day(tmp_path, monkeypatch):
+    import datetime as real_datetime
+    from ffopt.projections import sources
+
+    budget = sources.DailyBudget(tmp_path / "calls.json", limit=3)
+    budget.spend(2)
+    assert budget.remaining() == 1
+    budget.exhaust()
+    assert budget.remaining() == 0
+
+    class Tomorrow(real_datetime.date):
+        @classmethod
+        def today(cls):
+            return real_datetime.date.today() + real_datetime.timedelta(days=1)
+
+    monkeypatch.setattr(sources, "date", Tomorrow)
+    assert budget.remaining() == 3
