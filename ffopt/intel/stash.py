@@ -56,8 +56,11 @@ CANDIDATE_OUT_STATUSES = ("OUT", "INJURY_RESERVE", "SUSPENSION")
 SKILL_POSITIONS = ("QB", "RB", "WR", "TE")
 
 
-# A player's typical week, used when no weekly projection exists.
+# A player's typical week, used when no weekly projection exists: the
+# rest-of-season total spread over the games left, when known.
 def typical_week(player):
+    if player.ros_games:
+        return player.ros_points / player.ros_games
     if player.season_projected_points:
         return player.season_projected_points / GAMES_IN_SEASON
     return player.projected_points

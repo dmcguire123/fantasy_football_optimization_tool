@@ -348,6 +348,57 @@ def cmd_snapshot(args):
     return 0
 
 
+# Pull every projection source for the week, archive the pull, and show
+# where the sources disagree with ESPN. Run it a few times a week so the
+# archive builds up for grading sources later.
+def cmd_projections(args):
+    service = build_service(args)
+    projection_service = service.projection_service()
+    if not projection_service:
+        print("Consensus projections are off. Set FFOPT_PROJECTIONS=consensus in .env.")
+        return 1
+
+    league = service.load_league(args.week)
+    team = service.my_team(args.week)
+    free_agents = service.free_agents(args.week, limit=args.pool)
+
+    everyone = [p for t in league.teams for p in t.roster] + list(free_agents)
+    saved = projection_service.archive_espn(service.settings.season, league.week, everyone)
+    print(f"Week {league.week}: archived {saved} ESPN projection(s) to data/projections.db.")
+
+    sources = ["espn", "sleeper", "fantasypros"]
+
+    def source_cells(player):
+        return [
+            f"{player.source_points[s]:.1f}" if s in player.source_points else "-"
+            for s in sources
+        ]
+
+    if team:
+        print(f"\n{team.name}, week {league.week}")
+        rows = []
+        for player in sorted(team.roster, key=lambda p: -p.consensus_points):
+            rows.append(
+                [player.name, player.position]
+                + source_cells(player)
+                + [f"{player.consensus_points:.1f}", f"{player.ros_points:.1f}"]
+            )
+        print_table(["Player", "Pos"] + sources + ["Blend", "ROS"], rows)
+
+    gaps = [p for p in free_agents if len(p.source_points) > 1]
+    gaps.sort(key=lambda p: -(p.consensus_points - p.espn_projected_points))
+    print("\nAvailable players the other sources like more than ESPN does")
+    rows = []
+    for player in gaps[: args.limit]:
+        rows.append(
+            [player.name, player.position, player.pro_team]
+            + source_cells(player)
+            + [f"{player.consensus_points - player.espn_projected_points:+.1f}"]
+        )
+    print_table(["Player", "Pos", "Team"] + sources + ["vs ESPN"], rows)
+    return 0
+
+
 def cmd_calibration(args):
     conn = history.open_db()
     report = history.calibration(conn)
@@ -529,6 +580,14 @@ def build_parser():
     )
     subparsers.add_parser("calibration", help="How well win probabilities have held up.")
 
+    projections_cmd = add_common(
+        subparsers.add_parser(
+            "projections", help="Pull and archive every projection source, and compare them."
+        )
+    )
+    projections_cmd.add_argument("--pool", type=int, default=300, help="Free agents to include.")
+    projections_cmd.add_argument("--limit", type=int, default=15)
+
     trades = add_common(subparsers.add_parser("trades", help="Find trade targets."))
     trades.add_argument("--limit", type=int, default=5)
 
@@ -552,6 +611,7 @@ COMMANDS = {
     "scout": cmd_scout,
     "snapshot": cmd_snapshot,
     "calibration": cmd_calibration,
+    "projections": cmd_projections,
     "trades": cmd_trades,
     "serve": cmd_serve,
 }

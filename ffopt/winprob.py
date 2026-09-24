@@ -44,7 +44,10 @@ def player_stddev(player, projection=None):
     ratio = player.stddev_ratio or POSITION_STDDEV_RATIO.get(
         player.position, DEFAULT_STDDEV_RATIO
     )
-    return max(MIN_PLAYER_STDDEV, ratio * projection)
+    # When projection sources disagree, the true average itself is less
+    # certain, which widens the spread on top of normal game-to-game swings.
+    spread = math.hypot(ratio * projection, player.consensus_spread)
+    return max(MIN_PLAYER_STDDEV, spread)
 
 
 # Mean and spread of a set of starters, assuming their scores are independent.
