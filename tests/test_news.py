@@ -249,3 +249,49 @@ def test_email_text_and_html_carry_every_opening():
     # Headlines are escaped, never injected as markup.
     assert "&lt;Tuesday&gt; &amp; more" in html and "<Tuesday>" not in html
     assert "python -m ffopt claim --add 903 --drop 7 --bid 9" in html
+
+
+# ----------------------------------------------- quieter, stricter alerts
+
+
+def trending_qb(sources):
+    qb = player("Drew Lock", position="QB", team="SEA", owned=8.0, proj=16.1,
+                availability=C.STATUS_FREEAGENT, player_id=950)
+    qb.source_points = sources
+    return qb
+
+
+def test_starter_level_on_a_rush_needs_two_sources_to_agree():
+    rush = lambda qb: news.Signal("trending", qb, "adds", news_id="t1")
+    one = trending_qb({"espn": 0.0, "sleeper": 16.1})
+    two = trending_qb({"espn": 16.4, "sleeper": 16.1, "fantasypros": 12.0})
+    assert news.starter_level(rush(one), one, 16.1) is False
+    assert news.starter_level(rush(two), two, 16.2) is True
+    # Below the bar is never starter-level, however many sources agree.
+    assert news.starter_level(rush(two), two, 12.0) is False
+
+
+def test_an_absence_is_judged_by_the_stand_in_projection():
+    backup = player("Next Man", availability=C.STATUS_FREEAGENT, player_id=901)
+    signal = news.Signal("out", player(), "ruled out", "week", "n1")
+    assert news.starter_level(signal, backup, 10.8) is True
+
+
+def test_a_player_who_doesnt_help_you_is_listed_but_not_emailed(service, tmp_path, quiet_alerts):
+    league = service.load_league()
+    team = service.my_team()
+    scan = scanner(service, tmp_path, watch_records())
+
+    lock = trending_qb({"espn": 16.4, "sleeper": 16.1})
+    event = scan.record(news.Signal("trending", lock, "adds", news_id="t1"), lock, league, team)
+    assert event["weekly_gain"] == 0.0
+    assert event["action"] == "watch"
+    assert "stash or trade" in event["note"]
+
+    thin = trending_qb({"espn": 0.0, "sleeper": 16.1})
+    thin.player_id = 951
+    event = scan.record(news.Signal("trending", thin, "adds", news_id="t2"), thin, league, team)
+    assert event["action"] == "none"
+
+    scan.alert(news.recent_events(scan.connection))
+    assert quiet_alerts["email"] == [] and quiet_alerts["mac"] == []

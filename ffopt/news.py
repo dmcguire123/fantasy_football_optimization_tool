@@ -75,12 +75,18 @@ TRENDING_BASELINE_HOURS = 6
 TRENDING_MIN_ADDS = 2000
 TRENDING_MIN_SPIKE = 2.0
 
-# An opening is worth an alert at this much gain to your lineup, or when the
-# player would be a starter-level play at his position for anyone (worth
-# grabbing before a rival does, to stash, block, or trade).
+# An opening is worth an alert (a notification and an email) only when it
+# helps your lineup by this much.
 ALERT_MIN_WEEKLY = 1.0
 ALERT_MIN_SEASON = 6.0
+
+# A player who doesn't help you but would be a starter-level play at his
+# position for anyone is listed on the News tab to stash or block, with no
+# alert. For a news or rush signal, at least two independent sources must
+# project him at the bar, so one outlier projection doesn't count.
 STARTER_LEVEL = {"QB": 16.0, "RB": 10.0, "WR": 10.0, "TE": 8.0}
+STARTER_LEVEL_SOURCES = 2
+EXPERT_SOURCES = ("espn", "sleeper", "fantasypros")
 
 # A suggested claim: a clearly strong gain for your lineup, not a one-week
 # stream, and a drop who isn't in this week's best lineup.
@@ -358,6 +364,23 @@ def stand_in(candidate, signal, weeks_left):
         ros_points=candidate.ros_points + max(0.0, share - own_week) * weeks,
         ros_games=max(candidate.ros_games, 1),
     )
+
+
+# Whether an opening is a starter-level player at his position for anyone.
+# An absence is sized from the injured starter's own multi-source pace, so
+# the stand-in projection is enough. A news or rush signal is only as good
+# as the projections for the player himself, so two sources must agree.
+def starter_level(signal, candidate, projection):
+    bar = STARTER_LEVEL.get(candidate.position)
+    if bar is None or projection < bar:
+        return False
+    if signal.kind == "out":
+        return True
+    agreeing = [
+        s for s in EXPERT_SOURCES
+        if (candidate.source_points.get(s) or 0.0) >= bar
+    ]
+    return len(agreeing) >= STARTER_LEVEL_SOURCES
 
 
 # ---------------------------------------------------------------- alerts
@@ -706,18 +729,17 @@ class Scanner:
         helps_me = (
             event["weekly_gain"] >= ALERT_MIN_WEEKLY or event["season_gain"] >= ALERT_MIN_SEASON
         )
-        starter_level = event["projection"] >= STARTER_LEVEL.get(candidate.position, 99.0)
-        worth_it = helps_me or starter_level
-        if worth_it:
-            event["action"] = "alerted"
-            if not helps_me:
-                event["note"] = (
-                    f"Doesn't beat your starters, but about {event['projection']:.1f} points "
-                    f"a week in this role is starter-level: grab him before a rival does, "
-                    f"to stash or trade. " + (event["note"] or "")
-                ).strip()
-            elif self.is_strong(evaluation, league, team):
-                event["action"] = "suggested"
+        if helps_me:
+            event["action"] = (
+                "suggested" if self.is_strong(evaluation, league, team) else "alerted"
+            )
+        elif starter_level(signal, candidate, event["projection"]):
+            event["action"] = "watch"
+            event["note"] = (
+                f"Doesn't beat your starters, but about {event['projection']:.1f} points a "
+                f"week is starter-level at {candidate.position}: worth grabbing to stash or "
+                f"trade before a rival does. " + (event["note"] or "")
+            ).strip()
 
         columns = ", ".join(event)
         marks = ", ".join("?" for _ in event)

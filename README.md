@@ -345,12 +345,20 @@ his backups. A player named the starter is an opening for himself. Each
 opening that lands on a free agent (or a waiver player) in your league is
 sized like any waiver pickup. The projections won't have caught up yet, so
 the backup is credited with a share of the starter's usual week, for the
-weeks he is expected to miss. You get alerted (a Mac notification plus one
-email per scan) when an opening:
+weeks he is expected to miss.
 
-- improves your lineup (1+ point this week, or 6+ rest of season), or
-- is a starter-level player at his position for anyone, worth grabbing
-  before a rival does.
+You only get alerted (a Mac notification plus one email per scan) when an
+opening **improves your lineup** by 1+ point this week or 6+ rest of season.
+A player who wouldn't start for you but is starter-level at his position
+(QB 16, RB/WR 10, TE 8 points) is listed on the News tab as **stash /
+block**, with no alert. For a news story or an add rush, that also needs at
+least two of ESPN, Sleeper and FantasyPros to project him at that level, so
+one outlier projection doesn't count.
+
+**Sleeper adds** are pickups made on Sleeper, another big fantasy
+platform. It publishes how many of its users added each player in the last
+few hours. When a player is suddenly added at twice his usual pace, news
+has usually just broken, often before ESPN's ownership numbers move.
 
 The strongest openings (3+ points this week, or 15+ rest of season, not a
 one-week stream, and never dropping one of your starters) come as a
