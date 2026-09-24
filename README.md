@@ -252,6 +252,38 @@ The model needs the packages in `requirements.txt` (nflreadpy, polars,
 scikit-learn). Set `FFOPT_MODEL=false` to skip it, or `FFOPT_PROJECTIONS=espn`
 to go back to ESPN's numbers alone.
 
+## Morning email
+
+Every morning at 7:30 you can get a short email: what to do today (lineup
+fixes, injured or bye-week starters, waiver claims on Monday and Tuesday),
+your matchup and win probability, the best pickups and value plays, and any
+roster alerts.
+
+How it works:
+1. `python -m ffopt report` gathers everything as JSON. It only reads.
+2. The project skill in `.claude/skills/morning-report/` has Claude pick
+   what matters today and write the email.
+3. Claude sends it through its Gmail connector.
+
+Setup:
+1. Set `FFOPT_REPORT_EMAIL` in `.env`. Set `CLAUDE_CONFIG_DIR` too if you
+   use a non-default Claude config directory.
+2. Make sure `claude mcp list` shows Gmail as connected.
+3. Send one now: `scripts/morning_report.sh`. It logs to
+   `data/logs/morning_report.log`. From inside Claude Code, run
+   `/morning-report you@example.com` instead.
+4. Schedule it:
+
+```bash
+sed "s#__REPO__#$PWD#" scripts/launchd/com.ffopt.morning-report.plist \
+  > ~/Library/LaunchAgents/com.ffopt.morning-report.plist
+launchctl load ~/Library/LaunchAgents/com.ffopt.morning-report.plist
+```
+
+To stop it, run `launchctl unload ~/Library/LaunchAgents/com.ffopt.morning-report.plist`.
+The Mac has to be awake (or wake) at 7:30. launchd runs a missed job when
+the Mac next wakes up.
+
 ## The command line
 
 ```bash
@@ -268,6 +300,7 @@ python -m ffopt trades               # trade targets and what to offer
 python -m ffopt projections          # every projection source, side by side
 python -m ffopt value                # undervalued players this week
 python -m ffopt backtest             # grade the sources and our model on 2018-2025
+python -m ffopt report               # today's report as JSON (feeds the morning email)
 python -m ffopt serve                # run the browser app
 ```
 

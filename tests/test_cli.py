@@ -156,3 +156,18 @@ def test_espn_failures_are_reported_not_raised(wired, monkeypatch, capsys):
 def test_the_parser_rejects_an_unknown_command():
     with pytest.raises(SystemExit):
         cli.main(["not-a-command"])
+
+
+def test_report_prints_one_json_document_and_changes_nothing(wired, capsys, requests_log):
+    import json
+
+    assert cli.main(["report"]) == 0
+    report = json.loads(capsys.readouterr().out)
+
+    assert report["week"] == 5
+    assert report["team"] == "My Squad"
+    assert {"lineup", "matchup", "roster_alerts", "waivers", "value"} <= set(report)
+    # The misconfigured test roster starts a player on bye; the report says so.
+    assert any(a["on_bye"] and a["starting"] for a in report["roster_alerts"])
+    assert report["lineup"]["moves"]
+    assert not write_requests(requests_log)

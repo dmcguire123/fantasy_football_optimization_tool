@@ -486,6 +486,18 @@ def cmd_value(args):
     return 0
 
 
+# Everything worth knowing today as one JSON document, for the morning
+# email (see .claude/skills/morning-report) or any other summary.
+def cmd_report(args):
+    import json
+
+    from .report import build_report
+
+    service = build_service(args)
+    print(json.dumps(build_report(service, week=args.week), indent=2, default=str))
+    return 0
+
+
 def cmd_calibration(args):
     conn = history.open_db()
     report = history.calibration(conn)
@@ -673,6 +685,10 @@ def build_parser():
     value_cmd.add_argument("--pool", type=int, default=300, help="Free agents to include.")
     value_cmd.add_argument("--limit", type=int, default=15)
 
+    add_common(
+        subparsers.add_parser("report", help="Today's report as JSON (for the morning email).")
+    )
+
     backtest_cmd = subparsers.add_parser(
         "backtest", help="Grade ESPN, Sleeper, and our model on past seasons."
     )
@@ -713,6 +729,7 @@ COMMANDS = {
     "projections": cmd_projections,
     "backtest": cmd_backtest,
     "value": cmd_value,
+    "report": cmd_report,
     "trades": cmd_trades,
     "serve": cmd_serve,
 }
