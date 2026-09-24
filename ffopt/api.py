@@ -305,6 +305,25 @@ def read_free_agents(
     }
 
 
+@app.get("/api/projections/value")
+def read_projection_value(
+    week: int | None = None,
+    pool_size: int = Query(300, ge=10, le=500),
+    limit: int = Query(15, ge=1, le=50),
+):
+    """Players our model or the other sources rate above the experts or ESPN."""
+    from .projections.value import value_report
+
+    service = get_service()
+    league = service.load_league(week)
+    team = resolve_my_team(service, week)
+    pool = service.free_agents(week=league.week, limit=pool_size)
+    report = value_report(team.roster, pool, limit=limit)
+    report["week"] = league.week
+    report["projection_source"] = service.settings.projection_source
+    return report
+
+
 @app.get("/api/waivers/recommendations")
 def read_waiver_recommendations(
     week: int | None = None,

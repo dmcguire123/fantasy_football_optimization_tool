@@ -21,7 +21,6 @@ from ffopt.projections.scoring import (
     LeagueScoring,
     PASS_YDS,
     RECEPTIONS,
-    REC_YDS,
     expected_blocks,
     to_espn_stats,
 )
@@ -211,10 +210,24 @@ def test_blend_trims_high_and_low_with_four_sources():
     assert mean == 11.0
 
 
-def test_blend_leaves_out_zero_weight_sources():
-    mean, _ = blend({"espn": 10.0, "model": 30.0})
-    assert mean == 10.0
+def test_blend_of_nothing_is_zero():
     assert blend({}) == (0.0, 0.0)
+
+
+def test_model_only_moves_the_blend_by_its_weight(tmp_path):
+    projection_set = build(make_service(tmp_path))
+    projection_set.add(projection_set.weekly, "model", "4429795", "Jahmyr Gibbs", "RB", "DET", 30.0)
+    experts = (17.0 + 19.6 + 18.3) / 3
+
+    kept_out = gibbs()
+    apply([kept_out], projection_set)
+    assert kept_out.consensus_points == pytest.approx(experts)
+    assert kept_out.source_points["model"] == 30.0
+
+    projection_set.model_weights = {"RB": 0.25}
+    nudged = gibbs()
+    apply([nudged], projection_set)
+    assert nudged.consensus_points == pytest.approx(experts + 0.25 * (30.0 - experts))
 
 
 def test_stale_zero_projection_is_left_out_unless_everyone_says_zero():
@@ -377,3 +390,46 @@ def test_source_disagreement_widens_player_spread():
                       projected_points=10.0, stddev_ratio=0.5, consensus_spread=3.0)
     assert winprob.player_stddev(steady) == pytest.approx(5.0)
     assert winprob.player_stddev(disputed) == pytest.approx(34 ** 0.5)
+
+
+# ---------------------------------------------------------- value report
+
+
+def valued(name, position, espn, sleeper, model, owned=5.0, pro_team="DET"):
+    player = Player(player_id=hash(name) % 10000, name=name, position=position,
+                    pro_team=pro_team, espn_projected_points=espn, percent_owned=owned)
+    player.source_points = {"espn": espn, "sleeper": sleeper, "model": model}
+    return player
+
+
+def test_value_report_sizes_model_edge_by_backtested_slope():
+    from ffopt.projections.value import value_report
+
+    results = {"slopes": {"WR": 0.2, "RB": 0.2}, "weights": {}, "seasons": [2018, 2025]}
+    available = [
+        valued("Sleeper Pick", "WR", 6.0, 8.0, 12.0),
+        # Experts have him near zero: a backup, so the model is not trusted.
+        valued("Old Starter", "RB", 0.0, 0.5, 13.0),
+        valued("Behind At Espn", "WR", 0.0, 9.0, 9.0),
+    ]
+    roster = [valued("My Receiver", "WR", 14.0, 14.0, 6.0)]
+    report = value_report(roster, available, results=results)
+
+    pickups = {row["name"]: row for row in report["model_pickups"]}
+    assert set(pickups) == {"Sleeper Pick"}
+    assert pickups["Sleeper Pick"]["expected_edge"] == pytest.approx(0.2 * (12.0 - 7.0))
+
+    assert report["espn_behind"][0]["name"] == "Behind At Espn"
+    assert report["espn_behind"][0]["gap_vs_espn"] == pytest.approx(9.0)
+
+    assert report["roster_warnings"][0]["expected_edge"] == pytest.approx(0.2 * (6.0 - 14.0))
+
+
+def test_model_does_not_move_players_the_experts_project_near_zero(tmp_path):
+    projection_set = build(make_service(tmp_path))
+    projection_set.model_weights = {"RB": 0.25}
+    backup = Player(player_id=77, name="Deep Backup", position="RB", pro_team="DET",
+                    espn_projected_points=1.0, projected_points=1.0)
+    projection_set.add(projection_set.weekly, "model", "77", "Deep Backup", "RB", "DET", 12.0)
+    apply([backup], projection_set)
+    assert backup.consensus_points == pytest.approx(1.0)

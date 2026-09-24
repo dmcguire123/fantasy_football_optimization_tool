@@ -106,6 +106,7 @@
     <nav>
       <button data-tab="team" class="active">My Team</button>
       <button data-tab="waivers">Waiver Wire</button>
+      <button data-tab="value">Value</button>
       <button data-tab="scout">Scout Opponent</button>
       <button data-tab="league">League</button>
     </nav>
@@ -117,6 +118,7 @@
 
   <section id="tab-team"></section>
   <section id="tab-waivers" class="hidden"></section>
+  <section id="tab-value" class="hidden"></section>
   <section id="tab-scout" class="hidden"></section>
   <section id="tab-league" class="hidden"></section>
 </main>
@@ -682,6 +684,62 @@ async function submitClaim(player, dropSelect, bidInput, usesFaab) {
   }
 }
 
+// ---------- Value tab ----------
+
+// Undervalued players: where our model disagrees with the experts (sized
+// as expected points of edge from the backtest), and where the other
+// sources rate a player well above ESPN, which the rest of the league sees.
+async function renderValue() {
+  const target = document.getElementById("tab-value");
+  target.innerHTML = "<div class='card muted'>Loading projections…</div>";
+  const data = await api("/api/projections/value");
+
+  const edgeRows = lines => lines.map(row => el("tr", {}, [
+    el("td", {}, row.name),
+    el("td", {}, el("span", { class: "pos" }, row.position)),
+    el("td", { class: "hide-sm" }, row.pro_team),
+    el("td", { class: "num" }, fmt(row.experts, 1)),
+    el("td", { class: "num" }, fmt(row.model, 1)),
+    el("td", { class: "num " + (row.expected_edge >= 0 ? "good" : "bad") }, signed(row.expected_edge, 1)),
+  ]));
+  const edgeHeaders = ["Player", "Pos", { label: "Team", hide: true },
+    { label: "Experts", num: true }, { label: "Model", num: true }, { label: "Edge", num: true }];
+
+  const espnRows = data.espn_behind.map(row => el("tr", {}, [
+    el("td", {}, row.name),
+    el("td", {}, el("span", { class: "pos" }, row.position)),
+    el("td", { class: "hide-sm" }, row.pro_team),
+    el("td", { class: "num" }, fmt(row.espn, 1)),
+    el("td", { class: "num" }, fmt(row.others, 1)),
+    el("td", { class: "num good" }, signed(row.gap_vs_espn, 1)),
+  ]));
+
+  const bt = data.backtest;
+  const note = bt.slopes && Object.keys(bt.slopes).length
+    ? `Edge is expected points above the experts' number. Backtested ${bt.seasons[0]}–${bt.seasons[bt.seasons.length - 1]}: ` +
+      `about ${fmt(100 * (bt.slopes.WR || 0), 0)}% of the model's disagreement came true.`
+    : "No backtest results yet. Run `python -m ffopt backtest` to size the model's edge.";
+
+  const card = (title, subtitle, headers, rows) => el("div", { class: "card" }, [
+    el("h2", {}, title),
+    el("div", { class: "muted", style: "margin-bottom:10px" }, subtitle),
+    rows.length ? table(headers, rows) : el("div", { class: "muted" }, "Nothing this week."),
+  ]);
+
+  target.innerHTML = "";
+  target.append(
+    card(`Week ${data.week}: pickups our model likes`, note, edgeHeaders, edgeRows(data.model_pickups)),
+    card("Pickups the other sources rate above ESPN",
+      "Your leaguemates see ESPN's number, so these are the easiest to get.",
+      ["Player", "Pos", { label: "Team", hide: true }, { label: "ESPN", num: true },
+        { label: "Others", num: true }, { label: "Gap", num: true }], espnRows),
+    card("Your players the model is worried about", "Consider benching or selling.",
+      edgeHeaders, edgeRows(data.roster_warnings)),
+    card("Your players the model likes", "Start with more confidence.",
+      edgeHeaders, edgeRows(data.roster_boosts)),
+  );
+}
+
 // ---------- Scout tab ----------
 
 async function renderScout() {
@@ -853,7 +911,9 @@ async function showRoster(teamId, teamName) {
 
 // ---------- Bootstrap ----------
 
-const RENDERERS = { team: renderTeam, waivers: renderWaivers, scout: renderScout, league: renderLeague };
+const RENDERERS = {
+  team: renderTeam, waivers: renderWaivers, value: renderValue, scout: renderScout, league: renderLeague,
+};
 const loaded = {};
 
 async function selectTab(name) {

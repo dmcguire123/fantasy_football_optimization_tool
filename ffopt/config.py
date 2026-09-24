@@ -93,6 +93,9 @@ class Settings:
     projection_source: str = "espn"
     fantasypros_api_key: str = ""
     projections_ttl_seconds: float = 3 * 3600.0
+    # Run our own model each week and nudge the blend toward it where the
+    # backtest showed that helps.
+    use_model: bool = False
 
     # True when we have enough to read a league at all.
     @property
@@ -178,4 +181,5 @@ def load_settings(env=None, env_file=DEFAULT_ENV_FILE):
         projection_source=(env.get("FFOPT_PROJECTIONS") or "consensus").strip().lower(),
         fantasypros_api_key=(env.get("FANTASYPROS_API_KEY") or "").strip(),
         projections_ttl_seconds=as_float("FFOPT_PROJECTIONS_TTL", 3 * 3600.0),
+        use_model=as_bool("FFOPT_MODEL", True),
     )

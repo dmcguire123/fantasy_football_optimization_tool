@@ -22,10 +22,10 @@ import time
 import httpx
 
 from . import store
-from .consensus import blend
+from .consensus import MIN_RELEVANT_POINTS, blend, nudge
 from .ids import PlayerIds, clean_name
 from .scoring import STAT_SCORED_POSITIONS
-from .sources import fetch_espn_weekly, fetch_fantasypros, fetch_sleeper
+from .sources import espn_team, fetch_espn_weekly, fetch_fantasypros, fetch_sleeper
 
 
 log = logging.getLogger(__name__)
@@ -66,6 +66,9 @@ class ProjectionSet:
         self.ros = {}
         self.ros_weeks = 0
         self.sources = set()
+        # How far to nudge the experts' blend toward our model, by position.
+        # Zero until a backtest has shown the model helps there.
+        self.model_weights = {}
 
     # Record one scored row under every key it can be found by.
     def add(self, table, source, espn_id, name, position, team, points):
@@ -173,6 +176,20 @@ class ProjectionService:
             if connection:
                 store.save_pull(connection, season, week, source, scored, fetched_at)
 
+        # Our own model, when switched on and its libraries are installed.
+        if self.settings.use_model:
+            model_rows = self._model_rows(season, week, scoring)
+            if model_rows:
+                projection_set.sources.add("model")
+                projection_set.model_weights = self._model_weights()
+                for row in model_rows:
+                    projection_set.add(
+                        projection_set.weekly, "model", row["espn_id"], row["name"],
+                        row["position"], row["team"], row["points"],
+                    )
+                if connection:
+                    store.save_pull(connection, season, week, "model", model_rows, fetched_at)
+
         # Rest of season: Sleeper projects every remaining week, so add them
         # up. FantasyPros gives a rest-of-season total directly.
         weeks = list(range(week, max(week, final_week) + 1))
@@ -213,6 +230,37 @@ class ProjectionService:
         self._cache[key] = (time.monotonic(), projection_set)
         return projection_set
 
+    # The model's predictions for a week, as archive rows keyed to ESPN ids.
+    def _model_rows(self, season, week, scoring):
+        try:
+            from .model import predict_week
+
+            predictions = predict_week(season, week, scoring)
+        except Exception as error:
+            log.warning("model projections unavailable: %s", error)
+            return []
+        rows = []
+        for record in predictions.iter_rows(named=True):
+            rows.append(
+                {
+                    "source_id": record["player_id"],
+                    "espn_id": self.ids().espn_id("gsis_id", record["player_id"]),
+                    "name": record["name"],
+                    "position": record["position"],
+                    "team": espn_team(record["team"]),
+                    "points": float(record["model"]),
+                    "stats": {},
+                }
+            )
+        return rows
+
+    # The model's weight by position, from the last backtest run.
+    def _model_weights(self):
+        from .backtest import load_results
+
+        results = load_results() or {}
+        return results.get("weights") or {}
+
     # Save ESPN's own projections for a week to the archive, so it can be
     # graded next to the other sources later.
     def archive_espn(self, season, week, players):
@@ -252,12 +300,20 @@ def projected_only(source_points):
 # Give each player every source's projection, the blend, and a
 # rest-of-season total. With use_consensus, the blend becomes the player's
 # projected_points and ros_points; otherwise ESPN's numbers stay in place
-# and the blend is only shown alongside.
-def apply(players, projection_set, use_consensus=True, weights=None):
+# and the blend is only shown alongside. The experts are blended with equal
+# weight, then nudged toward our model by its backtested weight.
+def apply(players, projection_set, use_consensus=True):
     for player in players:
         weekly = {"espn": player.espn_projected_points}
         weekly.update(projection_set.weekly_for(player))
-        mean, spread = blend(projected_only(weekly), weights)
+        experts = {s: v for s, v in weekly.items() if s != "model"}
+        mean, spread = blend(projected_only(experts))
+        # The model's weight was only tested on players the experts expect
+        # to play a real role; below that it does not move the blend.
+        weight = projection_set.model_weights.get(player.position, 0.0)
+        if "model" in weekly and weight and mean >= MIN_RELEVANT_POINTS:
+            mean = nudge(mean, weekly["model"], weight)
+
         player.source_points = weekly
         player.consensus_points = mean
         player.consensus_spread = spread
@@ -269,9 +325,8 @@ def apply(players, projection_set, use_consensus=True, weights=None):
             ros["espn"] = player.ros_points
         ros.update(projection_set.ros_for(player))
         if use_consensus and ros:
-            ros_mean, _ = blend(projected_only(ros), weights)
+            ros_mean, _ = blend(projected_only(ros))
             player.ros_points = ros_mean
             if not player.ros_games:
                 player.ros_games = projection_set.ros_weeks
     return players
-

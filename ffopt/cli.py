@@ -366,7 +366,7 @@ def cmd_projections(args):
     saved = projection_service.archive_espn(service.settings.season, league.week, everyone)
     print(f"Week {league.week}: archived {saved} ESPN projection(s) to data/projections.db.")
 
-    sources = ["espn", "sleeper", "fantasypros"]
+    sources = ["espn", "sleeper", "fantasypros", "model"]
 
     def source_cells(player):
         return [
@@ -396,6 +396,93 @@ def cmd_projections(args):
             + [f"{player.consensus_points - player.espn_projected_points:+.1f}"]
         )
     print_table(["Player", "Pos", "Team"] + sources + ["vs ESPN"], rows)
+    return 0
+
+
+# Grade every projection source and our model on past seasons, and decide
+# how much the model counts in the live blend. Slow the first time (it
+# downloads several seasons of data); cached after that.
+def cmd_backtest(args):
+    from .projections import backtest
+    from .projections.scoring import LeagueScoring
+
+    settings = load_settings()
+    scoring = LeagueScoring.default_ppr()
+    if settings.is_configured:
+        league = LeagueService(settings).load_league()
+        scoring = LeagueScoring.from_settings(league.settings.scoring_settings)
+        print(f"Scoring every source with {league.settings.name}'s rules.")
+    else:
+        print("No league configured; scoring with plain full PPR.")
+
+    seasons = range(args.first_season, args.last_season + 1)
+    print(f"Backtesting {seasons.start}-{seasons.stop - 1}. This takes a minute or two.")
+    result = backtest.run(scoring, seasons)
+    path = backtest.save_results(result)
+
+    for position in backtest.POSITIONS + ("ALL",):
+        print(f"\n{position}")
+        rows = []
+        for row in result["table"].filter(result["table"]["position"] == position).to_dicts():
+            mae = f"{row['mae']:.2f}" if row.get("mae") is not None else ""
+            rows.append([row["method"], mae, f"{row['spearman']:.3f}", row["n"]])
+        print_table(["Method", "MAE", "Rank corr", "Games"], rows)
+
+    print("\nModel weight in the live blend (0 = kept out):")
+    for position in backtest.POSITIONS:
+        status = "promoted" if result["promoted"][position] else "not promoted"
+        print(f"  {position}: {result['weights'][position]:.2f} ({status})")
+    print(f"\nSaved to {path}")
+    return 0
+
+
+# Who is undervalued this week: players our model rates above the experts
+# (as expected points of edge, calibrated by the backtest), and players the
+# other sources rate well above ESPN, which is what the rest of the league
+# is looking at.
+def cmd_value(args):
+    from .projections.value import value_report
+
+    service = build_service(args)
+    league = service.load_league(args.week)
+    team = service.my_team(args.week)
+    pool = service.free_agents(args.week, limit=args.pool)
+    report = value_report(team.roster, pool, limit=args.limit)
+
+    backtest_info = report["backtest"]
+    if not backtest_info["slopes"]:
+        print("No backtest results yet, so the model's edge cannot be sized.")
+        print("Run `python -m ffopt backtest` once to fix that.\n")
+
+    def edge_rows(lines):
+        return [
+            [row["name"], row["position"], row["pro_team"], f"{row['experts']:.1f}",
+             f"{row['model']:.1f}", f"{row['expected_edge']:+.1f}"]
+            for row in lines
+        ]
+
+    headers = ["Player", "Pos", "Team", "Experts", "Model", "Edge"]
+    print(f"Week {league.week}: available players our model likes more than the experts")
+    print_table(headers, edge_rows(report["model_pickups"]))
+
+    print("\nAvailable players the other sources rate well above ESPN")
+    print_table(
+        ["Player", "Pos", "Team", "ESPN", "Others", "Gap"],
+        [
+            [row["name"], row["position"], row["pro_team"], f"{row['espn']:.1f}",
+             f"{row['others']:.1f}", f"{row['gap_vs_espn']:+.1f}"]
+            for row in report["espn_behind"]
+        ],
+    )
+
+    print(f"\n{team.name}: players the model is worried about")
+    print_table(headers, edge_rows(report["roster_warnings"]))
+    print(f"\n{team.name}: players the model likes more than the experts")
+    print_table(headers, edge_rows(report["roster_boosts"]))
+    print(
+        "\nEdge is the expected points above the experts' number, sized by how much "
+        "of the model's disagreement came true in the backtest."
+    )
     return 0
 
 
@@ -580,6 +667,18 @@ def build_parser():
     )
     subparsers.add_parser("calibration", help="How well win probabilities have held up.")
 
+    value_cmd = add_common(
+        subparsers.add_parser("value", help="Undervalued players this week.")
+    )
+    value_cmd.add_argument("--pool", type=int, default=300, help="Free agents to include.")
+    value_cmd.add_argument("--limit", type=int, default=15)
+
+    backtest_cmd = subparsers.add_parser(
+        "backtest", help="Grade ESPN, Sleeper, and our model on past seasons."
+    )
+    backtest_cmd.add_argument("--first-season", type=int, default=2018)
+    backtest_cmd.add_argument("--last-season", type=int, default=2025)
+
     projections_cmd = add_common(
         subparsers.add_parser(
             "projections", help="Pull and archive every projection source, and compare them."
@@ -612,6 +711,8 @@ COMMANDS = {
     "snapshot": cmd_snapshot,
     "calibration": cmd_calibration,
     "projections": cmd_projections,
+    "backtest": cmd_backtest,
+    "value": cmd_value,
     "trades": cmd_trades,
     "serve": cmd_serve,
 }
