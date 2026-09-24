@@ -23,7 +23,7 @@ It prints one JSON document and changes nothing in the league. It contains:
 - `lineup`: moves needed, win probability as set and if optimized, starters with per-source projections
 - `matchup`: opponent, projected scores, margin, their questionable starters
 - `roster_alerts`: players on the roster who are injured or on bye, and whether they start
-- `waivers.targets`: the best pickups, with weekly and season gain, who to drop, and the FAAB bid
+- `waivers.targets`: the best pickups, with weekly and season gain for the same move, who to drop, and the FAAB bid. `move_type` is "stream" when the move helps this week but costs rest-of-season points, and `note` says how much. Always pass a stream's cost on in plain words, e.g. "one-week stream, costs 16 ROS points". Never present a stream as a straight upgrade.
 - `value`:
   - `model_pickups`: expected edge over the experts, already sized by the backtest
   - `espn_behind`: players the other sources rate well above ESPN

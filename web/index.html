@@ -645,6 +645,9 @@ async function renderWaiverTargets(pane) {
       el("td", { class: "num" }, usesFaab && onWaivers ? `${fmt(t.bid_percent, 1)}%` : "—"),
       el("td", {}, usesFaab && onWaivers ? bidInput : el("span", { class: "muted" }, "no bid")),
       el("td", { class: "hide-sm" }, [el("div", {}, t.reasoning),
+        t.move_type === "stream" ? el("div", { class: "warn", style: "font-size:12px" },
+          `Stream: ${signed(t.season_gain, 1)} rest of season` +
+          (t.alternative_drop ? ` (or drop ${t.alternative_drop.name}: ${signed(t.alternative_season_gain, 1)})` : "")) : null,
         t.risk ? el("div", { class: "warn", style: "font-size:12px" }, "Risk: " + t.risk) : null,
         el("div", { class: "muted", style: "font-size:12px" }, t.bid_reasons.join(" "))]),
       el("td", {}, dropSelect),

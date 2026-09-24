@@ -130,6 +130,9 @@ def build_report(service, week=None, today=None):
                     "weekly_gain": round(rec.weekly_gain, 1),
                     "season_gain": round(rec.season_gain, 1),
                     "drop": rec.drop_player.name if rec.drop_player else None,
+                    "move_type": rec.move_type,
+                    "note": rec.note,
+                    "alternative_drop": rec.alternative_drop.name if rec.alternative_drop else None,
                     "bid": round(rec.suggested_bid) if league.settings.uses_faab else None,
                     "player_id": rec.player.player_id,
                 }
