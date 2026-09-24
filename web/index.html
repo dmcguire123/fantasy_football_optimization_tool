@@ -139,6 +139,7 @@
       <button data-tab="season">Season</button>
       <button data-tab="players">Players</button>
       <button data-tab="waivers">Waiver Wire</button>
+      <button data-tab="news">News</button>
       <button data-tab="value">Value</button>
       <button data-tab="trends">Trends</button>
       <button data-tab="scout">Scout Opponent</button>
@@ -154,6 +155,7 @@
   <section id="tab-season" class="hidden"></section>
   <section id="tab-players" class="hidden"></section>
   <section id="tab-waivers" class="hidden"></section>
+  <section id="tab-news" class="hidden"></section>
   <section id="tab-value" class="hidden"></section>
   <section id="tab-trends" class="hidden"></section>
   <section id="tab-scout" class="hidden"></section>
@@ -722,6 +724,111 @@ async function submitClaim(player, dropSelect, bidInput, usesFaab) {
   } catch (error) {
     box.append(el("div", { class: "notice err" }, error.message));
   }
+}
+
+// ---------- News tab ----------
+
+// Openings the news watcher found. Nothing is ever claimed for you: the Add
+// button shows exactly what it will send to ESPN and asks first.
+async function claimFromNews(event, box) {
+  box.innerHTML = "";
+  if (!state.config.can_write) {
+    box.append(el("div", { class: "notice err" },
+      "Read-only: set ESPN_SWID, ESPN_S2 and ESPN_TEAM_ID in .env to submit claims."));
+    return;
+  }
+  const isWaiver = event.candidate_availability === "WAIVERS";
+  const lines = [`Add: ${event.candidate_name}${isWaiver ? "" : " (free agent, added immediately)"}`];
+  if (event.drop_name) lines.push(`Drop: ${event.drop_name}`);
+  if (isWaiver && event.bid) lines.push(`Bid: $${Math.round(event.bid)}`);
+  if (!confirm(`${isWaiver ? "Submit this waiver claim to ESPN?" : "Add this free agent on ESPN now?"}\n\n${lines.join("\n")}`)) return;
+  try {
+    const result = await api("/api/waivers/claim", {
+      method: "POST",
+      body: JSON.stringify({
+        add_player_id: event.candidate_id,
+        drop_player_id: event.drop_id,
+        bid_amount: isWaiver ? Math.round(event.bid || 0) : null,
+        is_waiver: isWaiver,
+        dry_run: false,
+      }),
+    });
+    box.append(el("div", { class: "notice ok" },
+      result.submitted ? `${isWaiver ? "Claim submitted for" : "Added"} ${event.candidate_name}.` : "Not submitted."));
+  } catch (error) {
+    box.append(el("div", { class: "notice err" }, error.message));
+  }
+}
+
+async function renderNews() {
+  const target = document.getElementById("tab-news");
+  target.innerHTML = "<div class='card muted'>Loading news…</div>";
+  const showAll = !!state.newsShowAll;
+  const data = await api(`/api/news/events?include_small=${showAll}`);
+  const result = el("div", { id: "news-result" });
+
+  const scanButton = el("button", { class: "action small", onclick: async () => {
+    scanButton.disabled = true; scanButton.textContent = "Scanning…";
+    try {
+      const r = await api("/api/news/scan", { method: "POST" });
+      result.innerHTML = "";
+      result.append(el("div", { class: "notice ok" },
+        `Scanned ${r.scanned} players: ${r.signals} news item(s), ${r.new_openings} new opening(s).`));
+      loaded.news = false; await renderNews();
+    } catch (error) {
+      result.append(el("div", { class: "notice err" }, error.message));
+    } finally { scanButton.disabled = false; scanButton.textContent = "Scan now"; }
+  } }, "Scan now");
+  const toggle = el("button", { class: "small", onclick: () => {
+    state.newsShowAll = !showAll; renderNews();
+  } }, showAll ? "Only alerts" : "Show everything");
+
+  const lastScan = data.last_scan
+    ? new Date(data.last_scan * 1000).toLocaleString() : "never";
+  const cards = data.events.map(e => {
+    const box = el("div");
+    const where = e.candidate_availability === "FREEAGENT" ? "Free agent" : "On waivers";
+    const badge = e.action === "suggested" ? el("span", { class: "good" }, "Suggested claim")
+      : e.action === "alerted" ? el("span", { class: "warn" }, "Worth a look")
+      : el("span", { class: "muted" }, "Too small to alert");
+    return el("div", { class: "card" }, [
+      el("div", { class: "row", style: "justify-content:space-between" }, [
+        el("h2", { style: "margin:0" }, `${e.candidate_name} · ${e.candidate_position} ${e.candidate_team}`),
+        badge,
+      ]),
+      el("div", { class: "muted", style: "margin:4px 0 10px" },
+        `${new Date(e.detected_at * 1000).toLocaleString()} · ${where} · news about ${e.subject_name}`),
+      el("div", { style: "margin-bottom:10px" }, e.headline),
+      el("div", { class: "row" }, [
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Projected in new role"),
+          el("div", { class: "value" }, fmt(e.projection, 1))]),
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Your lineup, this week"),
+          el("div", { class: "value" }, signed(e.weekly_gain, 1))]),
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Rest of season"),
+          el("div", { class: "value" }, signed(e.season_gain, 1))]),
+      ]),
+      e.note ? el("div", { class: "muted", style: "margin-top:10px" }, e.note) : "",
+      el("div", { class: "row", style: "margin-top:12px" }, [
+        el("button", { class: "action small", onclick: () => claimFromNews(e, box) },
+          e.candidate_availability === "FREEAGENT" ? "Add now" : "Claim"),
+        el("span", { class: "muted" }, e.drop_name ? `drops ${e.drop_name}` : "no drop needed"),
+      ]),
+      box,
+    ]);
+  });
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, "Breaking news"),
+      el("div", { class: "muted", style: "margin-bottom:10px" },
+        `Watches ESPN/Rotowire player news, injury statuses, and Sleeper add rushes for openings on players free in your league. ` +
+        `Last scan: ${lastScan}. Nothing is claimed for you.`),
+      el("div", { class: "row" }, [scanButton, toggle]),
+      result,
+    ]),
+    ...(cards.length ? cards : [el("div", { class: "card muted" }, "No openings yet.")]),
+  );
 }
 
 // ---------- Value tab ----------
@@ -1416,7 +1523,7 @@ async function showRoster(teamId, teamName) {
 
 const RENDERERS = {
   team: renderTeam, season: renderSeason, players: renderPlayers,
-  waivers: renderWaivers, value: renderValue, trends: renderTrends,
+  waivers: renderWaivers, news: renderNews, value: renderValue, trends: renderTrends,
   scout: renderScout, league: renderLeague,
 };
 const loaded = {};
