@@ -36,6 +36,14 @@ nflverse game logs (this season and last, downloaded once and cached under
 Set `FFOPT_NFLVERSE=false` to use fixed per-position spreads instead. If the
 download fails it falls back to those spreads automatically.
 
+**Projections from more than one source.** ESPN is one opinion. By default
+(`FFOPT_PROJECTIONS=consensus`) every projection in the app is a blend of
+ESPN, Sleeper (Rotowire), and FantasyPros (with a free API key), each one
+rescored with your league's exact scoring rules, plus a small nudge from our
+own model where it has earned one. Rest-of-season numbers are real: the sum of
+each source's remaining weekly projections, not ESPN's preseason total. See
+[Projections](#projections) below.
+
 **History and calibration.** `python -m ffopt snapshot` records the model's
 win probability for every matchup in the league, and settles finished games
 with their real scores. Run it once a week (or `--backfill` to rebuild earlier
@@ -144,6 +152,106 @@ Scraped pages are fetched once and reused for `FFOPT_INTEL_TTL` seconds.
 Endpoints: `GET /api/waivers/consensus`, `/api/waivers/rosters`,
 `/api/waivers/targets`, `/api/waivers/stash`.
 
+## Projections
+
+### Where the numbers come from
+
+| Source | How | Notes |
+|---|---|---|
+| ESPN | your league's feed, plus ESPN's public feed for future weeks | already in your scoring |
+| Sleeper | public API, no key | Rotowire's projections |
+| FantasyPros | official API, `FANTASYPROS_API_KEY` in `.env` | expert average; [free personal key](https://secure.fantasypros.com/api-keys/request/), limited (see below) |
+| Our model | trained on nflverse data, 2013 on | only nudges the blend; see below |
+
+Sleeper and FantasyPros give stat lines, which are scored with your league's
+`scoringSettings`. That scoring engine reproduces ESPN's own league-scored
+projections exactly, at every position including K and D/ST. The experts are
+averaged with equal weight. Twelve seasons of public accuracy research, and
+our own backtest, both find that a plain average beats any single source, and
+that weighting sources by their past accuracy doesn't help.
+
+The free FantasyPros key allows 1 call a second and 100 calls a day, with
+at most 10 players per call, for personal, non-commercial use. So the app
+asks for players by id, 10 at a time. Your roster goes first, then everyone
+else's rostered players, then the 60 most-owned free agents. Each player is
+fetched at most once a day, and the app stops at 90 calls
+(`data/projections/fantasypros_calls.json`). Players it didn't get to just
+use ESPN and Sleeper until the next day.
+
+Every pull is saved to `data/projections.db`, so each source can be graded on
+this season later. Nobody else keeps old weekly projections around.
+
+### The backtest
+
+```bash
+python -m ffopt backtest           # 2018-2025, scored with your league's rules
+```
+
+This grades ESPN, Sleeper, their blend, simple baselines, and our model on
+every fantasy-relevant player-game from 2018 to 2025. The model is always
+trained only on earlier seasons, and its features only see earlier games. It
+also checks rank order against FantasyPros' weekly expert rankings (2020 on).
+The results as of September 2026, in full PPR:
+
+| | MAE | Weekly rank correlation |
+|---|---|---|
+| Season-to-date average | 5.70 | 0.502 |
+| Expected fantasy points (nflverse) | 5.50 | 0.526 |
+| ESPN | 5.30 | 0.577 |
+| Sleeper | 5.29 | 0.578 |
+| **ESPN + Sleeper blend** | **5.24** | **0.587** |
+| Our model alone | 5.37 | 0.548 |
+| **Blend nudged toward our model** | **5.23** | **0.587** |
+
+What this means:
+
+- The blend beats every single source at every position. That is why the app
+  uses it.
+- Our model alone beats the simple baselines, but not the experts. They know
+  things public data doesn't: news, depth charts, coaches' plans.
+- Where the model disagrees with the experts, its disagreement points the
+  right way in each of the eight seasons. About 20% of the gap shows up in
+  the result.
+  Nudging the blend toward the model helped at RB and WR, so the model gets a
+  0.25 weight there. At QB and TE it didn't help on both error and rank order,
+  so it gets none.
+
+The weights and edge sizes are saved to `data/projections/backtest.json`, and
+the app reads them from there. Rerun the backtest after changing the model.
+
+### Undervalued players
+
+```bash
+python -m ffopt value              # or the Value tab in the browser app
+```
+
+- **Pickups our model likes.** Available players the model rates above the
+  experts, shown as expected points of edge, sized by the backtest.
+- **Pickups the other sources rate above ESPN.** Your leaguemates see ESPN's
+  numbers, so these are the players they are most likely to overlook. ESPN
+  often leaves a backup at 0.0 for a week after he takes over a starting job.
+- **Your players the model is worried about**, and the ones it likes.
+
+### Running it every week
+
+```bash
+python -m ffopt projections        # pull, archive, and compare every source
+scripts/weekly_projections.sh      # projections + value report into data/logs/
+```
+
+To run it automatically on Tuesday morning, Thursday afternoon, and Sunday
+morning, install the LaunchAgent:
+
+```bash
+sed "s#__REPO__#$PWD#" scripts/launchd/com.ffopt.projections.plist \
+  > ~/Library/LaunchAgents/com.ffopt.projections.plist
+launchctl load ~/Library/LaunchAgents/com.ffopt.projections.plist
+```
+
+The model needs the packages in `requirements.txt` (nflreadpy, polars,
+scikit-learn). Set `FFOPT_MODEL=false` to skip it, or `FFOPT_PROJECTIONS=espn`
+to go back to ESPN's numbers alone.
+
 ## The command line
 
 ```bash
@@ -157,6 +265,9 @@ python -m ffopt claim --add 4262921 --drop 3139477 --bid 14
 python -m ffopt scout                # this week's opponent
 python -m ffopt teams                # power rankings
 python -m ffopt trades               # trade targets and what to offer
+python -m ffopt projections          # every projection source, side by side
+python -m ffopt value                # undervalued players this week
+python -m ffopt backtest             # grade the sources and our model on 2018-2025
 python -m ffopt serve                # run the browser app
 ```
 
@@ -209,9 +320,13 @@ additionally checked against brute force over randomized rosters.
 
 ## Worth knowing
 
-- Projections are ESPN's own. The optimizer is only as good as they are, and
-  it will happily start someone ESPN is too optimistic about. Treat the
-  recommendations as a strong prior, not an oracle.
+- Projections are a blend of several sources (see [Projections](#projections)).
+  The optimizer is only as good as they are. Treat the recommendations as a
+  strong prior, not an oracle.
+- ESPN's past weekly projections come from its public feed. There is no way
+  to confirm they are exactly what ESPN showed before kickoff. They grade
+  about the same as Sleeper's, which doesn't suggest hindsight, but the
+  archive in `data/projections.db` is the clean record from now on.
 - ESPN's fantasy API is undocumented and unversioned. It changes without
   notice, usually around the start of a season.
 - Players whose games have already kicked off are locked by ESPN. It will

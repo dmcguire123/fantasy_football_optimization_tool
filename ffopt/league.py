@@ -13,6 +13,8 @@ import time
 from . import constants as C
 from .espn_client import EspnClient
 from .nflverse import load_spread_model
+from .projections import service as projections
+from .projections.scoring import LeagueScoring
 from .models import (
     League,
     LeagueSettings,
@@ -109,18 +111,21 @@ def parse_settings(payload):
         faab_budget=float(acquisition.get("acquisitionBudget") or 0.0),
         lineup_slot_counts=slot_counts,
         roster_size=roster_size,
+        scoring_settings=scoring,
     )
 
 
 # Build one Team, including its roster for the requested week.
-def parse_team(raw_team, week, season, members_by_id, bye_weeks):
+def parse_team(raw_team, week, season, members_by_id, bye_weeks, final_week=None):
     record = (raw_team.get("record") or {}).get("overall") or {}
     counter = raw_team.get("transactionCounter") or {}
 
     roster_entries = (raw_team.get("roster") or {}).get("entries") or []
     roster = []
     for entry in roster_entries:
-        player = player_from_roster_entry(entry, week, season, bye_weeks=bye_weeks)
+        player = player_from_roster_entry(
+            entry, week, season, bye_weeks=bye_weeks, final_week=final_week
+        )
         player.fantasy_team_id = raw_team.get("id", 0)
         roster.append(player)
 
@@ -179,7 +184,7 @@ def parse_league(payload, week=None, season=None, bye_weeks=None):
     teams = []
     for raw_team in payload.get("teams") or []:
         team, budget_spent = parse_team(
-            raw_team, week, season, members_by_id, bye_weeks
+            raw_team, week, season, members_by_id, bye_weeks, settings.final_week
         )
         if settings.uses_faab:
             team.faab_remaining = max(0.0, settings.faab_budget - budget_spent)
@@ -195,6 +200,12 @@ def parse_league(payload, week=None, season=None, bye_weeks=None):
     )
 
 
+# How many free agents, most-owned first, get FantasyPros projections. The
+# personal key allows 100 calls a day at ten players each, and every
+# rostered player comes first.
+FANTASYPROS_FREE_AGENTS = 60
+
+
 class LeagueService:
     """Loads and caches league state for the configured league."""
 
@@ -204,6 +215,7 @@ class LeagueService:
         self._cache = {}
         self._spread_model = None
         self._spread_model_tried = False
+        self._projections = None
 
     def close(self):
         self.client.close()
@@ -242,6 +254,36 @@ class LeagueService:
             model.apply(players)
         return players
 
+    # The multi-source projection service, when the consensus is switched on.
+    def projection_service(self):
+        if self.settings.projection_source != "consensus":
+            return None
+        if self._projections is None:
+            self._projections = projections.ProjectionService(self.settings)
+        return self._projections
+
+    # Replace ESPN's projections with the multi-source consensus. Any failure
+    # leaves ESPN's numbers in place. fantasypros_limit caps how many of the
+    # players (in the order given) may spend FantasyPros' daily call budget.
+    def _with_projections(self, players, league, fantasypros_limit=None):
+        service = self.projection_service()
+        if not service:
+            return players
+        try:
+            scoring = LeagueScoring.from_settings(league.settings.scoring_settings)
+            projection_set = service.build(
+                self.settings.season, league.week, league.settings.final_week, scoring
+            )
+            # The free FantasyPros tier only lists each position's top ten,
+            # so ask for these players by id.
+            service.add_fantasypros(projection_set, players[:fantasypros_limit], scoring)
+            projections.apply(players, projection_set)
+        except Exception as error:
+            logging.getLogger(__name__).warning(
+                "consensus projections unavailable, using ESPN's: %s", error
+            )
+        return players
+
     def invalidate(self):
         """Drop cached state, e.g. right after a roster move lands."""
         self._cache.clear()
@@ -259,8 +301,12 @@ class LeagueService:
                 season=self.settings.season,
                 bye_weeks=self.bye_weeks(),
             )
-            for team in league.teams:
+            # Your own team first, so it gets FantasyPros' limited daily calls
+            # before anyone else.
+            mine = self.settings.team_id
+            for team in sorted(league.teams, key=lambda t: t.team_id != mine):
                 self._with_spreads(team.roster)
+                self._with_projections(team.roster, league)
             return league
 
         return self._cached(("league", week), producer)
@@ -308,11 +354,20 @@ class LeagueService:
             for record in raw_players:
                 raw = record.get("player") or record
                 player = player_from_raw(
-                    raw, week, self.settings.season, bye_weeks=byes
+                    raw,
+                    week,
+                    self.settings.season,
+                    bye_weeks=byes,
+                    final_week=league.settings.final_week,
                 )
                 player.availability = record.get("status") or C.STATUS_FREEAGENT
                 players.append(player)
-            return self._with_spreads(players)
+            self._with_spreads(players)
+            # Free agents come most-owned first; only the top of the list
+            # gets FantasyPros calls.
+            return self._with_projections(
+                players, league, fantasypros_limit=FANTASYPROS_FREE_AGENTS
+            )
 
         return self._cached(key, producer)
 

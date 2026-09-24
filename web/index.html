@@ -106,6 +106,7 @@
     <nav>
       <button data-tab="team" class="active">My Team</button>
       <button data-tab="waivers">Waiver Wire</button>
+      <button data-tab="value">Value</button>
       <button data-tab="scout">Scout Opponent</button>
       <button data-tab="league">League</button>
     </nav>
@@ -117,6 +118,7 @@
 
   <section id="tab-team"></section>
   <section id="tab-waivers" class="hidden"></section>
+  <section id="tab-value" class="hidden"></section>
   <section id="tab-scout" class="hidden"></section>
   <section id="tab-league" class="hidden"></section>
 </main>
@@ -182,6 +184,26 @@ function statusLabel(player) {
     return el("span", { class: bad ? "bad" : "warn" }, player.injury_status);
   }
   return el("span", { class: "muted" }, "—");
+}
+
+// A projection cell. With the multi-source consensus on, the number is the
+// blend; hover shows each source, and a small note flags where the blend
+// has moved well away from ESPN's own number.
+const SOURCE_NAMES = { espn: "ESPN", sleeper: "Sleeper", fantasypros: "FantasyPros" };
+
+function projCell(player, value) {
+  const shown = value != null ? value : player.projected_points;
+  const sources = player.source_points || {};
+  const names = Object.keys(sources);
+  if (names.length < 2) return el("td", { class: "num" }, fmt(shown, 1));
+
+  const title = names.map(s => `${SOURCE_NAMES[s] || s} ${fmt(sources[s], 1)}`).join(" · ");
+  const gap = player.consensus_points - player.espn_projected_points;
+  const note = Math.abs(gap) >= 2
+    ? el("span", { class: "muted", style: "font-size:11px;margin-left:4px" },
+        `ESPN ${fmt(player.espn_projected_points, 1)}`)
+    : "";
+  return el("td", { class: "num", title }, [fmt(shown, 1), note]);
 }
 
 function table(headers, rows) {
@@ -250,7 +272,7 @@ async function renderTeam() {
       el("td", {}, player ? player.name : el("span", { class: "muted" }, "(empty)")),
       el("td", { class: "hide-sm" }, player ? player.pro_team : "-"),
       el("td", {}, player ? statusLabel(player) : ""),
-      el("td", { class: "num" }, player ? fmt(player.effective_projection, 1) : "0.0"),
+      player ? projCell(player, player.effective_projection) : el("td", { class: "num" }, "0.0"),
     ]);
   });
 
@@ -276,7 +298,8 @@ async function renderTeam() {
       el("td", { class: "hide-sm" }, player.position),
       el("td", { class: "hide-sm" }, player.pro_team),
       el("td", {}, statusLabel(player)),
-      el("td", { class: "num" }, fmt(player.projected_points, 1)),
+      projCell(player),
+      el("td", { class: "num hide-sm" }, fmt(player.ros_points || player.season_projected_points, 1)),
       el("td", { class: "num hide-sm" }, fmt(player.season_actual_points, 1)),
     ]));
 
@@ -304,7 +327,8 @@ async function renderTeam() {
       el("h2", {}, "Full roster"),
       table([
         "Slot", "Player", { label: "Pos", hide: true }, { label: "Team", hide: true },
-        "Status", { label: "Proj", num: true }, { label: "Season", num: true, hide: true },
+        "Status", { label: "Proj", num: true }, { label: "ROS", num: true, hide: true },
+        { label: "Season", num: true, hide: true },
       ], rosterRows),
     ]),
   );
@@ -463,7 +487,7 @@ async function renderWaiverRosters(pane) {
         el("td", { class: "hide-sm" }, p.position),
         el("td", { class: "hide-sm" }, p.pro_team),
         el("td", {}, statusLabel(p)),
-        el("td", { class: "num" }, fmt(p.projected_points, 1)),
+        projCell(p),
       ]));
     detail.innerHTML = "";
     detail.append(el("div", { class: "card" }, [
@@ -660,6 +684,62 @@ async function submitClaim(player, dropSelect, bidInput, usesFaab) {
   }
 }
 
+// ---------- Value tab ----------
+
+// Undervalued players: where our model disagrees with the experts (sized
+// as expected points of edge from the backtest), and where the other
+// sources rate a player well above ESPN, which the rest of the league sees.
+async function renderValue() {
+  const target = document.getElementById("tab-value");
+  target.innerHTML = "<div class='card muted'>Loading projections…</div>";
+  const data = await api("/api/projections/value");
+
+  const edgeRows = lines => lines.map(row => el("tr", {}, [
+    el("td", {}, row.name),
+    el("td", {}, el("span", { class: "pos" }, row.position)),
+    el("td", { class: "hide-sm" }, row.pro_team),
+    el("td", { class: "num" }, fmt(row.experts, 1)),
+    el("td", { class: "num" }, fmt(row.model, 1)),
+    el("td", { class: "num " + (row.expected_edge >= 0 ? "good" : "bad") }, signed(row.expected_edge, 1)),
+  ]));
+  const edgeHeaders = ["Player", "Pos", { label: "Team", hide: true },
+    { label: "Experts", num: true }, { label: "Model", num: true }, { label: "Edge", num: true }];
+
+  const espnRows = data.espn_behind.map(row => el("tr", {}, [
+    el("td", {}, row.name),
+    el("td", {}, el("span", { class: "pos" }, row.position)),
+    el("td", { class: "hide-sm" }, row.pro_team),
+    el("td", { class: "num" }, fmt(row.espn, 1)),
+    el("td", { class: "num" }, fmt(row.others, 1)),
+    el("td", { class: "num good" }, signed(row.gap_vs_espn, 1)),
+  ]));
+
+  const bt = data.backtest;
+  const note = bt.slopes && Object.keys(bt.slopes).length
+    ? `Edge is expected points above the experts' number. Backtested ${bt.seasons[0]}–${bt.seasons[bt.seasons.length - 1]}: ` +
+      `about ${fmt(100 * (bt.slopes.WR || 0), 0)}% of the model's disagreement came true.`
+    : "No backtest results yet. Run `python -m ffopt backtest` to size the model's edge.";
+
+  const card = (title, subtitle, headers, rows) => el("div", { class: "card" }, [
+    el("h2", {}, title),
+    el("div", { class: "muted", style: "margin-bottom:10px" }, subtitle),
+    rows.length ? table(headers, rows) : el("div", { class: "muted" }, "Nothing this week."),
+  ]);
+
+  target.innerHTML = "";
+  target.append(
+    card(`Week ${data.week}: pickups our model likes`, note, edgeHeaders, edgeRows(data.model_pickups)),
+    card("Pickups the other sources rate above ESPN",
+      "Your leaguemates see ESPN's number, so these are the easiest to get.",
+      ["Player", "Pos", { label: "Team", hide: true }, { label: "ESPN", num: true },
+        { label: "Others", num: true }, { label: "Gap", num: true }], espnRows),
+    card("Your players the model is worried about", "Consider benching or selling.",
+      edgeHeaders, edgeRows(data.roster_warnings)),
+    card("Your players the model likes", "Start with more confidence.",
+      edgeHeaders, edgeRows(data.roster_boosts)),
+  );
+}
+
 // ---------- Scout tab ----------
 
 async function renderScout() {
@@ -709,7 +789,7 @@ async function renderScout() {
     el("td", {}, player.name),
     el("td", { class: "hide-sm" }, player.pro_team),
     el("td", {}, statusLabel(player)),
-    el("td", { class: "num" }, fmt(player.projected_points, 1)),
+    projCell(player),
   ]));
 
   target.append(
@@ -815,7 +895,7 @@ async function showRoster(teamId, teamName) {
       el("td", { class: "hide-sm" }, player.position),
       el("td", { class: "hide-sm" }, player.pro_team),
       el("td", {}, statusLabel(player)),
-      el("td", { class: "num" }, fmt(player.projected_points, 1)),
+      projCell(player),
     ]));
 
   panel.innerHTML = "";
@@ -831,7 +911,9 @@ async function showRoster(teamId, teamName) {
 
 // ---------- Bootstrap ----------
 
-const RENDERERS = { team: renderTeam, waivers: renderWaivers, scout: renderScout, league: renderLeague };
+const RENDERERS = {
+  team: renderTeam, waivers: renderWaivers, value: renderValue, scout: renderScout, league: renderLeague,
+};
 const loaded = {};
 
 async function selectTab(name) {
