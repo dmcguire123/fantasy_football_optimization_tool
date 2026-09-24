@@ -106,9 +106,10 @@ def future_rows(features, current, schedules, season, week, final_week):
     return rows.select(current.columns)
 
 
-# Predict this week and every remaining week. Returns two frames keyed by
-# nflverse (gsis) id: this week's projection, and the rest-of-season total
-# (this week included) with the number of games it covers.
+# Predict this week and every remaining week. Returns three frames keyed by
+# nflverse (gsis) id: this week's projection; the rest-of-season total (this
+# week included) with the number of games it covers; and every game, one row
+# per player per week.
 def predict(season, week, scoring, final_week=None):
     seasons = range(history.FIRST_STATS_SEASON, season + 1)
     schedules = history.load_schedules()
@@ -158,7 +159,7 @@ def predict(season, week, scoring, final_week=None):
     weekly = pl.concat(weekly) if weekly else pl.DataFrame()
     games = pl.concat([weekly] + remaining) if weekly.height or remaining else pl.DataFrame()
     if games.is_empty():
-        return weekly, games
+        return weekly, games, games
     ros = games.group_by("player_id").agg(
         pl.col("name").first(),
         pl.col("position").first(),
@@ -166,10 +167,10 @@ def predict(season, week, scoring, final_week=None):
         pl.col("model").sum().alias("model"),
         pl.len().alias("games"),
     )
-    return weekly, ros
+    return weekly, ros, games
 
 
 # This week's projections only.
 def predict_week(season, week, scoring):
-    weekly, _ = predict(season, week, scoring)
+    weekly, _, _ = predict(season, week, scoring)
     return weekly

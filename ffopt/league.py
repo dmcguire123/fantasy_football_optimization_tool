@@ -292,6 +292,20 @@ class LeagueService:
     def bye_weeks(self):
         return self._cached("byes", self.client.fetch_bye_weeks)
 
+    # Each NFL team's opponent by week, as abbreviations:
+    # {"DET": {8: ("@", "GB")}, ...}. "@" means away, "vs" home.
+    def pro_schedule(self):
+        def producer():
+            schedule = {}
+            for team_id, games in self.client.fetch_pro_schedule().items():
+                schedule[C.pro_team_abbrev(team_id)] = {
+                    week: ("vs" if home else "@", C.pro_team_abbrev(opponent))
+                    for week, (opponent, home) in games.items()
+                }
+            return schedule
+
+        return self._cached("pro_schedule", producer)
+
     # The full league for a week. Week None means whatever ESPN calls current.
     def load_league(self, week=None):
         def producer():
@@ -371,6 +385,36 @@ class LeagueService:
             )
 
         return self._cached(key, producer)
+
+    # The week-by-week projector behind the season dashboard.
+    def projector(self, week=None):
+        from .dashboard import WeekProjector
+
+        league = self.load_league(week)
+        projection_set = None
+        service = self.projection_service()
+        if service:
+            try:
+                projection_set = service.build(
+                    self.settings.season, league.week, league.settings.final_week,
+                    LeagueScoring.from_settings(league.settings.scoring_settings),
+                )
+            except Exception as error:
+                logging.getLogger(__name__).warning("projections unavailable: %s", error)
+        byes = {C.pro_team_abbrev(team_id): bye for team_id, bye in self.bye_weeks().items()}
+        return WeekProjector(projection_set, league.week, byes, self.pro_schedule())
+
+    # Every player the dashboard can show: all rostered players, then the
+    # most-owned free agents, each with the fantasy team that has him.
+    def player_pool(self, week=None, free_agent_limit=300):
+        league = self.load_league(week)
+        pool = {}
+        for team in league.teams:
+            for player in team.roster:
+                pool[player.player_id] = (player, team.name)
+        for player in self.free_agents(week, limit=free_agent_limit):
+            pool.setdefault(player.player_id, (player, None))
+        return pool
 
     # Weekly and rest-of-season projection history for the season, cached
     # like the projections themselves. None when consensus is off.

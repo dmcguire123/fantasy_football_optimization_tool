@@ -69,6 +69,17 @@
     border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--text); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
   .viz-tip .row { display: flex; gap: 8px; justify-content: space-between; }
   .clickable { cursor: pointer; }
+  .player-link { color: var(--text); text-decoration: none; }
+  .player-link:hover { text-decoration: underline; color: var(--accent); }
+  .matchup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .matchup-grid { grid-template-columns: 1fr; } }
+  .week-row.selected { background: var(--panel-2); }
+  .winbar { display: inline-block; width: 70px; height: 6px; border-radius: 3px; background: var(--line);
+    vertical-align: middle; margin-left: 6px; overflow: hidden; }
+  .winbar span { display: block; height: 100%; background: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+  .chip { background: var(--panel-2); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
+  .chip b { color: var(--text); font-weight: 600; }
   .stat { flex: 1 1 150px; background: var(--panel-2); border-radius: var(--radius); padding: 12px; }
   .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
   .stat .value { font-size: 22px; font-weight: 600; margin-top: 4px; }
@@ -125,6 +136,8 @@
     <div class="sub" id="league-sub">Loading league…</div>
     <nav>
       <button data-tab="team" class="active">My Team</button>
+      <button data-tab="season">Season</button>
+      <button data-tab="players">Players</button>
       <button data-tab="waivers">Waiver Wire</button>
       <button data-tab="value">Value</button>
       <button data-tab="trends">Trends</button>
@@ -138,6 +151,8 @@
   <div id="global-error" class="notice err hidden"></div>
 
   <section id="tab-team"></section>
+  <section id="tab-season" class="hidden"></section>
+  <section id="tab-players" class="hidden"></section>
   <section id="tab-waivers" class="hidden"></section>
   <section id="tab-value" class="hidden"></section>
   <section id="tab-trends" class="hidden"></section>
@@ -762,13 +777,274 @@ async function renderValue() {
   );
 }
 
+// ---------- Season tab ----------
+
+const dashState = { week: null, teamId: null };
+
+function winCell(probability) {
+  if (probability == null) return el("td", { class: "num muted" }, "–");
+  const pct = Math.round(probability * 100);
+  return el("td", { class: "num" }, [`${pct}%`,
+    el("span", { class: "winbar" }, el("span", { style: `width:${pct}%` }))]);
+}
+
+function lineupTable(side, week) {
+  const rows = side.starters.map(p => el("tr", {}, [
+    el("td", {}, el("span", { class: "pos" }, p.slot)),
+    el("td", {}, p.name
+      ? el("a", { href: "#", class: "player-link", onclick: e => { e.preventDefault(); openPlayer(p.player_id); } }, p.name)
+      : el("span", { class: "muted" }, "(empty)")),
+    el("td", { class: "hide-sm muted" }, p.game || ""),
+    el("td", {}, p.on_bye ? el("span", { class: "warn" }, "BYE")
+      : (p.injury_status && p.injury_status !== "Active" ? el("span", { class: "warn" }, p.injury_status) : "")),
+    p.name ? projCell({ ...p, projected_points: p.projection, source_points: p.sources,
+      consensus_points: p.projection, espn_projected_points: (p.sources || {}).espn ?? p.projection })
+      : el("td", { class: "num" }, "0.0"),
+  ]));
+  const bench = side.bench.map(p => el("tr", { class: "bench" }, [
+    el("td", {}, el("span", { class: "pos" }, p.slot)),
+    el("td", {}, el("a", { href: "#", class: "player-link", onclick: e => { e.preventDefault(); openPlayer(p.player_id); } }, p.name)),
+    el("td", { class: "hide-sm muted" }, p.game || ""),
+    el("td", {}, p.on_bye ? el("span", { class: "warn" }, "BYE") : ""),
+    el("td", { class: "num muted" }, fmt(p.projection, 1)),
+  ]));
+  return el("div", { class: "card" }, [
+    el("h2", {}, `${side.name} (${side.record})`),
+    el("div", { class: "row" }, [el("div", { class: "stat" }, [
+      el("div", { class: "label" }, `Week ${week} projection`),
+      el("div", { class: "value" }, fmt(side.total, 1)),
+    ])]),
+    table(["Slot", "Player", { label: "Game", hide: true }, "Status", { label: "Proj", num: true }],
+      rows.concat(bench)),
+  ]);
+}
+
+async function showMatchup(week, target) {
+  target.innerHTML = "<div class='card muted'>Loading matchup…</div>";
+  const teamParam = dashState.teamId ? `&team_id=${dashState.teamId}` : "";
+  const data = await api(`/api/dashboard/matchup?week=${week}${teamParam}`);
+  const note = data.is_current
+    ? "This week: every source blended, byes and injuries applied."
+    : "A future week: ESPN and Sleeper's projections for that week, byes applied, today's rosters.";
+  const header = el("div", { class: "card" }, [
+    el("h2", {}, data.opponent
+      ? `Week ${week}: ${data.mine.name} vs ${data.opponent.name}`
+      : `Week ${week}: no opponent scheduled`),
+    el("div", { class: "muted" }, note),
+    data.opponent ? el("div", { class: "row", style: "margin-top:12px" }, [
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "You"),
+        el("div", { class: "value" }, fmt(data.mine.total, 1))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "Them"),
+        el("div", { class: "value" }, fmt(data.opponent.total, 1))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "Win probability"),
+        el("div", { class: "value" }, `${Math.round(data.win_probability * 100)}%`)]),
+    ]) : "",
+  ]);
+  target.innerHTML = "";
+  target.append(header, el("div", { class: "matchup-grid" }, [
+    lineupTable(data.mine, week),
+    data.opponent ? lineupTable(data.opponent, week) : el("div"),
+  ]));
+}
+
+async function renderSeason() {
+  const target = document.getElementById("tab-season");
+  target.innerHTML = "<div class='card muted'>Loading season…</div>";
+  const teamParam = dashState.teamId ? `?team_id=${dashState.teamId}` : "";
+  const data = await api(`/api/dashboard/season${teamParam}`);
+  dashState.teamId = data.team.team_id;
+  if (!dashState.week) dashState.week = data.current_week;
+  const detail = el("div", { id: "matchup-detail" });
+
+  const teamSelect = el("select", {
+    onchange: e => { dashState.teamId = Number(e.target.value); dashState.week = null; renderSeason(); },
+  }, data.teams.map(t => el("option", {
+    value: t.team_id, selected: t.team_id === data.team.team_id ? "selected" : null }, t.name)));
+
+  const futureWeeks = data.weeks.filter(w => !w.played).map(w => w.week);
+  const weekSelect = el("select", {
+    onchange: e => { dashState.week = Number(e.target.value); highlight(); showMatchup(dashState.week, detail); },
+  }, futureWeeks.map(w => el("option", { value: w, selected: w === dashState.week ? "selected" : null },
+    `Week ${w}${w === data.current_week ? " (this week)" : ""}`)));
+
+  const rowsByWeek = {};
+  const rows = data.weeks.map(w => {
+    const result = w.played
+      ? el("span", { class: w.my_score > w.their_score ? "good" : "bad" },
+          `${w.my_score > w.their_score ? "W" : "L"} ${fmt(w.my_score, 1)}–${fmt(w.their_score, 1)}`)
+      : `${fmt(w.my_projection, 1)}–${fmt(w.their_projection, 1)}`;
+    const row = el("tr", {
+      class: "week-row" + (w.played ? "" : " clickable"),
+      onclick: w.played ? null : () => {
+        dashState.week = w.week; weekSelect.value = w.week; highlight(); showMatchup(w.week, detail);
+      },
+    }, [
+      el("td", {}, `Week ${w.week}`),
+      el("td", {}, w.opponent || el("span", { class: "muted" }, "—")),
+      el("td", { class: "num" }, result),
+      w.played ? el("td", { class: "num muted" }, "final") : winCell(w.win_probability),
+    ]);
+    rowsByWeek[w.week] = row;
+    return row;
+  });
+  function highlight() {
+    Object.entries(rowsByWeek).forEach(([week, row]) =>
+      row.classList.toggle("selected", Number(week) === dashState.week));
+  }
+
+  // Week over week: your score or projection against your opponent's.
+  const mine = {}, theirs = {};
+  data.weeks.forEach(w => {
+    mine[w.week] = w.played ? w.my_score : w.my_projection;
+    theirs[w.week] = w.played ? w.their_score : w.their_projection;
+  });
+  const chart = weeklyChart(data.weeks.map(w => w.week), [
+    { key: "mine", label: `${data.team.name} (scores, then projections)`, color: "var(--series-1)", values: mine },
+    { key: "theirs", label: "Opponent that week", color: "var(--series-2)", values: theirs },
+  ]);
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, `${data.team.name} (${data.team.record}): season`),
+      el("div", { class: "row", style: "gap:10px;margin-bottom:12px" }, [teamSelect, weekSelect]),
+      chart,
+      table(["Week", "Opponent", { label: "Score / projection", num: true }, { label: "Win", num: true }], rows),
+    ]),
+    detail,
+  );
+  highlight();
+  await showMatchup(dashState.week, detail);
+}
+
+// ---------- Players tab ----------
+
+async function openPlayer(playerId) {
+  await selectTab("players");
+  const detail = document.getElementById("player-detail");
+  if (detail) showPlayerOutlook(playerId, detail);
+}
+
+async function showPlayerOutlook(playerId, target) {
+  target.innerHTML = "<div class='card muted'>Loading player…</div>";
+  const data = await api(`/api/players/${playerId}/outlook`);
+
+  const pastBlend = r => r.consensus != null ? r.consensus : r.experts_blend;
+  const weeks = [...data.past.map(r => r.week), ...data.future.map(r => r.week)];
+  const projection = {}, actual = {}, espn = {}, model = {};
+  data.past.forEach(r => {
+    if (pastBlend(r) != null) projection[r.week] = pastBlend(r);
+    if (r.actual != null) actual[r.week] = r.actual;
+    if (r.espn != null) espn[r.week] = r.espn;
+    if (r.model != null) model[r.week] = r.model;
+  });
+  data.future.forEach(r => {
+    if (r.on_bye) return;
+    projection[r.week] = r.projection;
+    if (r.sources.espn != null) espn[r.week] = r.sources.espn;
+    if (r.sources.model != null) model[r.week] = r.sources.model;
+  });
+  const series = [
+    { key: "blend", label: "Projection (blend)", color: "var(--series-1)", values: projection },
+    { key: "actual", label: "Actual", color: "var(--series-2)", values: actual, dots: true },
+    { key: "espn", label: "ESPN", color: "var(--series-3)", values: espn },
+    { key: "model", label: "Our model", color: "var(--series-4)", values: model },
+  ].filter(s => Object.keys(s.values).length);
+
+  const cell = v => el("td", { class: "num" }, v == null ? "–" : fmt(v, 1));
+  const rows = [
+    ...data.past.map(r => el("tr", { class: "bench" }, [
+      el("td", {}, `Week ${r.week}`), el("td", { class: "hide-sm muted" }, "played"),
+      cell(r.espn), cell(r.sleeper), cell(r.fantasypros), cell(r.model), cell(pastBlend(r)), cell(r.actual),
+    ])),
+    ...data.future.map(r => el("tr", {}, [
+      el("td", {}, `Week ${r.week}`),
+      el("td", { class: "hide-sm" }, r.on_bye ? el("span", { class: "warn" }, "BYE") : r.game),
+      cell(r.sources.espn), cell(r.sources.sleeper), cell(r.sources.fantasypros), cell(r.sources.model),
+      el("td", { class: "num" }, el("b", {}, fmt(r.projection, 1))), cell(null),
+    ])),
+  ];
+
+  const names = { espn: "ESPN", sleeper: "Sleeper", fantasypros: "FantasyPros", model: "Our model" };
+  const chips = Object.entries(data.ros_sources).map(([s, v]) =>
+    el("span", { class: "chip" }, [`${names[s] || s} `, el("b", {}, fmt(v, 1))]));
+
+  target.innerHTML = "";
+  target.append(el("div", { class: "card" }, [
+    el("h2", {}, `${data.name} · ${data.position} ${data.pro_team}`),
+    el("div", { class: "muted" },
+      `${data.owner ? "Rostered by " + data.owner : "Available"} · ${fmt(data.percent_owned, 1)}% owned` +
+      (data.injury_status && data.injury_status !== "Active" ? ` · ${data.injury_status}` : "")),
+    el("div", { class: "row", style: "margin-top:12px" }, [
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "This week"),
+        el("div", { class: "value" }, fmt(data.future[0] ? data.future[0].projection : 0, 1))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "Next week"),
+        el("div", { class: "value" }, fmt(data.future[1] ? data.future[1].projection : 0, 1))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, `Rest of season (${data.ros_games} games)`),
+        el("div", { class: "value" }, fmt(data.ros_points, 1))]),
+    ]),
+    el("div", { class: "chips" }, [el("span", { class: "chip" }, "ROS by source:"), ...chips]),
+    weeks.length ? weeklyChart(weeks, series) : "",
+    table(["Week", { label: "Game", hide: true }, { label: "ESPN", num: true }, { label: "Sleeper", num: true },
+      { label: "FantasyPros", num: true }, { label: "Model", num: true }, { label: "Projection", num: true },
+      { label: "Actual", num: true }], rows),
+    el("div", { class: "muted", style: "margin-top:10px;font-size:12px" },
+      "Future weeks blend ESPN and Sleeper; FantasyPros only projects this week. Our model is shown but not blended past this week."),
+  ]));
+}
+
+async function renderPlayers() {
+  const target = document.getElementById("tab-players");
+  const results = el("div", {});
+  const detail = el("div", { id: "player-detail" });
+  const input = el("input", { placeholder: "Search players by name…", autocomplete: "off",
+    style: "padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);width:100%;max-width:420px" });
+
+  async function search(q) {
+    const data = await api(`/api/players/search?q=${encodeURIComponent(q)}&limit=25`);
+    const rows = data.players.map(p => el("tr", {
+      class: "clickable", onclick: () => showPlayerOutlook(p.player_id, detail),
+    }, [
+      el("td", {}, p.name),
+      el("td", {}, el("span", { class: "pos" }, p.position)),
+      el("td", { class: "hide-sm" }, p.pro_team),
+      el("td", { class: "hide-sm muted" }, p.owner || "Available"),
+      el("td", { class: "num" }, fmt(p.projection, 1)),
+      el("td", { class: "num" }, fmt(p.ros_points, 1)),
+    ]));
+    results.innerHTML = "";
+    results.append(rows.length
+      ? table(["Player", "Pos", { label: "Team", hide: true }, { label: "Owner", hide: true },
+          { label: "This week", num: true }, { label: "ROS", num: true }], rows)
+      : el("div", { class: "muted" }, "No players match."));
+  }
+  let timer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => search(input.value), 200);
+  });
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, "Players"),
+      el("div", { class: "muted", style: "margin-bottom:10px" },
+        "Every rostered player and the 300 most-owned free agents. Click one for his week-by-week outlook."),
+      input,
+      el("div", { style: "margin-top:12px" }, results),
+    ]),
+    detail,
+  );
+  await search("");
+}
+
 // ---------- Trends tab ----------
 
 // A line chart of weekly points: one line per series, markers for actual
 // scores, a crosshair that snaps to the week, and one tooltip listing every
 // series. `series` is [{key, label, color, values: {week: points}, dots}].
 function weeklyChart(weeks, series) {
-  const W = 640, H = 260, pad = { l: 36, r: 16, t: 12, b: 28 };
+  const W = 900, H = 280, pad = { l: 36, r: 16, t: 12, b: 28 };
   const ns = "http://www.w3.org/2000/svg";
   const svgEl = (tag, attrs) => {
     const node = document.createElementNS(ns, tag);
@@ -800,10 +1076,19 @@ function weeklyChart(weeks, series) {
 
   for (const s of series) {
     const points = weeks.filter(w => s.values[w] != null).map(w => [x(w), y(s.values[w])]);
-    if (!s.dots && points.length > 1) {
-      svg.append(svgEl("polyline", { points: points.map(p => p.join(",")).join(" "),
-        fill: "none", stroke: s.color, "stroke-width": 2,
-        "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    // A week with no value (a bye) breaks the line rather than bridging it.
+    if (!s.dots) {
+      let run = [];
+      const flush = () => {
+        if (run.length > 1) {
+          svg.append(svgEl("polyline", { points: run.map(p => p.join(",")).join(" "),
+            fill: "none", stroke: s.color, "stroke-width": 2,
+            "stroke-linejoin": "round", "stroke-linecap": "round" }));
+        }
+        run = [];
+      };
+      weeks.forEach(w => s.values[w] == null ? flush() : run.push([x(w), y(s.values[w])]));
+      flush();
     }
     for (const [px, py] of points) {
       svg.append(svgEl("circle", { cx: px, cy: py, r: s.dots ? 5 : 3.5, fill: s.color,
@@ -1127,7 +1412,8 @@ async function showRoster(teamId, teamName) {
 // ---------- Bootstrap ----------
 
 const RENDERERS = {
-  team: renderTeam, waivers: renderWaivers, value: renderValue, trends: renderTrends,
+  team: renderTeam, season: renderSeason, players: renderPlayers,
+  waivers: renderWaivers, value: renderValue, trends: renderTrends,
   scout: renderScout, league: renderLeague,
 };
 const loaded = {};

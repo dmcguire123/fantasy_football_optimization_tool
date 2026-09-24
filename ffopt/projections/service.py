@@ -74,6 +74,9 @@ class ProjectionSet:
         # and ("team", abbrev) for defenses.
         self.weekly = {}
         self.ros = {}
+        # week -> match key -> {source: points}, for this week and every
+        # remaining week, from the sources that project week by week.
+        self.by_week = {}
         self.ros_weeks = 0
         self.sources = set()
         # How far to nudge the experts' blend toward our model, by position.
@@ -98,21 +101,33 @@ class ProjectionSet:
             entry = table.setdefault(key, {})
             entry[source] = entry.get(source, 0.0) + points
 
+    # Every source's number for a player. A source can be filed under his
+    # ESPN id, his name, or (for defenses) his team, depending on what it
+    # could be matched by, so all three are merged. The ESPN-id match wins
+    # when a source appears under more than one.
     def _lookup(self, table, player):
+        merged = {}
         for key in (
-            ("espn", str(player.player_id)),
-            ("team", player.pro_team) if player.position == "D/ST" else None,
             ("name", clean_name(player.name), player.position, player.pro_team),
+            ("team", player.pro_team) if player.position == "D/ST" else None,
+            ("espn", str(player.player_id)),
         ):
             if key and key in table:
-                return table[key]
-        return {}
+                merged.update(table[key])
+        return merged
 
     def weekly_for(self, player):
         return self._lookup(self.weekly, player)
 
     def ros_for(self, player):
         return self._lookup(self.ros, player)
+
+    # Each source's projection for one future week.
+    def week_for(self, player, week):
+        return self._lookup(self.by_week.get(week, {}), player)
+
+    def weeks(self):
+        return sorted(self.by_week)
 
 
 class ProjectionService:
@@ -195,7 +210,14 @@ class ProjectionService:
         # this week, and every remaining week.
         model_ros_rows = []
         if self.settings.use_model:
-            model_rows, model_ros_rows = self._model_rows(season, week, final_week, scoring)
+            model_rows, model_ros_rows, model_games = self._model_rows(
+                season, week, final_week, scoring
+            )
+            for row in model_games:
+                projection_set.add(
+                    projection_set.by_week.setdefault(row["week"], {}), "model",
+                    row["espn_id"], row["name"], row["position"], row["team"], row["points"],
+                )
             if model_rows:
                 projection_set.sources.add("model")
                 projection_set.model_weights = self._model_weights()
@@ -226,6 +248,10 @@ class ProjectionService:
                     projection_set.ros, "sleeper", row["espn_id"], row["name"],
                     row["position"], row["team"], row["points"],
                 )
+                projection_set.add(
+                    projection_set.by_week.setdefault(future_week, {}), "sleeper",
+                    row["espn_id"], row["name"], row["position"], row["team"], row["points"],
+                )
                 total = sleeper_ros.setdefault(row["source_id"], {**row, "points": 0.0})
                 total["points"] += row["points"]
 
@@ -238,7 +264,11 @@ class ProjectionService:
             for future_week in weeks:
                 stats = weeks_by_number.get(future_week)
                 if stats:
-                    total += scoring.score(stats, position)
+                    points = scoring.score(stats, position)
+                    total += points
+                    projection_set.by_week.setdefault(future_week, {}).setdefault(
+                        ("espn", espn_id), {}
+                    )["espn"] = points
             projection_set.ros.setdefault(("espn", espn_id), {})["espn"] = total
             espn_ros.append(
                 {"source_id": espn_id, "espn_id": espn_id, "position": position,
@@ -346,10 +376,10 @@ class ProjectionService:
         try:
             from .model import predict
 
-            weekly, ros = predict(season, week, scoring, final_week=final_week)
+            weekly, ros, games = predict(season, week, scoring, final_week=final_week)
         except Exception as error:
             log.warning("model projections unavailable: %s", error)
-            return [], []
+            return [], [], []
 
         def rows(frame):
             out = []
@@ -363,11 +393,12 @@ class ProjectionService:
                         "team": espn_team(record["team"]),
                         "points": float(record["model"]),
                         "stats": {"games": record["games"]} if "games" in record else {},
+                        "week": record.get("week"),
                     }
                 )
             return out
 
-        return rows(weekly), rows(ros)
+        return rows(weekly), rows(ros), rows(games)
 
     # The model's weight by position, from the last backtest run.
     def _model_weights(self):
@@ -441,6 +472,19 @@ def projected_only(source_points):
     return positive or source_points
 
 
+# How many remaining weeks some source projects the player to score in:
+# byes and weeks he is expected to miss don't count. Falls back to every
+# remaining week when no week-by-week projections were loaded.
+def projected_games(projection_set, player):
+    if not projection_set.by_week:
+        return projection_set.ros_weeks
+    return sum(
+        1
+        for week in projection_set.by_week
+        if any(v and v > 0 for v in projection_set.week_for(player, week).values())
+    )
+
+
 # Give each player every source's projection, the blend, and a
 # rest-of-season total. With use_consensus, the blend becomes the player's
 # projected_points and ros_points; otherwise ESPN's numbers stay in place
@@ -476,5 +520,5 @@ def apply(players, projection_set, use_consensus=True):
             ros_mean, _ = blend(projected_only(ros_experts))
             player.ros_points = ros_mean
             if not player.ros_games:
-                player.ros_games = projection_set.ros_weeks
+                player.ros_games = projected_games(projection_set, player)
     return players

@@ -366,6 +366,84 @@ def read_player_trend(player_id: str, week: int | None = None):
     return {"week": data.week, **data.player(player_id)}
 
 
+@app.get("/api/dashboard/season")
+def read_dashboard_season(team_id: int | None = None):
+    """Your season week by week: each opponent, both projected totals, results so far."""
+    from . import dashboard
+
+    service = get_service()
+    league = service.load_league()
+    team = league.team_by_id(team_id) if team_id else resolve_my_team(service)
+    if not team:
+        raise HTTPException(404, "No such team.")
+    projector = service.projector()
+    return {
+        "current_week": league.week,
+        "final_week": league.settings.final_week,
+        "team": {"team_id": team.team_id, "name": team.name, "record": team.record},
+        "teams": [{"team_id": t.team_id, "name": t.name} for t in league.teams],
+        "weeks": dashboard.season_schedule(league, team, projector),
+    }
+
+
+@app.get("/api/dashboard/matchup")
+def read_dashboard_matchup(week: int | None = None, team_id: int | None = None):
+    """Both teams' best lineups and projected totals for any week."""
+    from . import dashboard
+
+    service = get_service()
+    league = service.load_league()
+    team = league.team_by_id(team_id) if team_id else resolve_my_team(service)
+    if not team:
+        raise HTTPException(404, "No such team.")
+    week = week or league.week
+    if week < league.week or week > league.settings.final_week:
+        raise HTTPException(400, f"Pick a week from {league.week} to {league.settings.final_week}.")
+    return dashboard.matchup(league, team, service.projector(), week)
+
+
+@app.get("/api/players/search")
+def search_players(q: str = Query("", max_length=60), limit: int = Query(20, ge=1, le=100)):
+    """Players on any roster or among the most-owned free agents, by name."""
+    service = get_service()
+    wanted = q.strip().lower()
+    matches = []
+    for player, owner in service.player_pool().values():
+        if wanted and wanted not in player.name.lower():
+            continue
+        matches.append({
+            "player_id": player.player_id, "name": player.name, "position": player.position,
+            "pro_team": player.pro_team, "owner": owner,
+            "projection": round(player.effective_projection, 1),
+            "ros_points": round(player.ros_points, 1),
+        })
+    matches.sort(key=lambda m: -m["ros_points"])
+    return {"players": matches[:limit]}
+
+
+@app.get("/api/players/{player_id}/outlook")
+def read_player_outlook(player_id: int):
+    """One player's past weeks, every remaining week by source, and rest of season."""
+    from . import dashboard
+
+    service = get_service()
+    league = service.load_league()
+    entry = service.player_pool().get(player_id)
+    if not entry:
+        raise HTTPException(404, "That player isn't rostered or among the top free agents.")
+    player, owner = entry
+    trend_history = None
+    try:
+        data = service.trends()
+        if data is not None:
+            trend_history = data.player(player_id)
+    except Exception:
+        trend_history = None
+    return dashboard.player_outlook(
+        player, service.projector(), league.settings.final_week, trend_history, owner
+    )
+
+
 @app.get("/api/waivers/recommendations")
 def read_waiver_recommendations(
     week: int | None = None,

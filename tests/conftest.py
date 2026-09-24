@@ -259,8 +259,15 @@ def pro_teams_payload():
     return {
         "settings": {
             "proTeams": [
-                {"id": 12, "abbrev": "KC", "byeWeek": 10},
-                {"id": 9, "abbrev": "GB", "byeWeek": WEEK},
+                {"id": 12, "abbrev": "KC", "byeWeek": 10, "proGamesByScoringPeriod": {
+                    str(WEEK): [{"homeProTeamId": 12, "awayProTeamId": 16}],
+                    str(WEEK + 1): [{"homeProTeamId": 12, "awayProTeamId": 9}],
+                    str(WEEK + 2): [{"homeProTeamId": 9, "awayProTeamId": 12}],
+                }},
+                {"id": 9, "abbrev": "GB", "byeWeek": WEEK, "proGamesByScoringPeriod": {
+                    str(WEEK + 1): [{"homeProTeamId": 12, "awayProTeamId": 9}],
+                    str(WEEK + 2): [{"homeProTeamId": 9, "awayProTeamId": 12}],
+                }},
             ]
         }
     }

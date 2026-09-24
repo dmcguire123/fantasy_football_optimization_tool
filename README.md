@@ -109,14 +109,31 @@ your team's record. If your team is wrong, fix `ESPN_TEAM_ID`.
 python -m ffopt serve
 ```
 
-Then open http://127.0.0.1:8000. Four tabs:
+Then open http://127.0.0.1:8000. The tabs:
 
-- **My Team** — your roster, the recommended lineup, and a button that applies
+- **My Team**: your roster, the recommended lineup, and a button that applies
   the changes after showing you exactly what it will submit.
-- **Waiver Wire** — ranked targets with a suggested drop and bid on each row,
+- **Season**: your whole season week by week. It shows each opponent, final
+  scores for weeks played, and both teams' projected totals and your win
+  probability for every week to come, with a chart. Pick any week (say week
+  8) to see both teams' best lineups side by side, with each player's NFL
+  game, bye, and injury status. You can switch to any other team's season.
+- **Players**: search any rostered player or top-300 free agent. You get this
+  week, next week, and every remaining week by source (ESPN, Sleeper,
+  FantasyPros, our model), the blended projection, his NFL opponent and bye,
+  past weeks against what he actually scored, and rest of season by source.
+- **Waiver Wire**: ranked targets with a suggested drop and bid on each row,
   and a claim button per player.
-- **Scout Opponent** — this week's matchup, broken down by position.
-- **League** — power rankings, any team's roster on demand, and trade targets.
+- **Value**: pickups our model likes, and players the other sources rate
+  above ESPN.
+- **Trends**: projection risers and fallers, and each player's history.
+- **Scout Opponent**: this week's matchup, broken down by position.
+- **League**: power rankings, any team's roster on demand, and trade targets.
+
+Future weeks use the average of ESPN's and Sleeper's projections for that
+week, with byes applied. FantasyPros only projects the current week, and our
+model's future weeks are shown but not blended. Future matchups use today's
+rosters, so they show what happens if nobody makes a move.
 
 ## Waiver wire intelligence
 
