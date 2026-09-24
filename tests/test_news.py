@@ -139,7 +139,7 @@ def quiet_alerts(monkeypatch):
     sent = {"mac": [], "email": []}
     monkeypatch.setattr(news, "notify_mac", lambda title, message: sent["mac"].append(title))
     monkeypatch.setattr(news, "notify_email",
-                        lambda to, subject, body: sent["email"].append((to, subject, body)))
+                        lambda to, subject, body, html=None: sent["email"].append((to, subject, body, html)))
     return sent
 
 
@@ -168,9 +168,11 @@ def test_new_news_on_a_starter_opens_a_spot_for_his_backup(service, tmp_path, qu
 
     # One email for the scan, and it only suggests: nothing was claimed.
     assert len(quiet_alerts["email"]) == 1
-    body = quiet_alerts["email"][0][2]
+    to, subject, body, html = quiet_alerts["email"][0]
+    assert subject.endswith("Next Man (RB, KC)")
     assert "Nothing has been done for you" in body
     assert "python -m ffopt claim --add 902" in body
+    assert "Next Man" in html and "python -m ffopt claim --add 902" in html
 
 
 def test_the_same_story_is_only_reported_once(service, tmp_path, quiet_alerts):
@@ -203,12 +205,47 @@ def test_the_watcher_never_submits_a_transaction(service, tmp_path, quiet_alerts
 
 def test_claim_instructions_spell_out_the_move():
     event = {"candidate_availability": C.STATUS_WAIVERS, "candidate_id": 902, "drop_id": 7,
-             "drop_name": "Old Guy", "bid": 12.0, "action": "suggested"}
+             "candidate_name": "Next Man", "drop_name": "Old Guy", "bid": 12.0,
+             "action": "suggested"}
     text = news.claim_instructions(event)
-    assert "Suggested claim: Waiver claim, dropping Old Guy, bid $12" in text
+    assert "Suggested claim: Add Next Man, drop Old Guy, bid $12 (waiver claim)" in text
     assert "python -m ffopt claim --add 902 --drop 7 --bid 12" in text
 
     event.update(candidate_availability=C.STATUS_FREEAGENT, drop_id=None, drop_name=None,
                  action="alerted")
     text = news.claim_instructions(event)
     assert "--free-agent" in text and "If you want him" in text
+
+
+def email_events():
+    base = {"candidate_position": "RB", "candidate_team": "KC", "projection": 10.8,
+            "headline": "Star (knee) was placed on injured reserve <Tuesday> & more.",
+            "note": "", "drop_id": 7, "drop_name": "Old Guy", "bid": 0.0}
+    return [
+        {**base, "action": "suggested", "candidate_name": "Next Man", "candidate_id": 902,
+         "candidate_availability": C.STATUS_FREEAGENT, "weekly_gain": 3.4, "season_gain": 18.0},
+        {**base, "action": "alerted", "candidate_name": "Third Man", "candidate_id": 903,
+         "candidate_availability": C.STATUS_WAIVERS, "bid": 9.0, "weekly_gain": 0.0,
+         "season_gain": 0.0, "note": "Starter-level for anyone."},
+    ]
+
+
+def test_email_subject_leads_with_the_strongest_opening():
+    assert news.email_subject(email_events()) == "Claim now: Next Man (RB, KC) + 1 more"
+    assert news.email_subject(email_events()[1:]) == "Pickup alert: Third Man (RB, KC)"
+
+
+def test_email_text_and_html_carry_every_opening():
+    events = email_events()
+    text = news.email_text(events)
+    assert text.startswith("PICKUP ALERT: 1 suggested claim, 1 worth a look")
+    assert "Move: Add Next Man, drop Old Guy (free agent: first come, first served)" in text
+    assert "Move: Add Third Man, drop Old Guy, bid $9 (waiver claim)" in text
+    assert "Note: Starter-level for anyone." in text
+    assert "*" not in text and "#" not in text
+
+    html = news.email_html(events)
+    assert "SUGGESTED CLAIM" in html and "WORTH A LOOK" in html
+    # Headlines are escaped, never injected as markup.
+    assert "&lt;Tuesday&gt; &amp; more" in html and "<Tuesday>" not in html
+    assert "python -m ffopt claim --add 903 --drop 7 --bid 9" in html

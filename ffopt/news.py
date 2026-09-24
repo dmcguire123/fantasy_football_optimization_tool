@@ -31,6 +31,7 @@ which news items have been seen, and every opening found.
 
 import calendar
 import json
+from html import escape as html_escape
 import logging
 import re
 import sqlite3
@@ -372,14 +373,18 @@ def notify_mac(title, message):
         log.info("Mac notification failed: %s", error)
 
 
-# Email one alert through the Claude CLI's Gmail connector, the same way the
-# morning report is sent.
-def notify_email(recipient, subject, body):
+# Email one message through the Claude CLI's Gmail connector, the same way
+# the morning report is sent. The message is fully written here; Claude only
+# sends it, with the exact arguments given.
+def notify_email(recipient, subject, body, html=None):
     if not recipient:
         return
+    arguments = {"to": [recipient], "subject": subject, "body": body}
+    if html:
+        arguments["htmlBody"] = html
     prompt = (
-        "Send this email exactly as written with mcp__claude_ai_Gmail__send_message, "
-        f"then reply 'sent'.\nTo: {recipient}\nSubject: {subject}\nBody:\n{body}"
+        "Call mcp__claude_ai_Gmail__send_message once with exactly these arguments, "
+        "unchanged, then reply 'sent'.\n" + json.dumps(arguments)
     )
     try:
         subprocess.run(
@@ -390,22 +395,17 @@ def notify_email(recipient, subject, body):
         log.warning("alert email failed: %s", error)
 
 
+# One line for a Mac notification.
 def describe(event):
     where = "free agent" if event["candidate_availability"] == C.STATUS_FREEAGENT else "on waivers"
-    role = " in the new role" if event["kind"] == "out" else ""
-    gain = (
-        f"projected {event['projection']:.1f} pts this week{role}; for your lineup "
-        f"{event['weekly_gain']:+.1f} this week, {event['season_gain']:+.1f} rest of season"
-    )
-    drop = f", drop {event['drop_name']}" if event["drop_name"] else ""
     return (
-        f"{event['candidate_name']} ({event['candidate_position']}, {event['candidate_team']}) is a "
-        f"{where}: {gain}{drop}. News: {event['headline']}"
+        f"{event['candidate_name']} ({event['candidate_position']}, {event['candidate_team']}), "
+        f"{where}: {event['projection']:.1f} pts projected, "
+        f"{event['weekly_gain']:+.1f} for your lineup. {event['headline']}"
     )
 
 
-# How to make the suggested move yourself: the one command, and the button.
-def claim_instructions(event):
+def _claim_command(event):
     on_waivers = event["candidate_availability"] == C.STATUS_WAIVERS
     command = f"python -m ffopt claim --add {event['candidate_id']}"
     if event["drop_id"]:
@@ -414,14 +414,141 @@ def claim_instructions(event):
         command += f" --bid {event['bid']:.0f}"
     if not on_waivers:
         command += " --free-agent"
-    how = "Waiver claim" if on_waivers else "Free agent: add him now, first come first served"
-    drop = f", dropping {event['drop_name']}" if event["drop_name"] else ""
-    bid = f", bid ${event['bid']:.0f}" if on_waivers and event["bid"] else ""
+    return command
+
+
+# The move in a few words: "Add X, drop Y, bid $12 (waiver claim)".
+def _move(event):
+    on_waivers = event["candidate_availability"] == C.STATUS_WAIVERS
+    text = f"Add {event['candidate_name']}"
+    if event["drop_name"]:
+        text += f", drop {event['drop_name']}"
+    if on_waivers:
+        text += f", bid ${event['bid']:.0f} (waiver claim)" if event["bid"] else " (waiver claim)"
+    else:
+        text += " (free agent: first come, first served)"
+    return text
+
+
+# How to make the suggested move yourself: the one command, and the button.
+def claim_instructions(event):
     lead = "Suggested claim" if event["action"] == "suggested" else "If you want him"
     return (
-        f"{lead}: {how}{drop}{bid}. Nothing has been done for you.\n"
-        f"From the project folder: {command}\n"
-        f"Or use Add on the News tab: http://127.0.0.1:8000"
+        f"{lead}: {_move(event)}. Nothing has been done for you.\n"
+        f"From the project folder: {_claim_command(event)}\n"
+        f"Or use Add on the News tab: {NEWS_TAB_URL}"
+    )
+
+
+# ------------------------------------------------------------ the email
+
+NEWS_TAB_URL = "http://127.0.0.1:8000"
+
+LABELS = {
+    "suggested": ("SUGGESTED CLAIM", "#1e7b34", "#e6f4ea"),
+    "alerted": ("WORTH A LOOK", "#8a5a00", "#fff4e0"),
+}
+
+
+def _availability(event):
+    return "Free agent" if event["candidate_availability"] == C.STATUS_FREEAGENT else "On waivers"
+
+
+def email_subject(events):
+    first = events[0]
+    lead = "Claim now" if first["action"] == "suggested" else "Pickup alert"
+    subject = f"{lead}: {first['candidate_name']} ({first['candidate_position']}, {first['candidate_team']})"
+    if len(events) > 1:
+        subject += f" + {len(events) - 1} more"
+    return subject
+
+
+def _summary(events):
+    suggested = sum(1 for e in events if e["action"] == "suggested")
+    looks = len(events) - suggested
+    parts = []
+    if suggested:
+        parts.append(f"{suggested} suggested claim{'s' if suggested > 1 else ''}")
+    if looks:
+        parts.append(f"{looks} worth a look")
+    return ", ".join(parts)
+
+
+def email_text(events):
+    lines = [f"PICKUP ALERT: {_summary(events)}", ""]
+    for event in events:
+        label = LABELS[event["action"]][0]
+        lines += [
+            label,
+            f"{event['candidate_name']} ({event['candidate_position']}, {event['candidate_team']}), "
+            f"{_availability(event).lower()}",
+            f"News: {event['headline']}",
+            f"Projected this week: {event['projection']:.1f} pts",
+            f"Your lineup: {event['weekly_gain']:+.1f} this week, "
+            f"{event['season_gain']:+.1f} rest of season",
+            f"Move: {_move(event)}",
+        ]
+        if event["note"]:
+            lines.append(f"Note: {event['note']}")
+        lines += [f"Command: {_claim_command(event)}", "", "-" * 40, ""]
+    lines += [
+        f"Open the News tab: {NEWS_TAB_URL}",
+        "Suggestions only. Nothing has been done for you.",
+    ]
+    return "\n".join(lines)
+
+
+def email_html(events):
+    esc = html_escape
+    font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
+    muted = "#5b6573"
+    cards = []
+    for event in events:
+        label, ink, fill = LABELS[event["action"]]
+        stats = "".join(
+            f'<td bgcolor="#f5f6f8" style="padding:8px 10px;background-color:#f5f6f8;border-radius:8px;width:33%;">'
+            f'<div style="font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:{muted};">{name}</div>'
+            f'<div style="font-size:18px;font-weight:600;color:#1b1f24;margin-top:2px;">{value}</div></td>'
+            for name, value in (
+                ("Projected pts", f"{event['projection']:.1f}"),
+                ("Lineup gain", f"{event['weekly_gain']:+.1f}"),
+                ("Season gain", f"{event['season_gain']:+.1f}"),
+            )
+        )
+        note = (
+            f'<p style="margin:12px 0 0;font-size:13px;line-height:1.45;color:{muted};">{esc(event["note"])}</p>'
+            if event["note"] else ""
+        )
+        cards.append(
+            f'<div style="background-color:#ffffff;border:1px solid #e3e6ea;border-radius:12px;padding:18px;margin:0 0 14px;">'
+            f'<span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;'
+            f'color:{ink};background-color:{fill};border-radius:999px;padding:3px 10px;">{label}</span>'
+            f'<div style="font-size:20px;font-weight:700;color:#1b1f24;margin:10px 0 2px;">{esc(event["candidate_name"])}</div>'
+            f'<div style="font-size:13px;color:{muted};">{esc(event["candidate_position"])} &middot; '
+            f'{esc(event["candidate_team"])} &middot; {_availability(event)}</div>'
+            f'<p style="margin:12px 0;font-size:14px;line-height:1.5;color:#1b1f24;">'
+            f'<b>News:</b> {esc(event["headline"])}</p>'
+            f'<table role="presentation" cellspacing="6" cellpadding="0" style="width:100%;margin:0 -6px;">'
+            f'<tr>{stats}</tr></table>'
+            f'<div style="margin-top:12px;padding:10px 12px;border-left:3px solid {ink};background-color:#f5f6f8;'
+            f'border-radius:0 8px 8px 0;font-size:14px;color:#1b1f24;"><b>Move:</b> {esc(_move(event))}</div>'
+            f"{note}"
+            f'<div style="margin-top:12px;font-family:Menlo,Consolas,monospace;font-size:12px;color:#1b1f24;'
+            f'background-color:#f0f2f5;border-radius:6px;padding:8px 10px;word-break:break-all;">'
+            f"{esc(_claim_command(event))}</div>"
+            f"</div>"
+        )
+    return (
+        f'<div style="background-color:#f5f6f8;padding:20px 12px;font-family:{font};">'
+        f'<div style="max-width:560px;margin:0 auto;">'
+        f'<div style="font-size:13px;color:{muted};margin:0 0 4px;">Fantasy news watcher</div>'
+        f'<div style="font-size:22px;font-weight:700;color:#1b1f24;margin:0 0 14px;">'
+        f"{esc(_summary(events)).capitalize()}</div>"
+        f'{"".join(cards)}'
+        f'<p style="font-size:13px;color:{muted};margin:6px 0 0;">'
+        f'<a href="{NEWS_TAB_URL}" style="color:#1f6fd0;">Open the News tab</a> to add with one click '
+        f"(it asks first). Suggestions only: nothing has been changed on your team.</p>"
+        f"</div></div>"
     )
 
 
@@ -632,19 +759,9 @@ class Scanner:
             verb = "Claim now" if event["action"] == "suggested" else "Pick up"
             notify_mac(f"{verb}: {event['candidate_name']}", describe(event))
 
-        sections = []
-        for event in events:
-            verb = "SUGGESTED CLAIM" if event["action"] == "suggested" else "WORTH A LOOK"
-            text = f"{verb}: {describe(event)}"
-            if event["note"]:
-                text += f"\n{event['note']}"
-            text += "\n" + claim_instructions(event)
-            sections.append(text)
-        first = events[0]
-        subject = f"Fantasy news: {first['candidate_name']}"
-        if len(events) > 1:
-            subject += f" and {len(events) - 1} more"
-        notify_email(self.email_to, subject, "\n\n".join(sections))
+        notify_email(
+            self.email_to, email_subject(events), email_text(events), email_html(events)
+        )
 
     def already_recorded(self, signal, candidate):
         return self.connection.execute(
