@@ -41,6 +41,31 @@ def roster_alerts(team):
     return alerts
 
 
+# Projection moves worth a line in the email: your players whose weekly
+# projection jumped or dropped, and rest-of-season risers and fallers among
+# your players and the available ones.
+def trend_summary(service, team, pool, week):
+    try:
+        from .projections.trends import ros_movers, weekly_movers
+
+        data = service.trends(week)
+    except Exception:
+        return None
+    if data is None:
+        return None
+    mine = {str(p.player_id) for p in team.roster}
+    available = {str(p.player_id) for p in pool}
+    my_weekly = weekly_movers(data, limit=5, only=mine)
+    my_ros = ros_movers(data, limit=5, only=mine)
+    free_ros = ros_movers(data, limit=5, only=available)
+    return {
+        "my_weekly_moves": my_weekly["risers"] + my_weekly["fallers"],
+        "my_ros_moves": my_ros["risers"] + my_ros["fallers"],
+        "available_ros_risers": free_ros["risers"],
+        "ros_days_of_history": my_ros["days_of_history"],
+    }
+
+
 def build_report(service, week=None, today=None):
     today = today or datetime.date.today()
     league = service.load_league(week)
@@ -64,6 +89,7 @@ def build_report(service, week=None, today=None):
     )
 
     value = value_report(team.roster, pool, limit=5)
+    trends = trend_summary(service, team, pool, league.week)
 
     return {
         "date": today.isoformat(),
@@ -110,6 +136,7 @@ def build_report(service, week=None, today=None):
                 for rec in pickups
             ],
         },
+        "trends": trends,
         "value": {
             "model_pickups": value["model_pickups"],
             "espn_behind": value["espn_behind"],

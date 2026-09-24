@@ -150,6 +150,26 @@ def rolling_features(games):
 # going into a week is the smoothed total after the defense's last game
 # before it, so it also works for a week not yet played.
 def defense_features(games):
+    allowed = defense_ratios(games)
+    games = (
+        games.with_columns((pl.col("season") * 100 + pl.col("week")).alias("when"))
+        .sort("when")
+        .join_asof(
+            allowed,
+            on="when",
+            by=["opponent_team", "position"],
+            strategy="backward",
+            allow_exact_matches=False,
+            check_sortedness=False,
+        )
+        .drop("when")
+    )
+    return games.sort(["player_id", "season", "week"])
+
+
+# Each defense's smoothed points-allowed ratio by position after each of its
+# games, keyed by when = season * 100 + week.
+def defense_ratios(games):
     allowed = (
         games.filter(pl.col("pts").is_not_null())
         .group_by(["opponent_team", "position", "season", "week"])
@@ -183,26 +203,20 @@ def defense_features(games):
         .select("opponent_team", "position", "when", "opp_allowed_ratio")
         .sort("when")
     )
-    games = (
-        games.with_columns((pl.col("season") * 100 + pl.col("week")).alias("when"))
-        .sort("when")
-        .join_asof(
-            allowed,
-            on="when",
-            by=["opponent_team", "position"],
-            strategy="backward",
-            allow_exact_matches=False,
-            check_sortedness=False,
-        )
-        .drop("when")
-    )
-    return games.sort(["player_id", "season", "week"])
+    return allowed
 
 
 # Vegas expectations for the player's team in this game: implied points,
 # spread, and whether it is at home. nflverse's spread_line is how many
 # points the home team is favored by.
 def game_features(games, schedules):
+    lines = team_game_lines(schedules).drop("opponent_team")
+    return games.join(lines, on=["season", "week", "team"], how="left")
+
+
+# One row per team per regular-season game: opponent, home or away, and the
+# Vegas implied total and spread (null until the lines are posted).
+def team_game_lines(schedules):
     lines = schedules.filter(pl.col("game_type") == "REG").select(
         pl.col("season").cast(pl.Int32),
         pl.col("week").cast(pl.Int32),
@@ -215,6 +229,7 @@ def game_features(games, schedules):
         "season",
         "week",
         pl.col("home_team").alias("team"),
+        pl.col("away_team").alias("opponent_team"),
         (pl.col("total_line") / 2 + pl.col("spread_line") / 2).alias("implied_total"),
         pl.col("spread_line").alias("team_spread"),
         pl.lit(1).alias("is_home"),
@@ -223,11 +238,12 @@ def game_features(games, schedules):
         "season",
         "week",
         pl.col("away_team").alias("team"),
+        pl.col("home_team").alias("opponent_team"),
         (pl.col("total_line") / 2 - pl.col("spread_line") / 2).alias("implied_total"),
         (-pl.col("spread_line")).alias("team_spread"),
         pl.lit(0).alias("is_home"),
     )
-    return games.join(pl.concat([home, away]), on=["season", "week", "team"], how="left")
+    return pl.concat([home, away])
 
 
 # Game status as a number: how likely the report says he is to miss.

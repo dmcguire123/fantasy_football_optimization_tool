@@ -114,6 +114,8 @@ class Player:
     # games means unknown.
     ros_points: float = 0.0
     ros_games: int = 0
+    # Each source's rest-of-season total, keyed like source_points.
+    ros_source_points: dict = field(default_factory=dict)
 
     # A player on bye or ruled out contributes nothing this week.
     @property
@@ -172,6 +174,7 @@ class Player:
             "espn_projected_points": round(self.espn_projected_points, 2),
             "ros_points": round(self.ros_points, 2),
             "ros_games": self.ros_games,
+            "ros_source_points": {k: round(v, 1) for k, v in self.ros_source_points.items()},
             "percent_owned": round(self.percent_owned, 1),
             "percent_started": round(self.percent_started, 1),
             "availability": self.availability,

@@ -79,6 +79,8 @@ class ProjectionSet:
         # How far to nudge the experts' blend toward our model, by position.
         # Zero until a backtest has shown the model helps there.
         self.model_weights = {}
+        # Players whose blend has been archived from this set already.
+        self.blend_archived = set()
         # FantasyPros ids already added, this week and rest of season, so a
         # player fetched twice is never counted twice.
         self.fantasypros_seen = {"weekly": set(), "ros": set()}
@@ -189,9 +191,11 @@ class ProjectionService:
         if connection:
             self._load_cached_fantasypros(connection, projection_set)
 
-        # Our own model, when switched on and its libraries are installed.
+        # Our own model, when switched on and its libraries are installed:
+        # this week, and every remaining week.
+        model_ros_rows = []
         if self.settings.use_model:
-            model_rows = self._model_rows(season, week, scoring)
+            model_rows, model_ros_rows = self._model_rows(season, week, final_week, scoring)
             if model_rows:
                 projection_set.sources.add("model")
                 projection_set.model_weights = self._model_weights()
@@ -200,13 +204,19 @@ class ProjectionService:
                         projection_set.weekly, "model", row["espn_id"], row["name"],
                         row["position"], row["team"], row["points"],
                     )
-                if connection:
-                    store.save_pull(connection, season, week, "model", model_rows, fetched_at)
+            for row in model_ros_rows:
+                projection_set.add(
+                    projection_set.ros, "model", row["espn_id"], row["name"],
+                    row["position"], row["team"], row["points"],
+                )
+            if connection:
+                store.save_pull(connection, season, week, "model", model_rows, fetched_at)
 
         # Rest of season: Sleeper projects every remaining week, so add them
-        # up. FantasyPros gives a rest-of-season total directly.
+        # up. Each player's total is also kept for the archive.
         weeks = list(range(week, max(week, final_week) + 1))
         projection_set.ros_weeks = len(weeks)
+        sleeper_ros = {}
         for future_week in weeks:
             rows = sleeper_rows if future_week == week else fetch_sleeper(
                 season, future_week, http=self.http
@@ -216,8 +226,11 @@ class ProjectionService:
                     projection_set.ros, "sleeper", row["espn_id"], row["name"],
                     row["position"], row["team"], row["points"],
                 )
+                total = sleeper_ros.setdefault(row["source_id"], {**row, "points": 0.0})
+                total["points"] += row["points"]
 
         # ESPN's remaining weeks, rescored with the league's rules.
+        espn_ros = []
         for espn_id, (position, weeks_by_number) in fetch_espn_weekly(
             season, http=self.http
         ).items():
@@ -227,6 +240,19 @@ class ProjectionService:
                 if stats:
                     total += scoring.score(stats, position)
             projection_set.ros.setdefault(("espn", espn_id), {})["espn"] = total
+            espn_ros.append(
+                {"source_id": espn_id, "espn_id": espn_id, "position": position,
+                 "points": total, "stats": {}}
+            )
+
+        # Every source's rest-of-season total goes to the archive, so the
+        # trends view can show how it moves from week to week.
+        if connection:
+            store.save_pull(connection, season, week, "espn_ros", espn_ros, fetched_at)
+            store.save_pull(
+                connection, season, week, "sleeper_ros", list(sleeper_ros.values()), fetched_at
+            )
+            store.save_pull(connection, season, week, "model_ros", model_ros_rows, fetched_at)
 
         if connection:
             connection.close()
@@ -314,28 +340,34 @@ class ProjectionService:
         return len(weekly)
 
     # The model's predictions for a week, as archive rows keyed to ESPN ids.
-    def _model_rows(self, season, week, scoring):
+    # The model's predictions as archive rows keyed to ESPN ids: this week,
+    # and the rest-of-season total.
+    def _model_rows(self, season, week, final_week, scoring):
         try:
-            from .model import predict_week
+            from .model import predict
 
-            predictions = predict_week(season, week, scoring)
+            weekly, ros = predict(season, week, scoring, final_week=final_week)
         except Exception as error:
             log.warning("model projections unavailable: %s", error)
-            return []
-        rows = []
-        for record in predictions.iter_rows(named=True):
-            rows.append(
-                {
-                    "source_id": record["player_id"],
-                    "espn_id": self.ids().espn_id("gsis_id", record["player_id"]),
-                    "name": record["name"],
-                    "position": record["position"],
-                    "team": espn_team(record["team"]),
-                    "points": float(record["model"]),
-                    "stats": {},
-                }
-            )
-        return rows
+            return [], []
+
+        def rows(frame):
+            out = []
+            for record in frame.iter_rows(named=True):
+                out.append(
+                    {
+                        "source_id": record["player_id"],
+                        "espn_id": self.ids().espn_id("gsis_id", record["player_id"]),
+                        "name": record["name"],
+                        "position": record["position"],
+                        "team": espn_team(record["team"]),
+                        "points": float(record["model"]),
+                        "stats": {"games": record["games"]} if "games" in record else {},
+                    }
+                )
+            return out
+
+        return rows(weekly), rows(ros)
 
     # The model's weight by position, from the last backtest run.
     def _model_weights(self):
@@ -343,6 +375,35 @@ class ProjectionService:
 
         results = load_results() or {}
         return results.get("weights") or {}
+
+    # Save the blend each player ended up with (this week and rest of
+    # season) to the archive, once per player per projection set, so the
+    # trends view can show how it moved.
+    def archive_blend(self, projection_set, players):
+        weekly = []
+        ros = []
+        for player in players:
+            key = str(player.player_id)
+            if key in projection_set.blend_archived or len(player.source_points) < 2:
+                continue
+            projection_set.blend_archived.add(key)
+            row = {"source_id": key, "espn_id": key, "name": player.name,
+                   "position": player.position, "team": player.pro_team, "stats": {}}
+            weekly.append({**row, "points": player.consensus_points})
+            if player.ros_games:
+                ros.append({**row, "points": player.ros_points,
+                            "stats": {"games": player.ros_games}})
+        if not weekly:
+            return 0
+        connection = store.open_db(self.db_path)
+        try:
+            store.save_pull(connection, projection_set.season, projection_set.week,
+                            "consensus", weekly)
+            store.save_pull(connection, projection_set.season, projection_set.week,
+                            "consensus_ros", ros)
+        finally:
+            connection.close()
+        return len(weekly)
 
     # Save ESPN's own projections for a week to the archive, so it can be
     # graded next to the other sources later.
@@ -407,8 +468,12 @@ def apply(players, projection_set, use_consensus=True):
         if player.ros_games:
             ros["espn"] = player.ros_points
         ros.update(projection_set.ros_for(player))
-        if use_consensus and ros:
-            ros_mean, _ = blend(projected_only(ros))
+        player.ros_source_points = ros
+        # The model's rest-of-season total is shown but not blended: it has
+        # not been backtested.
+        ros_experts = {s: v for s, v in ros.items() if s != "model"}
+        if use_consensus and ros_experts:
+            ros_mean, _ = blend(projected_only(ros_experts))
             player.ros_points = ros_mean
             if not player.ros_games:
                 player.ros_games = projection_set.ros_weeks

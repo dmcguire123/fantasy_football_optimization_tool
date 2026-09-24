@@ -232,6 +232,33 @@ python -m ffopt value              # or the Value tab in the browser app
   often leaves a backup at 0.0 for a week after he takes over a starting job.
 - **Your players the model is worried about**, and the ones it likes.
 
+### Trends
+
+```bash
+python -m ffopt trends                     # risers and fallers
+python -m ffopt trends --player "Wan'Dale" # one player, week by week and by source
+```
+
+The **Trends** tab in the browser app shows the same data, with a chart of
+each player's projections against what he actually scored.
+
+- **Weekly:** each week's projection from ESPN, Sleeper, FantasyPros, our
+  model, and the blend, next to the actual score. ESPN's and Sleeper's past
+  weeks come from their own feeds, so this covers the whole season. The
+  others begin when the app started archiving. Weekly movers are players
+  whose projection this week sits 3+ points off their earlier weeks: a new
+  role, a return from injury, a benching.
+- **Rest of season:** each source's ROS total, one point per day it was
+  pulled. Nobody publishes old ROS numbers, so this history starts with the
+  app's first archived pull and grows every day the morning email or the
+  web app runs. ROS movers compare today to a pull at least five days old.
+
+Our model now projects the rest of the season too. It takes each player's
+current features and pairs them with every remaining game: opponent, home
+or away, and the Vegas line where one is posted, or the team's average so
+far where it isn't. It's shown next to the other sources but kept out of
+the ROS blend, because only its weekly numbers have been backtested.
+
 ### Running it every week
 
 ```bash
@@ -256,8 +283,8 @@ to go back to ESPN's numbers alone.
 
 Every morning at 7:30 you can get a short email: what to do today (lineup
 fixes, injured or bye-week starters, waiver claims on Monday and Tuesday),
-your matchup and win probability, the best pickups and value plays, and any
-roster alerts.
+your matchup and win probability, the best pickups and value plays, roster
+alerts, and the biggest projection movers.
 
 How it works:
 1. `python -m ffopt report` gathers everything as JSON. It only reads.
@@ -301,6 +328,7 @@ python -m ffopt projections          # every projection source, side by side
 python -m ffopt value                # undervalued players this week
 python -m ffopt backtest             # grade the sources and our model on 2018-2025
 python -m ffopt report               # today's report as JSON (feeds the morning email)
+python -m ffopt trends               # projection risers and fallers; --player NAME for one
 python -m ffopt serve                # run the browser app
 ```
 
