@@ -790,6 +790,7 @@ async function renderNews() {
     const where = e.candidate_availability === "FREEAGENT" ? "Free agent" : "On waivers";
     const badge = e.action === "suggested" ? el("span", { class: "good" }, "Suggested claim")
       : e.action === "alerted" ? el("span", { class: "warn" }, "Worth a look")
+      : e.action === "watch" ? el("span", { class: "muted" }, "Stash / block (no alert)")
       : el("span", { class: "muted" }, "Too small to alert");
     return el("div", { class: "card" }, [
       el("div", { class: "row", style: "justify-content:space-between" }, [
@@ -823,6 +824,7 @@ async function renderNews() {
       el("h2", {}, "Breaking news"),
       el("div", { class: "muted", style: "margin-bottom:10px" },
         `Watches ESPN/Rotowire player news, injury statuses, and Sleeper add rushes for openings on players free in your league. ` +
+        `You're emailed only when a move helps your lineup; stash-or-block players are listed here. ` +
         `Last scan: ${lastScan}. Nothing is claimed for you.`),
       el("div", { class: "row" }, [scanButton, toggle]),
       result,
