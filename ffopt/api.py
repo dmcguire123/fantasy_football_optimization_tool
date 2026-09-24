@@ -305,6 +305,178 @@ def read_free_agents(
     }
 
 
+@app.get("/api/projections/value")
+def read_projection_value(
+    week: int | None = None,
+    pool_size: int = Query(300, ge=10, le=500),
+    limit: int = Query(15, ge=1, le=50),
+):
+    """Players our model or the other sources rate above the experts or ESPN."""
+    from .projections.value import value_report
+
+    service = get_service()
+    league = service.load_league(week)
+    team = resolve_my_team(service, week)
+    pool = service.free_agents(week=league.week, limit=pool_size)
+    report = value_report(team.roster, pool, limit=limit)
+    report["week"] = league.week
+    report["projection_source"] = service.settings.projection_source
+    return report
+
+
+@app.get("/api/projections/trends")
+def read_projection_trends(week: int | None = None, limit: int = Query(10, ge=1, le=50)):
+    """Weekly and rest-of-season projection risers and fallers."""
+    from .projections.trends import ros_movers, weekly_movers
+
+    service = get_service()
+    data = service.trends(week)
+    if data is None:
+        raise HTTPException(400, "Trends need FFOPT_PROJECTIONS=consensus.")
+    team = resolve_my_team(service, week)
+    mine = {str(p.player_id) for p in team.roster}
+    players = [
+        {"player_id": pid, "name": info.get("name"), "position": info.get("position"),
+         "team": info.get("team"), "mine": pid in mine}
+        for pid, info in data.players.items()
+        if info.get("name") and data.week in data.weekly.get(pid, {})
+    ]
+    players.sort(key=lambda p: (not p["mine"], p["name"]))
+    return {
+        "week": data.week,
+        "weekly": weekly_movers(data, limit=limit),
+        "ros": ros_movers(data, limit=limit),
+        "my_team": {
+            "weekly": weekly_movers(data, limit=limit, only=mine),
+            "ros": ros_movers(data, limit=limit, only=mine),
+        },
+        "players": players,
+    }
+
+
+@app.get("/api/projections/trends/{player_id}")
+def read_player_trend(player_id: str, week: int | None = None):
+    """One player's projections by source, week by week, and rest of season by day."""
+    service = get_service()
+    data = service.trends(week)
+    if data is None:
+        raise HTTPException(400, "Trends need FFOPT_PROJECTIONS=consensus.")
+    if player_id not in data.weekly and player_id not in data.ros:
+        raise HTTPException(404, "No projection history for that player.")
+    return {"week": data.week, **data.player(player_id)}
+
+
+@app.get("/api/dashboard/season")
+def read_dashboard_season(team_id: int | None = None):
+    """Your season week by week: each opponent, both projected totals, results so far."""
+    from . import dashboard
+
+    service = get_service()
+    league = service.load_league()
+    team = league.team_by_id(team_id) if team_id else resolve_my_team(service)
+    if not team:
+        raise HTTPException(404, "No such team.")
+    projector = service.projector()
+    return {
+        "current_week": league.week,
+        "final_week": league.settings.final_week,
+        "team": {"team_id": team.team_id, "name": team.name, "record": team.record},
+        "teams": [{"team_id": t.team_id, "name": t.name} for t in league.teams],
+        "weeks": dashboard.season_schedule(league, team, projector),
+    }
+
+
+@app.get("/api/dashboard/matchup")
+def read_dashboard_matchup(week: int | None = None, team_id: int | None = None):
+    """Both teams' best lineups and projected totals for any week."""
+    from . import dashboard
+
+    service = get_service()
+    league = service.load_league()
+    team = league.team_by_id(team_id) if team_id else resolve_my_team(service)
+    if not team:
+        raise HTTPException(404, "No such team.")
+    week = week or league.week
+    if week < league.week or week > league.settings.final_week:
+        raise HTTPException(400, f"Pick a week from {league.week} to {league.settings.final_week}.")
+    return dashboard.matchup(league, team, service.projector(), week)
+
+
+@app.get("/api/players/search")
+def search_players(q: str = Query("", max_length=60), limit: int = Query(20, ge=1, le=100)):
+    """Players on any roster or among the most-owned free agents, by name."""
+    service = get_service()
+    wanted = q.strip().lower()
+    matches = []
+    for player, owner in service.player_pool().values():
+        if wanted and wanted not in player.name.lower():
+            continue
+        matches.append({
+            "player_id": player.player_id, "name": player.name, "position": player.position,
+            "pro_team": player.pro_team, "owner": owner,
+            "projection": round(player.effective_projection, 1),
+            "ros_points": round(player.ros_points, 1),
+        })
+    matches.sort(key=lambda m: -m["ros_points"])
+    return {"players": matches[:limit]}
+
+
+@app.get("/api/players/{player_id}/outlook")
+def read_player_outlook(player_id: int):
+    """One player's past weeks, every remaining week by source, and rest of season."""
+    from . import dashboard
+
+    service = get_service()
+    league = service.load_league()
+    entry = service.player_pool().get(player_id)
+    if not entry:
+        raise HTTPException(404, "That player isn't rostered or among the top free agents.")
+    player, owner = entry
+    trend_history = None
+    try:
+        data = service.trends()
+        if data is not None:
+            trend_history = data.player(player_id)
+    except Exception:
+        trend_history = None
+    return dashboard.player_outlook(
+        player, service.projector(), league.settings.final_week, trend_history, owner
+    )
+
+
+@app.get("/api/news/events")
+def read_news_events(include_small: bool = False, limit: int = Query(50, ge=1, le=500)):
+    """Openings found by the news watcher, newest first. Nothing here is claimed."""
+    from . import news
+
+    connection = news.open_db()
+    try:
+        events = news.recent_events(connection, limit=500)
+        last_scan = connection.execute("SELECT MAX(updated_at) FROM player_state").fetchone()[0]
+    finally:
+        connection.close()
+    if not include_small:
+        events = [e for e in events if e["action"] != "none"]
+    for event in events:
+        event["instructions"] = news.claim_instructions(event)
+    return {"last_scan": last_scan, "events": events[:limit]}
+
+
+@app.post("/api/news/scan")
+def run_news_scan():
+    """Scan for breaking news now, without a notification or email."""
+    from . import news
+
+    service = get_service()
+    connection = news.open_db()
+    try:
+        result = news.Scanner(service, connection, notify=False).run()
+    finally:
+        connection.close()
+    return {"scanned": result["scanned"], "signals": result["signals"],
+            "new_openings": len(result["events"])}
+
+
 @app.get("/api/waivers/recommendations")
 def read_waiver_recommendations(
     week: int | None = None,

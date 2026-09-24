@@ -49,6 +49,37 @@
   }
   .card h2 { margin: 0 0 12px; font-size: 16px; }
   .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  /* Trend chart. Series colors follow a validated categorical order
+     (blend, actual, ESPN, model); dark steps are chosen for the dark panel. */
+  .viz-root {
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --grid: #2a323d;
+  }
+  @media (prefers-color-scheme: light) {
+    .viz-root {
+      --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+      --grid: #e3e8ee;
+    }
+  }
+  .viz-root svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .viz-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 6px 0 10px; }
+  .viz-legend .key { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
+  .viz-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+  .viz-tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--text); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  .viz-tip .row { display: flex; gap: 8px; justify-content: space-between; }
+  .clickable { cursor: pointer; }
+  .player-link { color: var(--text); text-decoration: none; }
+  .player-link:hover { text-decoration: underline; color: var(--accent); }
+  .matchup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .matchup-grid { grid-template-columns: 1fr; } }
+  .week-row.selected { background: var(--panel-2); }
+  .winbar { display: inline-block; width: 70px; height: 6px; border-radius: 3px; background: var(--line);
+    vertical-align: middle; margin-left: 6px; overflow: hidden; }
+  .winbar span { display: block; height: 100%; background: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+  .chip { background: var(--panel-2); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
+  .chip b { color: var(--text); font-weight: 600; }
   .stat { flex: 1 1 150px; background: var(--panel-2); border-radius: var(--radius); padding: 12px; }
   .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
   .stat .value { font-size: 22px; font-weight: 600; margin-top: 4px; }
@@ -203,7 +234,12 @@
     <div class="sub" id="league-sub">Loading league…</div>
     <nav>
       <button data-tab="team" class="active">My Team</button>
+      <button data-tab="season">Season</button>
+      <button data-tab="players">Players</button>
       <button data-tab="waivers">Waiver Wire</button>
+      <button data-tab="news">News</button>
+      <button data-tab="value">Value</button>
+      <button data-tab="trends">Trends</button>
       <button data-tab="scout">Scout Opponent</button>
       <button data-tab="league">League</button>
       <button data-tab="history">History</button>
@@ -215,7 +251,12 @@
   <div id="global-error" class="notice err hidden"></div>
 
   <section id="tab-team"></section>
+  <section id="tab-season" class="hidden"></section>
+  <section id="tab-players" class="hidden"></section>
   <section id="tab-waivers" class="hidden"></section>
+  <section id="tab-news" class="hidden"></section>
+  <section id="tab-value" class="hidden"></section>
+  <section id="tab-trends" class="hidden"></section>
   <section id="tab-scout" class="hidden"></section>
   <section id="tab-league" class="hidden"></section>
   <section id="tab-history" class="hidden"></section>
@@ -284,6 +325,26 @@ function statusLabel(player) {
   return el("span", { class: "muted" }, "—");
 }
 
+// A projection cell. With the multi-source consensus on, the number is the
+// blend; hover shows each source, and a small note flags where the blend
+// has moved well away from ESPN's own number.
+const SOURCE_NAMES = { espn: "ESPN", sleeper: "Sleeper", fantasypros: "FantasyPros" };
+
+function projCell(player, value) {
+  const shown = value != null ? value : player.projected_points;
+  const sources = player.source_points || {};
+  const names = Object.keys(sources);
+  if (names.length < 2) return el("td", { class: "num" }, fmt(shown, 1));
+
+  const title = names.map(s => `${SOURCE_NAMES[s] || s} ${fmt(sources[s], 1)}`).join(" · ");
+  const gap = player.consensus_points - player.espn_projected_points;
+  const note = Math.abs(gap) >= 2
+    ? el("span", { class: "muted", style: "font-size:11px;margin-left:4px" },
+        `ESPN ${fmt(player.espn_projected_points, 1)}`)
+    : "";
+  return el("td", { class: "num", title }, [fmt(shown, 1), note]);
+}
+
 function table(headers, rows) {
   return el("table", {}, [
     el("thead", {}, el("tr", {}, headers.map(h =>
@@ -350,7 +411,7 @@ async function renderTeam() {
       el("td", {}, player ? player.name : el("span", { class: "muted" }, "(empty)")),
       el("td", { class: "hide-sm" }, player ? player.pro_team : "-"),
       el("td", {}, player ? statusLabel(player) : ""),
-      el("td", { class: "num" }, player ? fmt(player.effective_projection, 1) : "0.0"),
+      player ? projCell(player, player.effective_projection) : el("td", { class: "num" }, "0.0"),
     ]);
   });
 
@@ -376,7 +437,8 @@ async function renderTeam() {
       el("td", { class: "hide-sm" }, player.position),
       el("td", { class: "hide-sm" }, player.pro_team),
       el("td", {}, statusLabel(player)),
-      el("td", { class: "num" }, fmt(player.projected_points, 1)),
+      projCell(player),
+      el("td", { class: "num hide-sm" }, fmt(player.ros_points || player.season_projected_points, 1)),
       el("td", { class: "num hide-sm" }, fmt(player.season_actual_points, 1)),
     ]));
 
@@ -404,7 +466,8 @@ async function renderTeam() {
       el("h2", {}, "Full roster"),
       table([
         "Slot", "Player", { label: "Pos", hide: true }, { label: "Team", hide: true },
-        "Status", { label: "Proj", num: true }, { label: "Season", num: true, hide: true },
+        "Status", { label: "Proj", num: true }, { label: "ROS", num: true, hide: true },
+        { label: "Season", num: true, hide: true },
       ], rosterRows),
     ]),
   );
@@ -563,7 +626,7 @@ async function renderWaiverRosters(pane) {
         el("td", { class: "hide-sm" }, p.position),
         el("td", { class: "hide-sm" }, p.pro_team),
         el("td", {}, statusLabel(p)),
-        el("td", { class: "num" }, fmt(p.projected_points, 1)),
+        projCell(p),
       ]));
     detail.innerHTML = "";
     detail.append(el("div", { class: "card" }, [
@@ -684,6 +747,9 @@ async function renderWaiverTargets(pane) {
       el("td", { class: "num" }, usesFaab && onWaivers ? `${fmt(t.bid_percent, 1)}%` : "—"),
       el("td", {}, usesFaab && onWaivers ? bidInput : el("span", { class: "muted" }, "no bid")),
       el("td", { class: "hide-sm" }, [el("div", {}, t.reasoning),
+        t.move_type === "stream" ? el("div", { class: "warn", style: "font-size:12px" },
+          `Stream: ${signed(t.season_gain, 1)} rest of season` +
+          (t.alternative_drop ? ` (or drop ${t.alternative_drop.name}: ${signed(t.alternative_season_gain, 1)})` : "")) : null,
         t.risk ? el("div", { class: "warn", style: "font-size:12px" }, "Risk: " + t.risk) : null,
         el("div", { class: "muted", style: "font-size:12px" }, t.bid_reasons.join(" "))]),
       el("td", {}, dropSelect),
@@ -760,6 +826,632 @@ async function submitClaim(player, dropSelect, bidInput, usesFaab) {
   }
 }
 
+// ---------- News tab ----------
+
+// Openings the news watcher found. Nothing is ever claimed for you: the Add
+// button shows exactly what it will send to ESPN and asks first.
+async function claimFromNews(event, box) {
+  box.innerHTML = "";
+  if (!state.config.can_write) {
+    box.append(el("div", { class: "notice err" },
+      "Read-only: set ESPN_SWID, ESPN_S2 and ESPN_TEAM_ID in .env to submit claims."));
+    return;
+  }
+  const isWaiver = event.candidate_availability === "WAIVERS";
+  const lines = [`Add: ${event.candidate_name}${isWaiver ? "" : " (free agent, added immediately)"}`];
+  if (event.drop_name) lines.push(`Drop: ${event.drop_name}`);
+  if (isWaiver && event.bid) lines.push(`Bid: $${Math.round(event.bid)}`);
+  if (!confirm(`${isWaiver ? "Submit this waiver claim to ESPN?" : "Add this free agent on ESPN now?"}\n\n${lines.join("\n")}`)) return;
+  try {
+    const result = await api("/api/waivers/claim", {
+      method: "POST",
+      body: JSON.stringify({
+        add_player_id: event.candidate_id,
+        drop_player_id: event.drop_id,
+        bid_amount: isWaiver ? Math.round(event.bid || 0) : null,
+        is_waiver: isWaiver,
+        dry_run: false,
+      }),
+    });
+    box.append(el("div", { class: "notice ok" },
+      result.submitted ? `${isWaiver ? "Claim submitted for" : "Added"} ${event.candidate_name}.` : "Not submitted."));
+  } catch (error) {
+    box.append(el("div", { class: "notice err" }, error.message));
+  }
+}
+
+async function renderNews() {
+  const target = document.getElementById("tab-news");
+  target.innerHTML = "<div class='card muted'>Loading news…</div>";
+  const showAll = !!state.newsShowAll;
+  const data = await api(`/api/news/events?include_small=${showAll}`);
+  const result = el("div", { id: "news-result" });
+
+  const scanButton = el("button", { class: "action small", onclick: async () => {
+    scanButton.disabled = true; scanButton.textContent = "Scanning…";
+    try {
+      const r = await api("/api/news/scan", { method: "POST" });
+      result.innerHTML = "";
+      result.append(el("div", { class: "notice ok" },
+        `Scanned ${r.scanned} players: ${r.signals} news item(s), ${r.new_openings} new opening(s).`));
+      loaded.news = false; await renderNews();
+    } catch (error) {
+      result.append(el("div", { class: "notice err" }, error.message));
+    } finally { scanButton.disabled = false; scanButton.textContent = "Scan now"; }
+  } }, "Scan now");
+  const toggle = el("button", { class: "small", onclick: () => {
+    state.newsShowAll = !showAll; renderNews();
+  } }, showAll ? "Only alerts" : "Show everything");
+
+  const lastScan = data.last_scan
+    ? new Date(data.last_scan * 1000).toLocaleString() : "never";
+  const cards = data.events.map(e => {
+    const box = el("div");
+    const where = e.candidate_availability === "FREEAGENT" ? "Free agent" : "On waivers";
+    const badge = e.action === "suggested" ? el("span", { class: "good" }, "Suggested claim")
+      : e.action === "alerted" ? el("span", { class: "warn" }, "Worth a look")
+      : e.action === "watch" ? el("span", { class: "muted" }, "Stash / block (no alert)")
+      : el("span", { class: "muted" }, "Too small to alert");
+    return el("div", { class: "card" }, [
+      el("div", { class: "row", style: "justify-content:space-between" }, [
+        el("h2", { style: "margin:0" }, `${e.candidate_name} · ${e.candidate_position} ${e.candidate_team}`),
+        badge,
+      ]),
+      el("div", { class: "muted", style: "margin:4px 0 10px" },
+        `${new Date(e.detected_at * 1000).toLocaleString()} · ${where} · news about ${e.subject_name}`),
+      el("div", { style: "margin-bottom:10px" }, e.headline),
+      el("div", { class: "row" }, [
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Projected in new role"),
+          el("div", { class: "value" }, fmt(e.projection, 1))]),
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Your lineup, this week"),
+          el("div", { class: "value" }, signed(e.weekly_gain, 1))]),
+        el("div", { class: "stat" }, [el("div", { class: "label" }, "Rest of season"),
+          el("div", { class: "value" }, signed(e.season_gain, 1))]),
+      ]),
+      e.note ? el("div", { class: "muted", style: "margin-top:10px" }, e.note) : "",
+      el("div", { class: "row", style: "margin-top:12px" }, [
+        el("button", { class: "action small", onclick: () => claimFromNews(e, box) },
+          e.candidate_availability === "FREEAGENT" ? "Add now" : "Claim"),
+        el("span", { class: "muted" }, e.drop_name ? `drops ${e.drop_name}` : "no drop needed"),
+      ]),
+      box,
+    ]);
+  });
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, "Breaking news"),
+      el("div", { class: "muted", style: "margin-bottom:10px" },
+        `Watches ESPN/Rotowire player news, injury statuses, and Sleeper add rushes for openings on players free in your league. ` +
+        `You're emailed only when a move helps your lineup; stash-or-block players are listed here. ` +
+        `Last scan: ${lastScan}. Nothing is claimed for you.`),
+      el("div", { class: "row" }, [scanButton, toggle]),
+      result,
+    ]),
+    ...(cards.length ? cards : [el("div", { class: "card muted" }, "No openings yet.")]),
+  );
+}
+
+// ---------- Value tab ----------
+
+// Undervalued players: where our model disagrees with the experts (sized
+// as expected points of edge from the backtest), and where the other
+// sources rate a player well above ESPN, which the rest of the league sees.
+async function renderValue() {
+  const target = document.getElementById("tab-value");
+  target.innerHTML = "<div class='card muted'>Loading projections…</div>";
+  const data = await api("/api/projections/value");
+
+  const edgeRows = lines => lines.map(row => el("tr", {}, [
+    el("td", {}, row.name),
+    el("td", {}, el("span", { class: "pos" }, row.position)),
+    el("td", { class: "hide-sm" }, row.pro_team),
+    el("td", { class: "num" }, fmt(row.experts, 1)),
+    el("td", { class: "num" }, fmt(row.model, 1)),
+    el("td", { class: "num " + (row.expected_edge >= 0 ? "good" : "bad") }, signed(row.expected_edge, 1)),
+  ]));
+  const edgeHeaders = ["Player", "Pos", { label: "Team", hide: true },
+    { label: "Experts", num: true }, { label: "Model", num: true }, { label: "Edge", num: true }];
+
+  const espnRows = data.espn_behind.map(row => el("tr", {}, [
+    el("td", {}, row.name),
+    el("td", {}, el("span", { class: "pos" }, row.position)),
+    el("td", { class: "hide-sm" }, row.pro_team),
+    el("td", { class: "num" }, fmt(row.espn, 1)),
+    el("td", { class: "num" }, fmt(row.others, 1)),
+    el("td", { class: "num good" }, signed(row.gap_vs_espn, 1)),
+  ]));
+
+  const bt = data.backtest;
+  const note = bt.slopes && Object.keys(bt.slopes).length
+    ? `Edge is expected points above the experts' number. Backtested ${bt.seasons[0]}–${bt.seasons[bt.seasons.length - 1]}: ` +
+      `about ${fmt(100 * (bt.slopes.WR || 0), 0)}% of the model's disagreement came true.`
+    : "No backtest results yet. Run `python -m ffopt backtest` to size the model's edge.";
+
+  const card = (title, subtitle, headers, rows) => el("div", { class: "card" }, [
+    el("h2", {}, title),
+    el("div", { class: "muted", style: "margin-bottom:10px" }, subtitle),
+    rows.length ? table(headers, rows) : el("div", { class: "muted" }, "Nothing this week."),
+  ]);
+
+  target.innerHTML = "";
+  target.append(
+    card(`Week ${data.week}: pickups our model likes`, note, edgeHeaders, edgeRows(data.model_pickups)),
+    card("Pickups the other sources rate above ESPN",
+      "Your leaguemates see ESPN's number, so these are the easiest to get.",
+      ["Player", "Pos", { label: "Team", hide: true }, { label: "ESPN", num: true },
+        { label: "Others", num: true }, { label: "Gap", num: true }], espnRows),
+    card("Your players the model is worried about", "Consider benching or selling.",
+      edgeHeaders, edgeRows(data.roster_warnings)),
+    card("Your players the model likes", "Start with more confidence.",
+      edgeHeaders, edgeRows(data.roster_boosts)),
+  );
+}
+
+// ---------- Season tab ----------
+
+const dashState = { week: null, teamId: null };
+
+function winCell(probability) {
+  if (probability == null) return el("td", { class: "num muted" }, "–");
+  const pct = Math.round(probability * 100);
+  return el("td", { class: "num" }, [`${pct}%`,
+    el("span", { class: "winbar" }, el("span", { style: `width:${pct}%` }))]);
+}
+
+function lineupTable(side, week) {
+  const rows = side.starters.map(p => el("tr", {}, [
+    el("td", {}, el("span", { class: "pos" }, p.slot)),
+    el("td", {}, p.name
+      ? el("a", { href: "#", class: "player-link", onclick: e => { e.preventDefault(); openPlayer(p.player_id); } }, p.name)
+      : el("span", { class: "muted" }, "(empty)")),
+    el("td", { class: "hide-sm muted" }, p.game || ""),
+    el("td", {}, p.on_bye ? el("span", { class: "warn" }, "BYE")
+      : (p.injury_status && p.injury_status !== "Active" ? el("span", { class: "warn" }, p.injury_status) : "")),
+    p.name ? projCell({ ...p, projected_points: p.projection, source_points: p.sources,
+      consensus_points: p.projection, espn_projected_points: (p.sources || {}).espn ?? p.projection })
+      : el("td", { class: "num" }, "0.0"),
+  ]));
+  const bench = side.bench.map(p => el("tr", { class: "bench" }, [
+    el("td", {}, el("span", { class: "pos" }, p.slot)),
+    el("td", {}, el("a", { href: "#", class: "player-link", onclick: e => { e.preventDefault(); openPlayer(p.player_id); } }, p.name)),
+    el("td", { class: "hide-sm muted" }, p.game || ""),
+    el("td", {}, p.on_bye ? el("span", { class: "warn" }, "BYE") : ""),
+    el("td", { class: "num muted" }, fmt(p.projection, 1)),
+  ]));
+  return el("div", { class: "card" }, [
+    el("h2", {}, `${side.name} (${side.record})`),
+    el("div", { class: "row" }, [el("div", { class: "stat" }, [
+      el("div", { class: "label" }, `Week ${week} projection`),
+      el("div", { class: "value" }, fmt(side.total, 1)),
+    ])]),
+    table(["Slot", "Player", { label: "Game", hide: true }, "Status", { label: "Proj", num: true }],
+      rows.concat(bench)),
+  ]);
+}
+
+async function showMatchup(week, target) {
+  target.innerHTML = "<div class='card muted'>Loading matchup…</div>";
+  const teamParam = dashState.teamId ? `&team_id=${dashState.teamId}` : "";
+  const data = await api(`/api/dashboard/matchup?week=${week}${teamParam}`);
+  const note = data.is_current
+    ? "This week: every source blended, byes and injuries applied."
+    : "A future week: ESPN and Sleeper's projections for that week, byes applied, today's rosters.";
+  const header = el("div", { class: "card" }, [
+    el("h2", {}, data.opponent
+      ? `Week ${week}: ${data.mine.name} vs ${data.opponent.name}`
+      : `Week ${week}: no opponent scheduled`),
+    el("div", { class: "muted" }, note),
+    data.opponent ? el("div", { class: "row", style: "margin-top:12px" }, [
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "You"),
+        el("div", { class: "value" }, fmt(data.mine.total, 1))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "Them"),
+        el("div", { class: "value" }, fmt(data.opponent.total, 1))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "Win probability"),
+        el("div", { class: "value" }, `${Math.round(data.win_probability * 100)}%`)]),
+    ]) : "",
+  ]);
+  target.innerHTML = "";
+  target.append(header, el("div", { class: "matchup-grid" }, [
+    lineupTable(data.mine, week),
+    data.opponent ? lineupTable(data.opponent, week) : el("div"),
+  ]));
+}
+
+async function renderSeason() {
+  const target = document.getElementById("tab-season");
+  target.innerHTML = "<div class='card muted'>Loading season…</div>";
+  const teamParam = dashState.teamId ? `?team_id=${dashState.teamId}` : "";
+  const data = await api(`/api/dashboard/season${teamParam}`);
+  dashState.teamId = data.team.team_id;
+  if (!dashState.week) dashState.week = data.current_week;
+  const detail = el("div", { id: "matchup-detail" });
+
+  const teamSelect = el("select", {
+    onchange: e => { dashState.teamId = Number(e.target.value); dashState.week = null; renderSeason(); },
+  }, data.teams.map(t => el("option", {
+    value: t.team_id, selected: t.team_id === data.team.team_id ? "selected" : null }, t.name)));
+
+  const futureWeeks = data.weeks.filter(w => !w.played).map(w => w.week);
+  const weekSelect = el("select", {
+    onchange: e => { dashState.week = Number(e.target.value); highlight(); showMatchup(dashState.week, detail); },
+  }, futureWeeks.map(w => el("option", { value: w, selected: w === dashState.week ? "selected" : null },
+    `Week ${w}${w === data.current_week ? " (this week)" : ""}`)));
+
+  const rowsByWeek = {};
+  const rows = data.weeks.map(w => {
+    const result = w.played
+      ? el("span", { class: w.my_score > w.their_score ? "good" : "bad" },
+          `${w.my_score > w.their_score ? "W" : "L"} ${fmt(w.my_score, 1)}–${fmt(w.their_score, 1)}`)
+      : `${fmt(w.my_projection, 1)}–${fmt(w.their_projection, 1)}`;
+    const row = el("tr", {
+      class: "week-row" + (w.played ? "" : " clickable"),
+      onclick: w.played ? null : () => {
+        dashState.week = w.week; weekSelect.value = w.week; highlight(); showMatchup(w.week, detail);
+      },
+    }, [
+      el("td", {}, `Week ${w.week}`),
+      el("td", {}, w.opponent || el("span", { class: "muted" }, "—")),
+      el("td", { class: "num" }, result),
+      w.played ? el("td", { class: "num muted" }, "final") : winCell(w.win_probability),
+    ]);
+    rowsByWeek[w.week] = row;
+    return row;
+  });
+  function highlight() {
+    Object.entries(rowsByWeek).forEach(([week, row]) =>
+      row.classList.toggle("selected", Number(week) === dashState.week));
+  }
+
+  // Week over week: your score or projection against your opponent's.
+  const mine = {}, theirs = {};
+  data.weeks.forEach(w => {
+    mine[w.week] = w.played ? w.my_score : w.my_projection;
+    theirs[w.week] = w.played ? w.their_score : w.their_projection;
+  });
+  const chart = weeklyChart(data.weeks.map(w => w.week), [
+    { key: "mine", label: `${data.team.name} (scores, then projections)`, color: "var(--series-1)", values: mine },
+    { key: "theirs", label: "Opponent that week", color: "var(--series-2)", values: theirs },
+  ]);
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, `${data.team.name} (${data.team.record}): season`),
+      el("div", { class: "row", style: "gap:10px;margin-bottom:12px" }, [teamSelect, weekSelect]),
+      chart,
+      table(["Week", "Opponent", { label: "Score / projection", num: true }, { label: "Win", num: true }], rows),
+    ]),
+    detail,
+  );
+  highlight();
+  await showMatchup(dashState.week, detail);
+}
+
+// ---------- Players tab ----------
+
+async function openPlayer(playerId) {
+  await selectTab("players");
+  const detail = document.getElementById("player-detail");
+  if (detail) showPlayerOutlook(playerId, detail);
+}
+
+async function showPlayerOutlook(playerId, target) {
+  target.innerHTML = "<div class='card muted'>Loading player…</div>";
+  const data = await api(`/api/players/${playerId}/outlook`);
+
+  const pastBlend = r => r.consensus != null ? r.consensus : r.experts_blend;
+  const weeks = [...data.past.map(r => r.week), ...data.future.map(r => r.week)];
+  const projection = {}, actual = {}, espn = {}, model = {};
+  data.past.forEach(r => {
+    if (pastBlend(r) != null) projection[r.week] = pastBlend(r);
+    if (r.actual != null) actual[r.week] = r.actual;
+    if (r.espn != null) espn[r.week] = r.espn;
+    if (r.model != null) model[r.week] = r.model;
+  });
+  data.future.forEach(r => {
+    if (r.on_bye) return;
+    projection[r.week] = r.projection;
+    if (r.sources.espn != null) espn[r.week] = r.sources.espn;
+    if (r.sources.model != null) model[r.week] = r.sources.model;
+  });
+  const series = [
+    { key: "blend", label: "Projection (blend)", color: "var(--series-1)", values: projection },
+    { key: "actual", label: "Actual", color: "var(--series-2)", values: actual, dots: true },
+    { key: "espn", label: "ESPN", color: "var(--series-3)", values: espn },
+    { key: "model", label: "Our model", color: "var(--series-4)", values: model },
+  ].filter(s => Object.keys(s.values).length);
+
+  const cell = v => el("td", { class: "num" }, v == null ? "–" : fmt(v, 1));
+  const rows = [
+    ...data.past.map(r => el("tr", { class: "bench" }, [
+      el("td", {}, `Week ${r.week}`), el("td", { class: "hide-sm muted" }, "played"),
+      cell(r.espn), cell(r.sleeper), cell(r.fantasypros), cell(r.model), cell(pastBlend(r)), cell(r.actual),
+    ])),
+    ...data.future.map(r => el("tr", {}, [
+      el("td", {}, `Week ${r.week}`),
+      el("td", { class: "hide-sm" }, r.on_bye ? el("span", { class: "warn" }, "BYE") : r.game),
+      cell(r.sources.espn), cell(r.sources.sleeper), cell(r.sources.fantasypros), cell(r.sources.model),
+      el("td", { class: "num" }, el("b", {}, fmt(r.projection, 1))), cell(null),
+    ])),
+  ];
+
+  const names = { espn: "ESPN", sleeper: "Sleeper", fantasypros: "FantasyPros", model: "Our model" };
+  const chips = Object.entries(data.ros_sources).map(([s, v]) =>
+    el("span", { class: "chip" }, [`${names[s] || s} `, el("b", {}, fmt(v, 1))]));
+
+  target.innerHTML = "";
+  target.append(el("div", { class: "card" }, [
+    el("h2", {}, `${data.name} · ${data.position} ${data.pro_team}`),
+    el("div", { class: "muted" },
+      `${data.owner ? "Rostered by " + data.owner : "Available"} · ${fmt(data.percent_owned, 1)}% owned` +
+      (data.injury_status && data.injury_status !== "Active" ? ` · ${data.injury_status}` : "")),
+    el("div", { class: "row", style: "margin-top:12px" }, [
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "This week"),
+        el("div", { class: "value" }, fmt(data.future[0] ? data.future[0].projection : 0, 1))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, "Next week"),
+        el("div", { class: "value" }, fmt(data.future[1] ? data.future[1].projection : 0, 1))]),
+      el("div", { class: "stat" }, [el("div", { class: "label" }, `Rest of season (${data.ros_games} games)`),
+        el("div", { class: "value" }, fmt(data.ros_points, 1))]),
+    ]),
+    el("div", { class: "chips" }, [el("span", { class: "chip" }, "ROS by source:"), ...chips]),
+    weeks.length ? weeklyChart(weeks, series) : "",
+    table(["Week", { label: "Game", hide: true }, { label: "ESPN", num: true }, { label: "Sleeper", num: true },
+      { label: "FantasyPros", num: true }, { label: "Model", num: true }, { label: "Projection", num: true },
+      { label: "Actual", num: true }], rows),
+    el("div", { class: "muted", style: "margin-top:10px;font-size:12px" },
+      "Future weeks blend ESPN and Sleeper; FantasyPros only projects this week. Our model is shown but not blended past this week."),
+  ]));
+}
+
+async function renderPlayers() {
+  const target = document.getElementById("tab-players");
+  const results = el("div", {});
+  const detail = el("div", { id: "player-detail" });
+  const input = el("input", { placeholder: "Search players by name…", autocomplete: "off",
+    style: "padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);width:100%;max-width:420px" });
+
+  async function search(q) {
+    const data = await api(`/api/players/search?q=${encodeURIComponent(q)}&limit=25`);
+    const rows = data.players.map(p => el("tr", {
+      class: "clickable", onclick: () => showPlayerOutlook(p.player_id, detail),
+    }, [
+      el("td", {}, p.name),
+      el("td", {}, el("span", { class: "pos" }, p.position)),
+      el("td", { class: "hide-sm" }, p.pro_team),
+      el("td", { class: "hide-sm muted" }, p.owner || "Available"),
+      el("td", { class: "num" }, fmt(p.projection, 1)),
+      el("td", { class: "num" }, fmt(p.ros_points, 1)),
+    ]));
+    results.innerHTML = "";
+    results.append(rows.length
+      ? table(["Player", "Pos", { label: "Team", hide: true }, { label: "Owner", hide: true },
+          { label: "This week", num: true }, { label: "ROS", num: true }], rows)
+      : el("div", { class: "muted" }, "No players match."));
+  }
+  let timer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => search(input.value), 200);
+  });
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, "Players"),
+      el("div", { class: "muted", style: "margin-bottom:10px" },
+        "Every rostered player and the 300 most-owned free agents. Click one for his week-by-week outlook."),
+      input,
+      el("div", { style: "margin-top:12px" }, results),
+    ]),
+    detail,
+  );
+  await search("");
+}
+
+// ---------- Trends tab ----------
+
+// A line chart of weekly points: one line per series, markers for actual
+// scores, a crosshair that snaps to the week, and one tooltip listing every
+// series. `series` is [{key, label, color, values: {week: points}, dots}].
+function weeklyChart(weeks, series) {
+  const W = 900, H = 280, pad = { l: 36, r: 16, t: 12, b: 28 };
+  const ns = "http://www.w3.org/2000/svg";
+  const svgEl = (tag, attrs) => {
+    const node = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    return node;
+  };
+  const all = series.flatMap(s => weeks.map(w => s.values[w]).filter(v => v != null));
+  const top = Math.max(10, Math.ceil(Math.max(...all, 0) / 5) * 5);
+  const x = w => pad.l + (weeks.length === 1 ? (W - pad.l - pad.r) / 2
+    : (weeks.indexOf(w) / (weeks.length - 1)) * (W - pad.l - pad.r));
+  const y = v => pad.t + (1 - v / top) * (H - pad.t - pad.b);
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Weekly projections and actual points" });
+  for (let v = 0; v <= top; v += top / 5) {
+    svg.append(svgEl("line", { x1: pad.l, x2: W - pad.r, y1: y(v), y2: y(v),
+      stroke: "var(--grid)", "stroke-width": 1 }));
+    const label = svgEl("text", { x: pad.l - 6, y: y(v) + 4, "text-anchor": "end",
+      "font-size": 11, fill: "var(--muted)" });
+    label.textContent = Math.round(v);
+    svg.append(label);
+  }
+  weeks.forEach(w => {
+    const label = svgEl("text", { x: x(w), y: H - 8, "text-anchor": "middle",
+      "font-size": 11, fill: "var(--muted)" });
+    label.textContent = `Wk ${w}`;
+    svg.append(label);
+  });
+
+  for (const s of series) {
+    const points = weeks.filter(w => s.values[w] != null).map(w => [x(w), y(s.values[w])]);
+    // A week with no value (a bye) breaks the line rather than bridging it.
+    if (!s.dots) {
+      let run = [];
+      const flush = () => {
+        if (run.length > 1) {
+          svg.append(svgEl("polyline", { points: run.map(p => p.join(",")).join(" "),
+            fill: "none", stroke: s.color, "stroke-width": 2,
+            "stroke-linejoin": "round", "stroke-linecap": "round" }));
+        }
+        run = [];
+      };
+      weeks.forEach(w => s.values[w] == null ? flush() : run.push([x(w), y(s.values[w])]));
+      flush();
+    }
+    for (const [px, py] of points) {
+      svg.append(svgEl("circle", { cx: px, cy: py, r: s.dots ? 5 : 3.5, fill: s.color,
+        stroke: "var(--panel)", "stroke-width": 2 }));
+    }
+  }
+
+  // Crosshair and tooltip.
+  const cross = svgEl("line", { y1: pad.t, y2: H - pad.b, stroke: "var(--muted)",
+    "stroke-width": 1, visibility: "hidden" });
+  svg.append(cross);
+  const wrap = el("div", { style: "position:relative" }, [svg]);
+  const tip = el("div", { class: "viz-tip", style: "display:none" });
+  wrap.append(tip);
+  const hit = svgEl("rect", { x: pad.l - 10, y: 0, width: W - pad.l - pad.r + 20, height: H,
+    fill: "transparent" });
+  svg.append(hit);
+  hit.addEventListener("pointermove", event => {
+    const box = svg.getBoundingClientRect();
+    const px = (event.clientX - box.left) * (W / box.width);
+    const week = weeks.reduce((best, w) => Math.abs(x(w) - px) < Math.abs(x(best) - px) ? w : best, weeks[0]);
+    cross.setAttribute("x1", x(week)); cross.setAttribute("x2", x(week));
+    cross.setAttribute("visibility", "visible");
+    tip.innerHTML = "";
+    tip.append(el("div", { style: "font-weight:600;margin-bottom:4px" }, `Week ${week}`));
+    for (const s of series) {
+      const v = s.values[week];
+      tip.append(el("div", { class: "row" }, [
+        el("span", {}, [el("span", { class: "dot", style: `display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:${s.color}` }), s.label]),
+        el("span", {}, v == null ? "–" : fmt(v, 1)),
+      ]));
+    }
+    tip.style.display = "block";
+    const left = (x(week) / W) * box.width;
+    tip.style.left = `${Math.min(left + 12, box.width - 160)}px`;
+    tip.style.top = "8px";
+  });
+  hit.addEventListener("pointerleave", () => {
+    cross.setAttribute("visibility", "hidden");
+    tip.style.display = "none";
+  });
+
+  const legend = el("div", { class: "viz-legend" }, series.map(s => el("span", {}, [
+    el("span", { class: s.dots ? "dot" : "key", style: `background:${s.color}` }), s.label,
+  ])));
+  return el("div", { class: "viz-root" }, [legend, wrap]);
+}
+
+async function showPlayerTrend(playerId, target) {
+  target.innerHTML = "<div class='card muted'>Loading history…</div>";
+  const data = await api(`/api/projections/trends/${encodeURIComponent(playerId)}`);
+  const weeks = data.weeks.map(r => r.week);
+  const pick = key => Object.fromEntries(data.weeks.filter(r => r[key] != null).map(r => [r.week, r[key]]));
+  const blendValues = Object.fromEntries(data.weeks
+    .map(r => [r.week, r.consensus != null ? r.consensus : r.experts_blend])
+    .filter(([, v]) => v != null));
+  const series = [
+    { key: "blend", label: "Projection (blend)", color: "var(--series-1)", values: blendValues },
+    { key: "actual", label: "Actual", color: "var(--series-2)", values: pick("actual"), dots: true },
+    { key: "espn", label: "ESPN", color: "var(--series-3)", values: pick("espn") },
+    { key: "model", label: "Our model", color: "var(--series-4)", values: pick("model") },
+  ].filter(s => Object.keys(s.values).length);
+
+  const sources = ["espn", "sleeper", "fantasypros", "model", "consensus", "actual"];
+  const names = { espn: "ESPN", sleeper: "Sleeper", fantasypros: "FantasyPros", model: "Model",
+    consensus: "Blend", actual: "Actual" };
+  const weekRows = data.weeks.map(r => el("tr", {}, [
+    el("td", {}, `Week ${r.week}`),
+    ...sources.map(s => el("td", { class: "num" }, r[s] == null ? "–" : fmt(r[s], 1))),
+  ]));
+
+  const rosNames = Object.keys(data.ros);
+  const days = [...new Set(rosNames.flatMap(s => data.ros[s].map(p => p.date)))].sort();
+  const rosRows = days.map(day => el("tr", {}, [
+    el("td", {}, day),
+    ...rosNames.map(s => {
+      const point = data.ros[s].find(p => p.date === day);
+      return el("td", { class: "num" }, point ? fmt(point.points, 1) : "–");
+    }),
+  ]));
+
+  target.innerHTML = "";
+  target.append(el("div", { class: "card" }, [
+    el("h2", {}, `${data.name || "Player"} · ${data.position || ""} ${data.team || ""}`),
+    weeks.length ? weeklyChart(weeks, series) : el("div", { class: "muted" }, "No weekly history yet."),
+    table(["Week", ...sources.map(s => ({ label: names[s], num: true }))], weekRows),
+    el("h2", { style: "margin-top:18px" }, "Rest of season, by day pulled"),
+    days.length
+      ? table(["Date", ...rosNames.map(s => ({ label: names[s] || s, num: true }))], rosRows)
+      : el("div", { class: "muted" }, "Rest-of-season history starts with the first archived pull."),
+  ]));
+}
+
+async function renderTrends() {
+  const target = document.getElementById("tab-trends");
+  target.innerHTML = "<div class='card muted'>Loading trends…</div>";
+  const data = await api("/api/projections/trends");
+  const detail = el("div", { id: "trend-detail" });
+
+  const moverRows = moves => moves.map(m => el("tr", {
+    class: "clickable", onclick: () => showPlayerTrend(m.player_id, detail),
+  }, [
+    el("td", {}, m.name || m.player_id),
+    el("td", {}, el("span", { class: "pos" }, m.position || "")),
+    el("td", { class: "hide-sm" }, m.team || ""),
+    el("td", { class: "num" }, fmt(m.before, 1)),
+    el("td", { class: "num" }, fmt(m.now, 1)),
+    el("td", { class: "num " + (m.change >= 0 ? "good" : "bad") }, signed(m.change, 1)),
+  ]));
+  const headers = ["Player", "Pos", { label: "Team", hide: true },
+    { label: "Before", num: true }, { label: "Now", num: true }, { label: "Change", num: true }];
+  const moverCard = (title, subtitle, moves) => el("div", { class: "card" }, [
+    el("h2", {}, title),
+    el("div", { class: "muted", style: "margin-bottom:10px" }, subtitle),
+    moves.length ? table(headers, moverRows(moves)) : el("div", { class: "muted" }, "Nothing yet."),
+  ]);
+
+  const search = el("input", { list: "trend-players", placeholder: "Find a player…",
+    style: "padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);width:100%;max-width:420px" });
+  const options = el("datalist", { id: "trend-players" }, data.players.map(p =>
+    el("option", { value: `${p.name} (${p.position}, ${p.team})${p.mine ? " · mine" : ""}` })));
+  search.addEventListener("change", () => {
+    const hit = data.players.find(p =>
+      search.value.startsWith(`${p.name} (${p.position}, ${p.team})`));
+    if (hit) showPlayerTrend(hit.player_id, detail);
+  });
+
+  const rosNote = data.ros.days_of_history < 2
+    ? "Rest-of-season history starts with the first archived pull; movers appear after a few days of pulls."
+    : "Change in the rest-of-season blend over the last week.";
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, `Week ${data.week} trends`),
+      el("div", { class: "muted", style: "margin-bottom:10px" },
+        "Click any player, or search, to see his projections by source week by week."),
+      search, options,
+    ]),
+    detail,
+    moverCard("Your players: weekly projection moves",
+      "This week's projection against his earlier weeks.",
+      [...data.my_team.weekly.risers, ...data.my_team.weekly.fallers]),
+    moverCard("Weekly risers", "Projected well above his earlier weeks: a new role, a return, or a matchup.",
+      data.weekly.risers),
+    moverCard("Weekly fallers", "Projected well below his earlier weeks.", data.weekly.fallers),
+    moverCard("Rest-of-season risers", rosNote, data.ros.risers),
+    moverCard("Rest-of-season fallers", rosNote, data.ros.fallers),
+  );
+}
+
 // ---------- Scout tab ----------
 
 async function renderScout() {
@@ -809,7 +1501,7 @@ async function renderScout() {
     el("td", {}, player.name),
     el("td", { class: "hide-sm" }, player.pro_team),
     el("td", {}, statusLabel(player)),
-    el("td", { class: "num" }, fmt(player.projected_points, 1)),
+    projCell(player),
   ]));
 
   target.append(
@@ -915,7 +1607,7 @@ async function showRoster(teamId, teamName) {
       el("td", { class: "hide-sm" }, player.position),
       el("td", { class: "hide-sm" }, player.pro_team),
       el("td", {}, statusLabel(player)),
-      el("td", { class: "num" }, fmt(player.projected_points, 1)),
+      projCell(player),
     ]));
 
   panel.innerHTML = "";
@@ -1684,7 +2376,11 @@ async function renderHistory() {
 
 // ---------- Bootstrap ----------
 
-const RENDERERS = { team: renderTeam, waivers: renderWaivers, scout: renderScout, league: renderLeague, history: renderHistory };
+const RENDERERS = {
+  team: renderTeam, season: renderSeason, players: renderPlayers,
+  waivers: renderWaivers, news: renderNews, value: renderValue, trends: renderTrends,
+  scout: renderScout, league: renderLeague, history: renderHistory,
+};
 const loaded = {};
 
 async function selectTab(name) {

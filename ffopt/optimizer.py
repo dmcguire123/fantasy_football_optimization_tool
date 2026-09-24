@@ -107,7 +107,11 @@ def week_projection(player):
 
 
 # Rest-of-season projection, for waiver decisions that are not about one week.
+# Prefer the true rest-of-season total (this week through the last week);
+# ESPN's full-season total is the fallback when no weekly detail came back.
 def season_projection(player):
+    if player.ros_games:
+        return player.ros_points
     if player.season_projected_points:
         return player.season_projected_points
     return player.projected_points

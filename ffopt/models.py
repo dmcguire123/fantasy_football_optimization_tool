@@ -13,11 +13,17 @@ from . import constants as C
 
 # Pull the fantasy points for one week out of a player's stat list.
 # statSourceId 1 is ESPN's projection, 0 is what the player actually scored.
-def extract_week_points(stat_entries, week, source_id):
+# ESPN can return last season's lines too, under the same week numbers, so
+# the season has to match when the entry says which season it is.
+def extract_week_points(stat_entries, week, source_id, season=None):
     for entry in stat_entries or []:
         if entry.get("scoringPeriodId") != week:
             continue
         if entry.get("statSourceId") != source_id:
+            continue
+        if entry.get("statSplitTypeId") not in (None, C.STAT_SPLIT_WEEK):
+            continue
+        if season and entry.get("seasonId") not in (None, season):
             continue
         total = entry.get("appliedTotal")
         if total is not None:
@@ -39,6 +45,34 @@ def extract_season_points(stat_entries, season, source_id):
         if total is not None:
             return float(total)
     return None
+
+
+# ESPN's rest-of-season projection: the sum of its weekly projections from
+# this week through the last week. Returns (points, games), where games counts
+# the weeks projected above zero, or None when ESPN sent no future weeks.
+def extract_ros_points(stat_entries, season, from_week, to_week):
+    total = 0.0
+    games = 0
+    weeks_seen = set()
+    for entry in stat_entries or []:
+        if entry.get("statSourceId") != C.STAT_SOURCE_PROJECTED:
+            continue
+        if entry.get("statSplitTypeId") != C.STAT_SPLIT_WEEK:
+            continue
+        if entry.get("seasonId") not in (None, season):
+            continue
+        week = entry.get("scoringPeriodId") or 0
+        if week < from_week or week > to_week or week in weeks_seen:
+            continue
+        weeks_seen.add(week)
+        points = float(entry.get("appliedTotal") or 0.0)
+        total += points
+        if points > 0:
+            games += 1
+    # Only the current week is not a rest-of-season projection.
+    if len(weeks_seen) < 2 and to_week > from_week:
+        return None
+    return total, games
 
 
 @dataclass
@@ -65,6 +99,23 @@ class Player:
     # Week-to-week score spread as a share of projection, when measured from
     # game logs. Zero means unknown, and the position default is used.
     stddev_ratio: float = 0.0
+    # Projections from every source, scored for this league, keyed by source
+    # name ("espn", "sleeper", "fantasypros"). Filled by the projections
+    # service; see ffopt/projections.
+    source_points: dict = field(default_factory=dict)
+    # The blend of those sources, and how far apart they are (one standard
+    # deviation). Zero means no blend was made.
+    consensus_points: float = 0.0
+    consensus_spread: float = 0.0
+    # ESPN's own weekly projection, kept when projected_points is replaced
+    # by the consensus.
+    espn_projected_points: float = 0.0
+    # Points still to come this season, and the games they come from. Zero
+    # games means unknown.
+    ros_points: float = 0.0
+    ros_games: int = 0
+    # Each source's rest-of-season total, keyed like source_points.
+    ros_source_points: dict = field(default_factory=dict)
 
     # A player on bye or ruled out contributes nothing this week.
     @property
@@ -117,6 +168,13 @@ class Player:
             "actual_points": round(self.actual_points, 2),
             "season_projected_points": round(self.season_projected_points, 2),
             "season_actual_points": round(self.season_actual_points, 2),
+            "source_points": {k: round(v, 2) for k, v in self.source_points.items()},
+            "consensus_points": round(self.consensus_points, 2),
+            "consensus_spread": round(self.consensus_spread, 2),
+            "espn_projected_points": round(self.espn_projected_points, 2),
+            "ros_points": round(self.ros_points, 2),
+            "ros_games": self.ros_games,
+            "ros_source_points": {k: round(v, 1) for k, v in self.ros_source_points.items()},
             "percent_owned": round(self.percent_owned, 1),
             "percent_started": round(self.percent_started, 1),
             "availability": self.availability,
@@ -127,11 +185,13 @@ class Player:
 
 # Build a Player from an ESPN roster entry, which wraps the player record in
 # a playerPoolEntry and carries the current lineup slot alongside it.
-def player_from_roster_entry(entry, week, season, bye_weeks=None):
+def player_from_roster_entry(entry, week, season, bye_weeks=None, final_week=None):
     pool_entry = entry.get("playerPoolEntry") or {}
     raw = pool_entry.get("player") or entry.get("player") or {}
 
-    player = player_from_raw(raw, week, season, bye_weeks=bye_weeks)
+    player = player_from_raw(
+        raw, week, season, bye_weeks=bye_weeks, final_week=final_week
+    )
     player.lineup_slot = entry.get("lineupSlotId", C.BENCH_SLOT)
     player.fantasy_team_id = pool_entry.get("onTeamId", player.fantasy_team_id)
     player.acquisition_type = entry.get("acquisitionType") or ""
@@ -144,14 +204,17 @@ def player_from_roster_entry(entry, week, season, bye_weeks=None):
 
 # Build a Player from a bare ESPN player record, the shape returned by the
 # player-pool views used for free agents and waiver targets.
-def player_from_raw(raw, week, season, bye_weeks=None):
+def player_from_raw(raw, week, season, bye_weeks=None, final_week=None):
     stats = raw.get("stats") or []
     ownership = raw.get("ownership") or {}
     position_id = raw.get("defaultPositionId", 0)
     pro_team_id = raw.get("proTeamId", 0)
 
-    projected = extract_week_points(stats, week, C.STAT_SOURCE_PROJECTED)
-    actual = extract_week_points(stats, week, C.STAT_SOURCE_ACTUAL)
+    projected = extract_week_points(stats, week, C.STAT_SOURCE_PROJECTED, season)
+    actual = extract_week_points(stats, week, C.STAT_SOURCE_ACTUAL, season)
+    ros = None
+    if final_week:
+        ros = extract_ros_points(stats, season, week, final_week)
 
     bye_weeks = bye_weeks or {}
     on_bye = bye_weeks.get(pro_team_id) == week
@@ -174,6 +237,9 @@ def player_from_raw(raw, week, season, bye_weeks=None):
             extract_season_points(stats, season, C.STAT_SOURCE_ACTUAL) or 0.0
         ),
         on_bye=on_bye,
+        espn_projected_points=float(projected or 0.0),
+        ros_points=ros[0] if ros else 0.0,
+        ros_games=ros[1] if ros else 0,
     )
 
 
@@ -293,6 +359,9 @@ class LeagueSettings:
     faab_budget: float = 0.0
     lineup_slot_counts: dict = field(default_factory=dict)
     roster_size: int = 0
+    # ESPN's raw scoringSettings block, used to score other sources' stat
+    # lines the way this league does.
+    scoring_settings: dict = field(default_factory=dict)
 
     # Roster spots that count against the roster limit. ESPN keeps injured
     # reserve outside that limit, so those slots do not count here.

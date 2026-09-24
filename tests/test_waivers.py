@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from ffopt import constants as C
 from ffopt.waivers import (
     build_claim,
@@ -143,3 +145,75 @@ def test_claim_payload_is_json_serializable():
         team_id=1, member_id="{ME}", week=5, add_player_id=401, drop_player_id=113
     )
     assert json.loads(json.dumps(payload))["items"][0]["playerId"] == 401
+
+
+# ------------------------------------------- streams and season cost
+
+from ffopt.models import Player, Team
+from ffopt.optimizer import season_projection
+
+
+def dst(player_id, name, week, ros, slot=C.BENCH_SLOT):
+    return Player(player_id=player_id, name=name, position="D/ST", pro_team="DEN",
+                  eligible_slots=[16, 20, 21], lineup_slot=slot, projected_points=week,
+                  ros_points=ros, ros_games=14)
+
+
+def wr(player_id, name, week, ros, slot=C.BENCH_SLOT):
+    return Player(player_id=player_id, name=name, position="WR", pro_team="DET",
+                  eligible_slots=[4, 23, 20, 21], lineup_slot=slot, projected_points=week,
+                  ros_points=ros, ros_games=14)
+
+
+# One WR slot and one D/ST slot, a bench WR, and a full roster: the Broncos
+# case. The Giants are better this week and worse over the season.
+def broncos_case():
+    team = Team(team_id=1, name="Mine", roster=[
+        wr(1, "Starter WR", 15.0, 200.0, slot=4),
+        wr(2, "Bench WR", 9.0, 125.0),
+        dst(3, "Broncos D/ST", 5.1, 97.0, slot=16),
+    ])
+    return team, dst(4, "Giants D/ST", 7.4, 81.2), [4, 16]
+
+
+def test_season_gain_is_measured_for_the_same_drop():
+    team, giants, slots = broncos_case()
+    evaluation = evaluate_pickup(team, giants, slots, roster_limit=3,
+                                 season_fn=season_projection)
+    assert evaluation.drop_player.name == "Broncos D/ST"
+    assert evaluation.weekly_gain == pytest.approx(2.3)
+    assert evaluation.season_gain == pytest.approx(81.2 - 97.0)
+
+
+def test_a_move_that_costs_the_season_is_a_labeled_stream():
+    team, giants, slots = broncos_case()
+    evaluation = evaluate_pickup(team, giants, slots, roster_limit=3,
+                                 season_fn=season_projection)
+    assert evaluation.move_type == "stream"
+    assert "One-week stream" in evaluation.note
+    assert "-15.8" in evaluation.note
+    # Dropping the bench receiver keeps this week's gain and both defenses.
+    assert evaluation.alternative_drop.name == "Bench WR"
+    assert evaluation.alternative_season_gain == pytest.approx(0.0)
+    assert "Bench WR" in evaluation.note
+    assert evaluation.to_dict()["move_type"] == "stream"
+
+
+def test_a_real_upgrade_is_not_a_stream():
+    team, _, slots = broncos_case()
+    better = dst(5, "Better D/ST", 7.0, 110.0)
+    evaluation = evaluate_pickup(team, better, slots, roster_limit=3,
+                                 season_fn=season_projection)
+    assert evaluation.move_type == "upgrade"
+    assert evaluation.season_gain == pytest.approx(13.0)
+    assert evaluation.note == ""
+
+
+def test_streams_rank_below_upgrades_and_bid_for_one_week():
+    team, giants, slots = broncos_case()
+    upgrade = dst(5, "Better D/ST", 6.8, 110.0)
+    recs = recommend_pickups(team, [giants, upgrade], slots, roster_limit=3,
+                             faab_remaining=100.0, weeks_left=15, min_gain=0.0)
+    assert [r.player.name for r in recs] == ["Better D/ST", "Giants D/ST"]
+    stream = recs[1]
+    assert stream.suggested_bid == suggest_faab_bid(stream.weekly_gain, 100.0, weeks_left=1)

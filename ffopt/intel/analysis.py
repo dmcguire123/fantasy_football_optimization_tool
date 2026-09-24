@@ -57,6 +57,9 @@ def heuristic_analysis(candidates):
     results = {}
     for c in candidates:
         strength = c["weekly_gain"] + 0.4 * c["consensus_score"]
+        # A one-week stream that costs a better long-term player ranks lower.
+        if c.get("move_type") == "stream":
+            strength -= 1.5
         priority = 1
         if strength >= 8:
             priority = 5
@@ -72,8 +75,10 @@ def heuristic_analysis(candidates):
             parts.append(f"Projected to add {c['weekly_gain']:.1f} points this week.")
         if c["source_count"]:
             parts.append(f"Mentioned by {c['source_count']} source(s).")
-        if c["drop"]:
+        if c["drop"] and not c.get("note"):
             parts.append(f"Best drop: {c['drop']}.")
+        if c.get("note"):
+            parts.append(c["note"])
 
         results[c["player_id"]] = {
             "priority": priority,

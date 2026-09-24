@@ -88,6 +88,17 @@ class Settings:
     intel_ttl_seconds: float = 21600.0
     intel_model: str = "claude-sonnet-5"
     use_nflverse: bool = False
+    # Where player projections come from: "espn" alone, or "consensus", a
+    # blend of ESPN, Sleeper, and FantasyPros (see ffopt/projections).
+    projection_source: str = "espn"
+    fantasypros_api_key: str = ""
+    projections_ttl_seconds: float = 3 * 3600.0
+    # Run our own model each week and nudge the blend toward it where the
+    # backtest showed that helps.
+    use_model: bool = False
+    # News watcher (ffopt/news.py): email alerts to this address. The
+    # watcher suggests claims but never makes them.
+    news_email: str = ""
 
     # True when we have enough to read a league at all.
     @property
@@ -170,4 +181,12 @@ def load_settings(env=None, env_file=DEFAULT_ENV_FILE):
         intel_ttl_seconds=as_float("FFOPT_INTEL_TTL", 21600.0),
         intel_model=(env.get("FFOPT_INTEL_MODEL") or "claude-sonnet-5").strip(),
         use_nflverse=as_bool("FFOPT_NFLVERSE", True),
+        projection_source=(env.get("FFOPT_PROJECTIONS") or "consensus").strip().lower(),
+        fantasypros_api_key=(env.get("FANTASYPROS_API_KEY") or "").strip(),
+        projections_ttl_seconds=as_float("FFOPT_PROJECTIONS_TTL", 3 * 3600.0),
+        use_model=as_bool("FFOPT_MODEL", True),
+        news_email=(
+            (env.get("FFOPT_REPORT_EMAIL") or "").strip()
+            if as_bool("FFOPT_NEWS_EMAIL", True) else ""
+        ),
     )

@@ -257,7 +257,7 @@ def cmd_waivers(args):
         team,
         pool,
         league.settings.starting_slots(),
-        roster_limit=league.settings.roster_size,
+        roster_limit=league.settings.active_roster_size,
         faab_remaining=team.faab_remaining,
         weeks_left=weeks_left,
         limit=args.limit,
@@ -291,6 +291,9 @@ def cmd_waivers(args):
         ["Player", "Pos", "Tm", "Proj", "WkGain", "SznGain", "Drop", "Bid", "Id"],
         rows,
     )
+    for rec in recommendations:
+        if rec.note:
+            print(f"\n  {rec.player.name}: {rec.note}")
     print("\n  Use: ffopt claim --add <Id> --drop <Id> --bid <amount>")
     return 0
 
@@ -345,6 +348,263 @@ def cmd_snapshot(args):
     if args.backfill:
         print(f"Backfilled {result['backfilled']} prediction(s) from earlier weeks.")
     print(f"Settled {result['settled']} finished game(s).")
+    return 0
+
+
+# Pull every projection source for the week, archive the pull, and show
+# where the sources disagree with ESPN. Run it a few times a week so the
+# archive builds up for grading sources later.
+def cmd_projections(args):
+    service = build_service(args)
+    projection_service = service.projection_service()
+    if not projection_service:
+        print("Consensus projections are off. Set FFOPT_PROJECTIONS=consensus in .env.")
+        return 1
+
+    league = service.load_league(args.week)
+    team = service.my_team(args.week)
+    free_agents = service.free_agents(args.week, limit=args.pool)
+
+    everyone = [p for t in league.teams for p in t.roster] + list(free_agents)
+    saved = projection_service.archive_espn(service.settings.season, league.week, everyone)
+    print(f"Week {league.week}: archived {saved} ESPN projection(s) to data/projections.db.")
+
+    sources = ["espn", "sleeper", "fantasypros", "model"]
+
+    def source_cells(player):
+        return [
+            f"{player.source_points[s]:.1f}" if s in player.source_points else "-"
+            for s in sources
+        ]
+
+    if team:
+        print(f"\n{team.name}, week {league.week}")
+        rows = []
+        for player in sorted(team.roster, key=lambda p: -p.consensus_points):
+            rows.append(
+                [player.name, player.position]
+                + source_cells(player)
+                + [f"{player.consensus_points:.1f}", f"{player.ros_points:.1f}"]
+            )
+        print_table(["Player", "Pos"] + sources + ["Blend", "ROS"], rows)
+
+    gaps = [p for p in free_agents if len(p.source_points) > 1]
+    gaps.sort(key=lambda p: -(p.consensus_points - p.espn_projected_points))
+    print("\nAvailable players the other sources like more than ESPN does")
+    rows = []
+    for player in gaps[: args.limit]:
+        rows.append(
+            [player.name, player.position, player.pro_team]
+            + source_cells(player)
+            + [f"{player.consensus_points - player.espn_projected_points:+.1f}"]
+        )
+    print_table(["Player", "Pos", "Team"] + sources + ["vs ESPN"], rows)
+    return 0
+
+
+# Grade every projection source and our model on past seasons, and decide
+# how much the model counts in the live blend. Slow the first time (it
+# downloads several seasons of data); cached after that.
+def cmd_backtest(args):
+    from .projections import backtest
+    from .projections.scoring import LeagueScoring
+
+    settings = load_settings()
+    scoring = LeagueScoring.default_ppr()
+    if settings.is_configured:
+        league = LeagueService(settings).load_league()
+        scoring = LeagueScoring.from_settings(league.settings.scoring_settings)
+        print(f"Scoring every source with {league.settings.name}'s rules.")
+    else:
+        print("No league configured; scoring with plain full PPR.")
+
+    seasons = range(args.first_season, args.last_season + 1)
+    print(f"Backtesting {seasons.start}-{seasons.stop - 1}. This takes a minute or two.")
+    result = backtest.run(scoring, seasons)
+    path = backtest.save_results(result)
+
+    for position in backtest.POSITIONS + ("ALL",):
+        print(f"\n{position}")
+        rows = []
+        for row in result["table"].filter(result["table"]["position"] == position).to_dicts():
+            mae = f"{row['mae']:.2f}" if row.get("mae") is not None else ""
+            rows.append([row["method"], mae, f"{row['spearman']:.3f}", row["n"]])
+        print_table(["Method", "MAE", "Rank corr", "Games"], rows)
+
+    print("\nModel weight in the live blend (0 = kept out):")
+    for position in backtest.POSITIONS:
+        status = "promoted" if result["promoted"][position] else "not promoted"
+        print(f"  {position}: {result['weights'][position]:.2f} ({status})")
+    print(f"\nSaved to {path}")
+    return 0
+
+
+# Who is undervalued this week: players our model rates above the experts
+# (as expected points of edge, calibrated by the backtest), and players the
+# other sources rate well above ESPN, which is what the rest of the league
+# is looking at.
+def cmd_value(args):
+    from .projections.value import value_report
+
+    service = build_service(args)
+    league = service.load_league(args.week)
+    team = service.my_team(args.week)
+    pool = service.free_agents(args.week, limit=args.pool)
+    report = value_report(team.roster, pool, limit=args.limit)
+
+    backtest_info = report["backtest"]
+    if not backtest_info["slopes"]:
+        print("No backtest results yet, so the model's edge cannot be sized.")
+        print("Run `python -m ffopt backtest` once to fix that.\n")
+
+    def edge_rows(lines):
+        return [
+            [row["name"], row["position"], row["pro_team"], f"{row['experts']:.1f}",
+             f"{row['model']:.1f}", f"{row['expected_edge']:+.1f}"]
+            for row in lines
+        ]
+
+    headers = ["Player", "Pos", "Team", "Experts", "Model", "Edge"]
+    print(f"Week {league.week}: available players our model likes more than the experts")
+    print_table(headers, edge_rows(report["model_pickups"]))
+
+    print("\nAvailable players the other sources rate well above ESPN")
+    print_table(
+        ["Player", "Pos", "Team", "ESPN", "Others", "Gap"],
+        [
+            [row["name"], row["position"], row["pro_team"], f"{row['espn']:.1f}",
+             f"{row['others']:.1f}", f"{row['gap_vs_espn']:+.1f}"]
+            for row in report["espn_behind"]
+        ],
+    )
+
+    print(f"\n{team.name}: players the model is worried about")
+    print_table(headers, edge_rows(report["roster_warnings"]))
+    print(f"\n{team.name}: players the model likes more than the experts")
+    print_table(headers, edge_rows(report["roster_boosts"]))
+    print(
+        "\nEdge is the expected points above the experts' number, sized by how much "
+        "of the model's disagreement came true in the backtest."
+    )
+    return 0
+
+
+# Everything worth knowing today as one JSON document, for the morning
+# email (see .claude/skills/morning-report) or any other summary.
+def cmd_report(args):
+    import json
+
+    from .report import build_report
+
+    service = build_service(args)
+    print(json.dumps(build_report(service, week=args.week), indent=2, default=str))
+    return 0
+
+
+# How projections have moved: weekly and rest-of-season risers and fallers,
+# or one player's week-by-week history by source.
+def cmd_trends(args):
+    from .projections.trends import ros_movers, weekly_movers
+
+    service = build_service(args)
+    data = service.trends(args.week)
+    if data is None:
+        print("Trends need the consensus. Set FFOPT_PROJECTIONS=consensus in .env.")
+        return 1
+
+    if args.player:
+        wanted = args.player.lower()
+        matches = [pid for pid, info in data.players.items()
+                   if wanted in (info.get("name") or "").lower()]
+        if not matches:
+            print(f"No player matching '{args.player}'.")
+            return 1
+        history = data.player(matches[0])
+        print(f"{history.get('name')} ({history.get('position')}, {history.get('team')})\n")
+        sources = ["espn", "sleeper", "fantasypros", "model", "consensus", "actual"]
+        rows = [
+            [row["week"]] + [f"{row[s]:.1f}" if s in row else "-" for s in sources]
+            for row in history["weeks"]
+        ]
+        print_table(["Week"] + sources, rows)
+        if history["ros"]:
+            print("\nRest of season, by day pulled")
+            days = sorted({p["date"] for series in history["ros"].values() for p in series})
+            names = sorted(history["ros"])
+            lookup = {(s, p["date"]): p["points"] for s, series in history["ros"].items()
+                      for p in series}
+            print_table(["Date"] + names,
+                        [[d] + [f"{lookup[(s, d)]:.1f}" if (s, d) in lookup else "-"
+                                for s in names] for d in days])
+        return 0
+
+    def mover_rows(moves):
+        return [[m.get("name", m["player_id"]), m.get("position", ""), m.get("team", ""),
+                 f"{m['before']:.1f}", f"{m['now']:.1f}", f"{m['change']:+.1f}"] for m in moves]
+
+    headers = ["Player", "Pos", "Team", "Before", "Now", "Change"]
+    weekly = weekly_movers(data, limit=args.limit)
+    print(f"Week {data.week} projection vs his earlier weeks: risers")
+    print_table(headers, mover_rows(weekly["risers"]))
+    print("\nFallers")
+    print_table(headers, mover_rows(weekly["fallers"]))
+
+    ros = ros_movers(data, limit=args.limit)
+    print("\nRest-of-season blend, change over the last week: risers")
+    if ros["days_of_history"] < 2:
+        print("  (rest-of-season history starts with the first archived pull; "
+              "check back after a few days)")
+    else:
+        print_table(headers, mover_rows(ros["risers"]))
+        print("\nFallers")
+        print_table(headers, mover_rows(ros["fallers"]))
+    return 0
+
+
+# Breaking news: scan for openings (run every few minutes by the LaunchAgent
+# in scripts/launchd/), or list what has been found.
+def cmd_news(args):
+    import datetime
+
+    from . import news
+
+    connection = news.open_db()
+    if args.action == "scan":
+        service = build_service(args)
+        scanner = news.Scanner(
+            service,
+            connection,
+            notify=not args.quiet,
+            email_to=service.settings.news_email,
+        )
+        result = scanner.run()
+        print(f"Scanned {result['scanned']} players, {result['signals']} news signal(s), "
+              f"{len(result['events'])} new opening(s).")
+        events = result["events"]
+    else:
+        events = news.recent_events(connection, limit=500)
+        if not args.all:
+            events = [e for e in events if e["action"] != "none"]
+        events = events[: args.limit]
+
+    rows = []
+    for event in events:
+        when = datetime.datetime.fromtimestamp(event["detected_at"]).strftime("%a %H:%M")
+        rows.append([
+            when, event["kind"], event["subject_name"] or "",
+            f"{event['candidate_name']} ({event['candidate_position']})",
+            "FA" if event["candidate_availability"] == "FREEAGENT" else "waivers",
+            f"{event['projection']:.1f}",
+            f"{event['weekly_gain']:+.1f}", f"{event['season_gain']:+.1f}",
+            event["drop_name"] or "-", event["action"],
+        ])
+    if rows:
+        print_table(["When", "Kind", "News about", "Pick up", "Status", "Proj", "For you",
+                     "ROS", "Drop", "Action"], rows)
+        for event in events[:5]:
+            print(f"\n  {event['candidate_name']}: {event['headline']}")
+            if event["note"]:
+                print(f"  {event['note']}")
     return 0
 
 
@@ -529,6 +789,46 @@ def build_parser():
     )
     subparsers.add_parser("calibration", help="How well win probabilities have held up.")
 
+    value_cmd = add_common(
+        subparsers.add_parser("value", help="Undervalued players this week.")
+    )
+    value_cmd.add_argument("--pool", type=int, default=300, help="Free agents to include.")
+    value_cmd.add_argument("--limit", type=int, default=15)
+
+    add_common(
+        subparsers.add_parser("report", help="Today's report as JSON (for the morning email).")
+    )
+
+    trends_cmd = add_common(
+        subparsers.add_parser("trends", help="Projection risers and fallers, or one player's history.")
+    )
+    trends_cmd.add_argument("--player", default=None, help="Part of a player's name.")
+    trends_cmd.add_argument("--limit", type=int, default=10)
+
+    news_cmd = subparsers.add_parser(
+        "news", help="Scan breaking news for pickups, or list openings found."
+    )
+    news_cmd.add_argument("action", choices=["scan", "list"])
+    news_cmd.add_argument("--quiet", action="store_true", help="No Mac notification or email.")
+    news_cmd.add_argument("--limit", type=int, default=20)
+    news_cmd.add_argument("--all", action="store_true",
+                          help="Also list openings too small to alert on.")
+    news_cmd.set_defaults(week=None)
+
+    backtest_cmd = subparsers.add_parser(
+        "backtest", help="Grade ESPN, Sleeper, and our model on past seasons."
+    )
+    backtest_cmd.add_argument("--first-season", type=int, default=2018)
+    backtest_cmd.add_argument("--last-season", type=int, default=2025)
+
+    projections_cmd = add_common(
+        subparsers.add_parser(
+            "projections", help="Pull and archive every projection source, and compare them."
+        )
+    )
+    projections_cmd.add_argument("--pool", type=int, default=300, help="Free agents to include.")
+    projections_cmd.add_argument("--limit", type=int, default=15)
+
     trades = add_common(subparsers.add_parser("trades", help="Find trade targets."))
     trades.add_argument("--limit", type=int, default=5)
 
@@ -552,6 +852,12 @@ COMMANDS = {
     "scout": cmd_scout,
     "snapshot": cmd_snapshot,
     "calibration": cmd_calibration,
+    "projections": cmd_projections,
+    "backtest": cmd_backtest,
+    "value": cmd_value,
+    "report": cmd_report,
+    "trends": cmd_trends,
+    "news": cmd_news,
     "trades": cmd_trades,
     "serve": cmd_serve,
 }

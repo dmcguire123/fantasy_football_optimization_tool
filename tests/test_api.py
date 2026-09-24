@@ -271,3 +271,26 @@ def test_league_history_endpoint(http):
     body = http.get("/api/league-history").json()
     assert body["years"][0] == 2020
     assert len(body["champions"]) == 6
+
+
+def test_dashboard_season_and_matchup(http):
+    season = http.get("/api/dashboard/season").json()
+    assert season["current_week"] == 5
+    assert season["team"]["team_id"] == 1
+    assert season["weeks"]
+
+    matchup = http.get("/api/dashboard/matchup?week=5").json()
+    assert matchup["is_current"] is True
+    assert matchup["mine"]["starters"]
+    assert http.get("/api/dashboard/matchup?week=2").status_code == 400
+
+
+def test_player_search_and_outlook(http):
+    found = http.get("/api/players/search?q=ace").json()["players"]
+    assert [p["name"] for p in found] == ["Ace Passer"]
+    assert found[0]["owner"]
+
+    outlook = http.get(f"/api/players/{found[0]['player_id']}/outlook").json()
+    assert outlook["name"] == "Ace Passer"
+    assert outlook["future"][0]["week"] == 5
+    assert http.get("/api/players/999999/outlook").status_code == 404

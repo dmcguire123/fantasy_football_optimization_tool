@@ -1,0 +1,254 @@
+[
+  {
+    "team_id": 1,
+    "name": "Brooklyn Buckeens",
+    "final_rank": 2,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 1,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 2,
+    "name": "Burton is a  Bitch",
+    "final_rank": 4,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 3,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 3,
+    "name": "Kill Bills",
+    "final_rank": 5,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 0,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 4,
+    "name": "Carole Baskin 69",
+    "final_rank": 7,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 0,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 5,
+    "name": "Ted Guinness Jr",
+    "final_rank": 3,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 4,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 0
+  },
+  {
+    "team_id": 6,
+    "name": "Dublin Bay Buccaneers",
+    "final_rank": 1,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 2,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 7,
+    "name": "San Diego Senores",
+    "final_rank": 11,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 0,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 8,
+    "name": "MikeyDollars",
+    "final_rank": 8,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 0,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 9,
+    "name": "Like a good Naber",
+    "final_rank": 12,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 0,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 10,
+    "name": "Put the Kittle On",
+    "final_rank": 10,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 0,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 11,
+    "name": "Bijan Freeze",
+    "final_rank": 6,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 0,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  },
+  {
+    "team_id": 12,
+    "name": "Zach Bottled It",
+    "final_rank": 9,
+    "regular_season_final_rank": 0,
+    "playoff_seed": 0,
+    "waiver_rank": 0,
+    "transaction_count": {
+      "acquisitionBudgetSpent": 0,
+      "acquisitions": 0,
+      "drops": 0,
+      "matchupAcquisitionTotals": {},
+      "misc": 0,
+      "moveToActive": 0,
+      "moveToIR": 0,
+      "paid": 0.0,
+      "teamCharges": 0.0,
+      "trades": 0
+    },
+    "owner_count": 1
+  }
+]

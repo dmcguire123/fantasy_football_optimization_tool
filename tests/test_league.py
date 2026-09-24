@@ -80,3 +80,11 @@ def test_service_finds_my_team_from_settings(service):
 def test_parse_league_accepts_an_explicit_week():
     parsed = parse_league(league_payload(), week=3, season=2025)
     assert parsed.week == 3
+
+
+def test_pro_schedule_gives_each_teams_opponent_by_week(service):
+    schedule = service.pro_schedule()
+    assert schedule["KC"][5] == ("vs", "MIN")
+    assert schedule["KC"][7] == ("@", "GB")
+    assert schedule["GB"][6] == ("@", "KC")
+    assert 5 not in schedule["GB"]

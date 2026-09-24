@@ -178,32 +178,49 @@ class EspnClient:
             params=params,
         )
 
-    # Bye weeks live on the season-level pro team schedule, not the league.
-    def fetch_bye_weeks(self):
+    # The NFL teams' season schedule, from the season-level resource (not
+    # the league). Returns ESPN's proTeams list, or [] if it can't be read.
+    def _fetch_pro_teams(self):
         url = READ_HOST + PRO_TEAMS_PATH.format(season=self.settings.season)
         try:
             response = self._client.get(url, params={"view": "proTeamSchedules_wl"})
         except httpx.HTTPError:
-            return {}
+            return []
 
         if response.status_code >= 400:
-            return {}
+            return []
 
         try:
             payload = response.json()
         except ValueError:
-            return {}
+            return []
 
         if isinstance(payload, list):
             payload = payload[0] if payload else {}
+        return (payload.get("settings") or {}).get("proTeams") or []
 
+    # Bye weeks, keyed by pro team id.
+    def fetch_bye_weeks(self):
         bye_weeks = {}
-        pro_teams = (payload.get("settings") or {}).get("proTeams") or []
-        for team in pro_teams:
+        for team in self._fetch_pro_teams():
             bye = team.get("byeWeek")
             if bye:
                 bye_weeks[team.get("id")] = bye
         return bye_weeks
+
+    # Every NFL game by week: {pro team id: {week: (opponent id, is home)}}.
+    def fetch_pro_schedule(self):
+        schedule = {}
+        for team in self._fetch_pro_teams():
+            team_id = team.get("id")
+            games = {}
+            for week, week_games in (team.get("proGamesByScoringPeriod") or {}).items():
+                for game in week_games or []:
+                    home = game.get("homeProTeamId") == team_id
+                    opponent = game.get("awayProTeamId") if home else game.get("homeProTeamId")
+                    games[int(week)] = (opponent, home)
+            schedule[team_id] = games
+        return schedule
 
     # The pool of players not on any roster, ordered by ownership. ESPN caps
     # this list, so limit is a real limit, not a page size.
