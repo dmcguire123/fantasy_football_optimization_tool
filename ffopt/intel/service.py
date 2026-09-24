@@ -108,11 +108,12 @@ class IntelService:
             if not entry and ev.weekly_gain < 0.5:
                 continue
 
+            # A stream only pays off this week, so it is bid on as one week.
             advice = bids.bid_advice(
                 weekly_gain=ev.weekly_gain,
                 season_gain=ev.season_gain,
                 faab_remaining=team.faab_remaining,
-                weeks_left=weeks_left,
+                weeks_left=1 if ev.move_type == "stream" else weeks_left,
                 source_count=source_count,
                 position=ev.player.position,
                 league=league,
@@ -133,6 +134,8 @@ class IntelService:
                     "weekly_gain": round(ev.weekly_gain, 2),
                     "season_gain": round(ev.season_gain, 2),
                     "drop": ev.drop_player.name if ev.drop_player else None,
+                    "move_type": ev.move_type,
+                    "note": ev.note,
                     "source_count": entry["source_count"] if entry else 0,
                     "consensus_score": entry["score"] if entry else 0.0,
                     "expert_notes": [n["text"] for n in entry["notes"]] if entry else [],
@@ -153,7 +156,11 @@ class IntelService:
         for row, cand in zip(rows, candidates):
             ev, entry, advice = row["evaluation"], row["entry"], row["advice"]
             verdict = verdicts.get(cand["player_id"], {"priority": 1, "reasoning": "", "risk": ""})
-            score = ev.weekly_gain + 0.4 * cand["consensus_score"] + 1.5 * (verdict["priority"] - 3)
+            score = ev.net_gain + 0.4 * cand["consensus_score"] + 1.5 * (verdict["priority"] - 3)
+            # Whatever wrote the reasoning, a stream's season cost is stated.
+            reasoning = verdict["reasoning"]
+            if ev.note and ev.note not in reasoning:
+                reasoning = f"{reasoning} {ev.note}".strip()
             data = ev.to_dict()
             data.update(
                 {
@@ -161,7 +168,7 @@ class IntelService:
                     "bid_dollars": advice["dollars"],
                     "bid_reasons": advice["reasons"],
                     "priority": verdict["priority"],
-                    "reasoning": verdict["reasoning"],
+                    "reasoning": reasoning,
                     "risk": verdict["risk"],
                     "source_count": cand["source_count"],
                     "sources": entry["sources"] if entry else [],

@@ -257,7 +257,7 @@ def cmd_waivers(args):
         team,
         pool,
         league.settings.starting_slots(),
-        roster_limit=league.settings.roster_size,
+        roster_limit=league.settings.active_roster_size,
         faab_remaining=team.faab_remaining,
         weeks_left=weeks_left,
         limit=args.limit,
@@ -291,6 +291,9 @@ def cmd_waivers(args):
         ["Player", "Pos", "Tm", "Proj", "WkGain", "SznGain", "Drop", "Bid", "Id"],
         rows,
     )
+    for rec in recommendations:
+        if rec.note:
+            print(f"\n  {rec.player.name}: {rec.note}")
     print("\n  Use: ffopt claim --add <Id> --drop <Id> --bid <amount>")
     return 0
 
