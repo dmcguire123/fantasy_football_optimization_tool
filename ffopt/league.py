@@ -278,6 +278,7 @@ class LeagueService:
             # so ask for these players by id.
             service.add_fantasypros(projection_set, players[:fantasypros_limit], scoring)
             projections.apply(players, projection_set)
+            service.archive_blend(projection_set, players)
         except Exception as error:
             logging.getLogger(__name__).warning(
                 "consensus projections unavailable, using ESPN's: %s", error
@@ -370,6 +371,24 @@ class LeagueService:
             )
 
         return self._cached(key, producer)
+
+    # Weekly and rest-of-season projection history for the season, cached
+    # like the projections themselves. None when consensus is off.
+    def trends(self, week=None):
+        service = self.projection_service()
+        if not service:
+            return None
+        league = self.load_league(week)
+
+        def producer():
+            from .projections.trends import load_trends
+
+            scoring = LeagueScoring.from_settings(league.settings.scoring_settings)
+            return load_trends(
+                self.settings.season, league.week, scoring, service.ids(), service.db_path
+            )
+
+        return self._cached(("trends", league.week), producer)
 
     def pending_transactions(self):
         return self._cached("pending", self.client.fetch_pending_transactions)

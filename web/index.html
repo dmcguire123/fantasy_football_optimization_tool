@@ -49,6 +49,26 @@
   }
   .card h2 { margin: 0 0 12px; font-size: 16px; }
   .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  /* Trend chart. Series colors follow a validated categorical order
+     (blend, actual, ESPN, model); dark steps are chosen for the dark panel. */
+  .viz-root {
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --grid: #2a323d;
+  }
+  @media (prefers-color-scheme: light) {
+    .viz-root {
+      --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+      --grid: #e3e8ee;
+    }
+  }
+  .viz-root svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .viz-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 6px 0 10px; }
+  .viz-legend .key { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; }
+  .viz-legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+  .viz-tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px; color: var(--text); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+  .viz-tip .row { display: flex; gap: 8px; justify-content: space-between; }
+  .clickable { cursor: pointer; }
   .stat { flex: 1 1 150px; background: var(--panel-2); border-radius: var(--radius); padding: 12px; }
   .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
   .stat .value { font-size: 22px; font-weight: 600; margin-top: 4px; }
@@ -107,6 +127,7 @@
       <button data-tab="team" class="active">My Team</button>
       <button data-tab="waivers">Waiver Wire</button>
       <button data-tab="value">Value</button>
+      <button data-tab="trends">Trends</button>
       <button data-tab="scout">Scout Opponent</button>
       <button data-tab="league">League</button>
     </nav>
@@ -119,6 +140,7 @@
   <section id="tab-team"></section>
   <section id="tab-waivers" class="hidden"></section>
   <section id="tab-value" class="hidden"></section>
+  <section id="tab-trends" class="hidden"></section>
   <section id="tab-scout" class="hidden"></section>
   <section id="tab-league" class="hidden"></section>
 </main>
@@ -740,6 +762,199 @@ async function renderValue() {
   );
 }
 
+// ---------- Trends tab ----------
+
+// A line chart of weekly points: one line per series, markers for actual
+// scores, a crosshair that snaps to the week, and one tooltip listing every
+// series. `series` is [{key, label, color, values: {week: points}, dots}].
+function weeklyChart(weeks, series) {
+  const W = 640, H = 260, pad = { l: 36, r: 16, t: 12, b: 28 };
+  const ns = "http://www.w3.org/2000/svg";
+  const svgEl = (tag, attrs) => {
+    const node = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    return node;
+  };
+  const all = series.flatMap(s => weeks.map(w => s.values[w]).filter(v => v != null));
+  const top = Math.max(10, Math.ceil(Math.max(...all, 0) / 5) * 5);
+  const x = w => pad.l + (weeks.length === 1 ? (W - pad.l - pad.r) / 2
+    : (weeks.indexOf(w) / (weeks.length - 1)) * (W - pad.l - pad.r));
+  const y = v => pad.t + (1 - v / top) * (H - pad.t - pad.b);
+
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Weekly projections and actual points" });
+  for (let v = 0; v <= top; v += top / 5) {
+    svg.append(svgEl("line", { x1: pad.l, x2: W - pad.r, y1: y(v), y2: y(v),
+      stroke: "var(--grid)", "stroke-width": 1 }));
+    const label = svgEl("text", { x: pad.l - 6, y: y(v) + 4, "text-anchor": "end",
+      "font-size": 11, fill: "var(--muted)" });
+    label.textContent = Math.round(v);
+    svg.append(label);
+  }
+  weeks.forEach(w => {
+    const label = svgEl("text", { x: x(w), y: H - 8, "text-anchor": "middle",
+      "font-size": 11, fill: "var(--muted)" });
+    label.textContent = `Wk ${w}`;
+    svg.append(label);
+  });
+
+  for (const s of series) {
+    const points = weeks.filter(w => s.values[w] != null).map(w => [x(w), y(s.values[w])]);
+    if (!s.dots && points.length > 1) {
+      svg.append(svgEl("polyline", { points: points.map(p => p.join(",")).join(" "),
+        fill: "none", stroke: s.color, "stroke-width": 2,
+        "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    }
+    for (const [px, py] of points) {
+      svg.append(svgEl("circle", { cx: px, cy: py, r: s.dots ? 5 : 3.5, fill: s.color,
+        stroke: "var(--panel)", "stroke-width": 2 }));
+    }
+  }
+
+  // Crosshair and tooltip.
+  const cross = svgEl("line", { y1: pad.t, y2: H - pad.b, stroke: "var(--muted)",
+    "stroke-width": 1, visibility: "hidden" });
+  svg.append(cross);
+  const wrap = el("div", { style: "position:relative" }, [svg]);
+  const tip = el("div", { class: "viz-tip", style: "display:none" });
+  wrap.append(tip);
+  const hit = svgEl("rect", { x: pad.l - 10, y: 0, width: W - pad.l - pad.r + 20, height: H,
+    fill: "transparent" });
+  svg.append(hit);
+  hit.addEventListener("pointermove", event => {
+    const box = svg.getBoundingClientRect();
+    const px = (event.clientX - box.left) * (W / box.width);
+    const week = weeks.reduce((best, w) => Math.abs(x(w) - px) < Math.abs(x(best) - px) ? w : best, weeks[0]);
+    cross.setAttribute("x1", x(week)); cross.setAttribute("x2", x(week));
+    cross.setAttribute("visibility", "visible");
+    tip.innerHTML = "";
+    tip.append(el("div", { style: "font-weight:600;margin-bottom:4px" }, `Week ${week}`));
+    for (const s of series) {
+      const v = s.values[week];
+      tip.append(el("div", { class: "row" }, [
+        el("span", {}, [el("span", { class: "dot", style: `display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:${s.color}` }), s.label]),
+        el("span", {}, v == null ? "–" : fmt(v, 1)),
+      ]));
+    }
+    tip.style.display = "block";
+    const left = (x(week) / W) * box.width;
+    tip.style.left = `${Math.min(left + 12, box.width - 160)}px`;
+    tip.style.top = "8px";
+  });
+  hit.addEventListener("pointerleave", () => {
+    cross.setAttribute("visibility", "hidden");
+    tip.style.display = "none";
+  });
+
+  const legend = el("div", { class: "viz-legend" }, series.map(s => el("span", {}, [
+    el("span", { class: s.dots ? "dot" : "key", style: `background:${s.color}` }), s.label,
+  ])));
+  return el("div", { class: "viz-root" }, [legend, wrap]);
+}
+
+async function showPlayerTrend(playerId, target) {
+  target.innerHTML = "<div class='card muted'>Loading history…</div>";
+  const data = await api(`/api/projections/trends/${encodeURIComponent(playerId)}`);
+  const weeks = data.weeks.map(r => r.week);
+  const pick = key => Object.fromEntries(data.weeks.filter(r => r[key] != null).map(r => [r.week, r[key]]));
+  const blendValues = Object.fromEntries(data.weeks
+    .map(r => [r.week, r.consensus != null ? r.consensus : r.experts_blend])
+    .filter(([, v]) => v != null));
+  const series = [
+    { key: "blend", label: "Projection (blend)", color: "var(--series-1)", values: blendValues },
+    { key: "actual", label: "Actual", color: "var(--series-2)", values: pick("actual"), dots: true },
+    { key: "espn", label: "ESPN", color: "var(--series-3)", values: pick("espn") },
+    { key: "model", label: "Our model", color: "var(--series-4)", values: pick("model") },
+  ].filter(s => Object.keys(s.values).length);
+
+  const sources = ["espn", "sleeper", "fantasypros", "model", "consensus", "actual"];
+  const names = { espn: "ESPN", sleeper: "Sleeper", fantasypros: "FantasyPros", model: "Model",
+    consensus: "Blend", actual: "Actual" };
+  const weekRows = data.weeks.map(r => el("tr", {}, [
+    el("td", {}, `Week ${r.week}`),
+    ...sources.map(s => el("td", { class: "num" }, r[s] == null ? "–" : fmt(r[s], 1))),
+  ]));
+
+  const rosNames = Object.keys(data.ros);
+  const days = [...new Set(rosNames.flatMap(s => data.ros[s].map(p => p.date)))].sort();
+  const rosRows = days.map(day => el("tr", {}, [
+    el("td", {}, day),
+    ...rosNames.map(s => {
+      const point = data.ros[s].find(p => p.date === day);
+      return el("td", { class: "num" }, point ? fmt(point.points, 1) : "–");
+    }),
+  ]));
+
+  target.innerHTML = "";
+  target.append(el("div", { class: "card" }, [
+    el("h2", {}, `${data.name || "Player"} · ${data.position || ""} ${data.team || ""}`),
+    weeks.length ? weeklyChart(weeks, series) : el("div", { class: "muted" }, "No weekly history yet."),
+    table(["Week", ...sources.map(s => ({ label: names[s], num: true }))], weekRows),
+    el("h2", { style: "margin-top:18px" }, "Rest of season, by day pulled"),
+    days.length
+      ? table(["Date", ...rosNames.map(s => ({ label: names[s] || s, num: true }))], rosRows)
+      : el("div", { class: "muted" }, "Rest-of-season history starts with the first archived pull."),
+  ]));
+}
+
+async function renderTrends() {
+  const target = document.getElementById("tab-trends");
+  target.innerHTML = "<div class='card muted'>Loading trends…</div>";
+  const data = await api("/api/projections/trends");
+  const detail = el("div", { id: "trend-detail" });
+
+  const moverRows = moves => moves.map(m => el("tr", {
+    class: "clickable", onclick: () => showPlayerTrend(m.player_id, detail),
+  }, [
+    el("td", {}, m.name || m.player_id),
+    el("td", {}, el("span", { class: "pos" }, m.position || "")),
+    el("td", { class: "hide-sm" }, m.team || ""),
+    el("td", { class: "num" }, fmt(m.before, 1)),
+    el("td", { class: "num" }, fmt(m.now, 1)),
+    el("td", { class: "num " + (m.change >= 0 ? "good" : "bad") }, signed(m.change, 1)),
+  ]));
+  const headers = ["Player", "Pos", { label: "Team", hide: true },
+    { label: "Before", num: true }, { label: "Now", num: true }, { label: "Change", num: true }];
+  const moverCard = (title, subtitle, moves) => el("div", { class: "card" }, [
+    el("h2", {}, title),
+    el("div", { class: "muted", style: "margin-bottom:10px" }, subtitle),
+    moves.length ? table(headers, moverRows(moves)) : el("div", { class: "muted" }, "Nothing yet."),
+  ]);
+
+  const search = el("input", { list: "trend-players", placeholder: "Find a player…",
+    style: "padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);width:100%;max-width:420px" });
+  const options = el("datalist", { id: "trend-players" }, data.players.map(p =>
+    el("option", { value: `${p.name} (${p.position}, ${p.team})${p.mine ? " · mine" : ""}` })));
+  search.addEventListener("change", () => {
+    const hit = data.players.find(p =>
+      search.value.startsWith(`${p.name} (${p.position}, ${p.team})`));
+    if (hit) showPlayerTrend(hit.player_id, detail);
+  });
+
+  const rosNote = data.ros.days_of_history < 2
+    ? "Rest-of-season history starts with the first archived pull; movers appear after a few days of pulls."
+    : "Change in the rest-of-season blend over the last week.";
+
+  target.innerHTML = "";
+  target.append(
+    el("div", { class: "card" }, [
+      el("h2", {}, `Week ${data.week} trends`),
+      el("div", { class: "muted", style: "margin-bottom:10px" },
+        "Click any player, or search, to see his projections by source week by week."),
+      search, options,
+    ]),
+    detail,
+    moverCard("Your players: weekly projection moves",
+      "This week's projection against his earlier weeks.",
+      [...data.my_team.weekly.risers, ...data.my_team.weekly.fallers]),
+    moverCard("Weekly risers", "Projected well above his earlier weeks: a new role, a return, or a matchup.",
+      data.weekly.risers),
+    moverCard("Weekly fallers", "Projected well below his earlier weeks.", data.weekly.fallers),
+    moverCard("Rest-of-season risers", rosNote, data.ros.risers),
+    moverCard("Rest-of-season fallers", rosNote, data.ros.fallers),
+  );
+}
+
 // ---------- Scout tab ----------
 
 async function renderScout() {
@@ -912,7 +1127,8 @@ async function showRoster(teamId, teamName) {
 // ---------- Bootstrap ----------
 
 const RENDERERS = {
-  team: renderTeam, waivers: renderWaivers, value: renderValue, scout: renderScout, league: renderLeague,
+  team: renderTeam, waivers: renderWaivers, value: renderValue, trends: renderTrends,
+  scout: renderScout, league: renderLeague,
 };
 const loaded = {};
 

@@ -498,6 +498,66 @@ def cmd_report(args):
     return 0
 
 
+# How projections have moved: weekly and rest-of-season risers and fallers,
+# or one player's week-by-week history by source.
+def cmd_trends(args):
+    from .projections.trends import ros_movers, weekly_movers
+
+    service = build_service(args)
+    data = service.trends(args.week)
+    if data is None:
+        print("Trends need the consensus. Set FFOPT_PROJECTIONS=consensus in .env.")
+        return 1
+
+    if args.player:
+        wanted = args.player.lower()
+        matches = [pid for pid, info in data.players.items()
+                   if wanted in (info.get("name") or "").lower()]
+        if not matches:
+            print(f"No player matching '{args.player}'.")
+            return 1
+        history = data.player(matches[0])
+        print(f"{history.get('name')} ({history.get('position')}, {history.get('team')})\n")
+        sources = ["espn", "sleeper", "fantasypros", "model", "consensus", "actual"]
+        rows = [
+            [row["week"]] + [f"{row[s]:.1f}" if s in row else "-" for s in sources]
+            for row in history["weeks"]
+        ]
+        print_table(["Week"] + sources, rows)
+        if history["ros"]:
+            print("\nRest of season, by day pulled")
+            days = sorted({p["date"] for series in history["ros"].values() for p in series})
+            names = sorted(history["ros"])
+            lookup = {(s, p["date"]): p["points"] for s, series in history["ros"].items()
+                      for p in series}
+            print_table(["Date"] + names,
+                        [[d] + [f"{lookup[(s, d)]:.1f}" if (s, d) in lookup else "-"
+                                for s in names] for d in days])
+        return 0
+
+    def mover_rows(moves):
+        return [[m.get("name", m["player_id"]), m.get("position", ""), m.get("team", ""),
+                 f"{m['before']:.1f}", f"{m['now']:.1f}", f"{m['change']:+.1f}"] for m in moves]
+
+    headers = ["Player", "Pos", "Team", "Before", "Now", "Change"]
+    weekly = weekly_movers(data, limit=args.limit)
+    print(f"Week {data.week} projection vs his earlier weeks: risers")
+    print_table(headers, mover_rows(weekly["risers"]))
+    print("\nFallers")
+    print_table(headers, mover_rows(weekly["fallers"]))
+
+    ros = ros_movers(data, limit=args.limit)
+    print("\nRest-of-season blend, change over the last week: risers")
+    if ros["days_of_history"] < 2:
+        print("  (rest-of-season history starts with the first archived pull; "
+              "check back after a few days)")
+    else:
+        print_table(headers, mover_rows(ros["risers"]))
+        print("\nFallers")
+        print_table(headers, mover_rows(ros["fallers"]))
+    return 0
+
+
 def cmd_calibration(args):
     conn = history.open_db()
     report = history.calibration(conn)
@@ -689,6 +749,12 @@ def build_parser():
         subparsers.add_parser("report", help="Today's report as JSON (for the morning email).")
     )
 
+    trends_cmd = add_common(
+        subparsers.add_parser("trends", help="Projection risers and fallers, or one player's history.")
+    )
+    trends_cmd.add_argument("--player", default=None, help="Part of a player's name.")
+    trends_cmd.add_argument("--limit", type=int, default=10)
+
     backtest_cmd = subparsers.add_parser(
         "backtest", help="Grade ESPN, Sleeper, and our model on past seasons."
     )
@@ -730,6 +796,7 @@ COMMANDS = {
     "backtest": cmd_backtest,
     "value": cmd_value,
     "report": cmd_report,
+    "trends": cmd_trends,
     "trades": cmd_trades,
     "serve": cmd_serve,
 }

@@ -307,7 +307,10 @@ def test_build_scores_sources_with_league_rules_and_archives(tmp_path):
 
     connection = store.open_db(tmp_path / "p.db")
     sources = {row["source"] for row in store.latest_pull(connection, SEASON, WEEK)}
-    assert sources == {"sleeper", "fantasypros", "fantasypros_ros"}
+    assert sources == {"sleeper", "fantasypros", "fantasypros_ros", "espn_ros", "sleeper_ros"}
+    ros = {r["source"]: r for r in store.latest_pull(connection, SEASON, WEEK)
+           if r["source"] == "sleeper_ros" and r["source_id"] == "9221"}
+    assert ros["sleeper_ros"]["points"] == pytest.approx(19.6 * 2)
 
 
 def test_build_is_cached(tmp_path):

@@ -324,6 +324,48 @@ def read_projection_value(
     return report
 
 
+@app.get("/api/projections/trends")
+def read_projection_trends(week: int | None = None, limit: int = Query(10, ge=1, le=50)):
+    """Weekly and rest-of-season projection risers and fallers."""
+    from .projections.trends import ros_movers, weekly_movers
+
+    service = get_service()
+    data = service.trends(week)
+    if data is None:
+        raise HTTPException(400, "Trends need FFOPT_PROJECTIONS=consensus.")
+    team = resolve_my_team(service, week)
+    mine = {str(p.player_id) for p in team.roster}
+    players = [
+        {"player_id": pid, "name": info.get("name"), "position": info.get("position"),
+         "team": info.get("team"), "mine": pid in mine}
+        for pid, info in data.players.items()
+        if info.get("name") and data.week in data.weekly.get(pid, {})
+    ]
+    players.sort(key=lambda p: (not p["mine"], p["name"]))
+    return {
+        "week": data.week,
+        "weekly": weekly_movers(data, limit=limit),
+        "ros": ros_movers(data, limit=limit),
+        "my_team": {
+            "weekly": weekly_movers(data, limit=limit, only=mine),
+            "ros": ros_movers(data, limit=limit, only=mine),
+        },
+        "players": players,
+    }
+
+
+@app.get("/api/projections/trends/{player_id}")
+def read_player_trend(player_id: str, week: int | None = None):
+    """One player's projections by source, week by week, and rest of season by day."""
+    service = get_service()
+    data = service.trends(week)
+    if data is None:
+        raise HTTPException(400, "Trends need FFOPT_PROJECTIONS=consensus.")
+    if player_id not in data.weekly and player_id not in data.ros:
+        raise HTTPException(404, "No projection history for that player.")
+    return {"week": data.week, **data.player(player_id)}
+
+
 @app.get("/api/waivers/recommendations")
 def read_waiver_recommendations(
     week: int | None = None,

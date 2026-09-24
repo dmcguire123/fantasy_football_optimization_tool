@@ -28,6 +28,10 @@ It prints one JSON document and changes nothing in the league. It contains:
   - `model_pickups`: expected edge over the experts, already sized by the backtest
   - `espn_behind`: players the other sources rate well above ESPN
   - `roster_warnings` and `roster_boosts`
+- `trends` (may be null):
+  - `my_weekly_moves`: your players whose projection this week moved 3+ points against their earlier weeks
+  - `my_ros_moves`: your players whose rest-of-season projection moved over the last week
+  - `available_ros_risers`: free agents whose rest-of-season projection is climbing
 
 If the command fails, send a three-line email saying the report failed, with
 the last line of the error. Then stop.
@@ -39,6 +43,7 @@ Lead with the one or two things to do today. Order by urgency:
 2. Waiver claims on Monday and Tuesday. Tuesday is the last morning before waivers run.
 3. Start/sit calls on Thursday (the Thursday game) and on Sunday.
 4. Value picks: `model_pickups` with expected edge of 0.5 or more, and `espn_behind`. Your leaguemates see ESPN's numbers, so an `espn_behind` player is the easiest to steal.
+5. Trends: one line on the biggest mover on the roster (up or down), plus any free agent in `available_ros_risers`. A rising free agent is a pickup to watch even if he isn't a waiver target yet.
 
 Days with nothing to act on still get an email, but keep it very short: the record, the matchup outlook, and "nothing to do today".
 
@@ -63,6 +68,7 @@ The HTML:
 - a small matchup line: you vs them, win %, projected margin
 - up to 3 waiver or value targets, each with its bid or edge
 - roster alerts, if any
+- a "Trending" line or two, if `trends` has anything
 
 Use inline styles only, one font, and no images. Keep it under 250 words.
 
